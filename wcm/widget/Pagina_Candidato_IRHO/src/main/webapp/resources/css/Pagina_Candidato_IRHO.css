@@ -1,0 +1,302 @@
+/* Scoped Styles para o Widget de Admissão */
+
+/* Card Principal */
+.admissao-container .wizard-card {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    max-width: 900px;
+    margin: 0 auto 50px auto;
+    position: relative;
+    font-family: 'Open Sans', sans-serif; /* Garante a fonte do teste */
+}
+
+/* Barra de Progresso (Wizard) */
+.admissao-container .wizard-progress {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    position: relative;
+}
+
+/* Linha conectora entre os passos */
+.admissao-container .wizard-progress::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #e6e6e6;
+    z-index: 0;
+}
+
+/* Item do Passo */
+.admissao-container .step-item {
+    z-index: 1;
+    text-align: center;
+    width: 100px;
+    background-color: transparent; /* Fix para sobreposição */
+    position: relative; /* Fix para z-index */
+}
+
+/* Círculo do Passo */
+.admissao-container .step-circle {
+    width: 35px;
+    height: 35px;
+    background: #fff;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    line-height: 31px;
+    font-weight: bold;
+    color: #999;
+    margin: 0 auto;
+    transition: all 0.3s;
+    position: relative; /* Garante que fique acima da linha */
+}
+
+/* Label do Passo */
+.admissao-container .step-label {
+    font-size: 11px;
+    color: #999;
+    margin-top: 5px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* --- Estados Ativos --- */
+.admissao-container .step-item.active .step-circle {
+    border-color: #1eaad9;
+    background: #fff;
+    color: #1eaad9;
+    box-shadow: 0 0 0 3px rgba(30, 170, 217, 0.2);
+}
+
+.admissao-container .step-item.active .step-label {
+    color: #1eaad9;
+}
+
+/* --- Estados Completados --- */
+.admissao-container .step-item.completed .step-circle {
+    background: #1eaad9;
+    border-color: #1eaad9;
+    color: #fff;
+}
+
+.admissao-container .step-item.completed .step-label {
+    color: #1eaad9;
+}
+
+/* Conteúdo e Animação */
+.admissao-container .step-content {
+    display: none;
+    animation: admissaoFadeIn 0.4s ease-in-out;
+}
+
+.admissao-container .step-content.active {
+    display: block;
+}
+
+@keyframes admissaoFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Títulos de Seção */
+.admissao-container .section-title {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    color: #555;
+    margin-top: 0;
+}
+
+/* Upload Boxes */
+.admissao-container .upload-box {
+    border: 2px dashed #ddd;
+    padding: 10px; /* Padding menor para dar espaço ao conteúdo */
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+    background: #fff;
+    
+    /* --- AJUSTES DE FLEXBOX --- */
+    height: 210px; /* Altura um pouco maior para evitar cortes */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centraliza tudo verticalmente */
+    align-items: center;     /* Centraliza tudo horizontalmente */
+    overflow: hidden;
+}
+
+.admissao-container .upload-box:hover {
+    border-color: #1eaad9;
+    background: #f9fdfc;
+}
+
+.admissao-container .upload-box.uploaded {
+    border-color: #5cb85c;
+    background: #dff0d8;
+}
+
+/* Ajustes em Ícones e Textos dentro das boxes */
+.admissao-container .upload-box i {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.admissao-container .upload-box h5 {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+/* Tabelas e Paineis */
+.admissao-container .table {
+    background: #fff;
+}
+
+.admissao-container .panel {
+    box-shadow: none;
+    border-color: #ddd;
+}
+
+/* Botão Anexar dentro da caixa */
+.admissao-container .upload-box .btn {
+    margin-top: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    padding: 5px 15px;
+}
+
+.admissao-container .upload-box p.text-muted {
+    width: 95%;              /* Ocupa quase toda a largura */
+    white-space: nowrap;     /* Força uma única linha */
+    overflow: hidden;        /* Esconde o excedente */
+    text-overflow: ellipsis; /* Adiciona os "..." */
+    
+    /* --- CORREÇÃO DO CORTE --- */
+    line-height: 20px;       /* Altura segura para não cortar letras g/j/p */
+    min-height: 20px;        /* Garante que o elemento tenha altura mínima */
+    margin: 10px 0;          /* Espaço em cima e embaixo */
+    font-size: 12px;
+    flex-shrink: 0;          /* IMPEDE que o flexbox esmague esse item */
+    color: #777;
+}
+
+/* 1. Linha base das abas (o chão onde elas pisam) */
+.admissao-container .nav-tabs {
+    border-bottom: 1px solid #ddd;
+}
+
+/* 2. A Aba Ativa (O Segredo do Contorno) */
+.admissao-container .nav-tabs > li.active > a, 
+.admissao-container .nav-tabs > li.active > a:hover, 
+.admissao-container .nav-tabs > li.active > a:focus {
+    background-color: #fff;     /* Mesma cor do fundo do conteúdo */
+    color: #555;                /* Cor do texto */
+    cursor: default;
+    
+    /* BORDAS: */
+    border: 1px solid #ddd;     /* Borda Cinza em volta */
+    border-bottom-color: transparent; /* SEM borda embaixo para fundir */
+    
+    /* POSICIONAMENTO: */
+    margin-bottom: -1px;        /* Puxa 1px para baixo para cobrir a linha */
+    
+    /* DETALHE VISUAL (Opcional): Borda laranja no topo igual a logo */
+    border-top: 3px solid #ec7e2f; 
+    font-weight: bold;
+}
+
+/* 3. A Caixa de Conteúdo (O corpo da pasta) */
+.admissao-container .tab-content {
+    border: 1px solid #ddd;     /* Borda em volta de tudo */
+    border-top: none;           /* Remove o topo para usar a linha das tabs */
+    background: #fff;
+    padding: 20px;
+    
+    /* Arredondar apenas embaixo */
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    
+    /* Sombra suave para destacar do fundo */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* 4. Estilo das Abas NÃO ativas (Hover) */
+.admissao-container .nav-tabs > li > a {
+    margin-right: 2px;
+    border-radius: 4px 4px 0 0;
+    color: #1eaad9; /* Azul padrão */
+}
+
+.admissao-container .nav-tabs > li > a:hover {
+    background-color: #f9f9f9;
+    border-color: #eee #eee #ddd;
+}
+
+/* =========================================================================
+   CUSTOMIZAÇÃO VISUAL: CAIXAS DE TEXTO (INPUTS/TEXTAREAS)
+   by IRHO Admissão Digital
+   ========================================================================= */
+
+/* 1. Alvo Global: Input de Texto, E-mail, Data, Zoom e Áreas de Texto */
+.admissao-container input[type="text"],
+.admissao-container input[type="email"],
+.admissao-container input[type="date"],
+.admissao-container .flaticon-zoom, 
+.admissao-container textarea {
+    padding: 10px 15px; 
+    border-radius: 4px; 
+    border: 1px solid #d2d6de; 
+    background-color: #fff; 
+    color: #333; 
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+/* 2. Efeito visual ao CLICAR / FOCAR (O mais importante para UX) */
+.admissao-container input:focus,
+.admissao-container textarea:focus {
+    border-color: #3c8dbc;
+    outline: 0; 
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 6px rgba(102, 175, 233, .6);
+}
+
+/* 3. Ajuste Específico para a Área de Resposta da Correção */
+.admissao-container #txtRespostaCorrecaoCandidato {
+    resize: vertical; /* Permite ao candidato aumentar o tamanho da caixa, mas só para baixo */
+    min-height: 100px; /* Garante que não fique muito espremido */
+    margin-top: 5px; /* Separa do label */
+}
+
+/* 4. Estilização para Inputs Desabilitados (Read-only) */
+.admissao-container input:disabled,
+.admissao-container input[readonly],
+.admissao-container textarea:disabled,
+.admissao-container textarea[readonly] {
+    background-color: #eee; 
+    border-color: #ddd;
+    color: #666;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.vt-card .form-group {
+    margin-bottom: 10px;
+}
+.vt-card label {
+    font-size: 11px;
+    color: #777;
+    margin-bottom: 3px;
+}
