@@ -39,7 +39,7 @@ var AdmissaoWidget = SuperWidget.extend({
                 '<input type="hidden" id="tae_lgpd_iddoc_' + this.instanceId + '">' +
                 '<input type="hidden" id="tae_lgpd_status_' + this.instanceId + '">' +
                 '<input type="hidden" id="tae_lgpd_link_' + this.instanceId + '">';
-            $("#AdmissaoWidget_" + this.instanceId).find(".wizard-card").append(inps);
+            $("#AdmissaoWidget_" + this.instanceId).find("#form_main_container").append(inps);
         }
 
         this.iniciarListeners($div);
@@ -252,10 +252,10 @@ var AdmissaoWidget = SuperWidget.extend({
         this.mostrarLoading(false);
 
         // Oculta completamente a barra de progresso, o formulário e os botões de avançar
-        $div.find(".wizard-progress, form, hr, .row:last").hide();
+        $div.find("#sidebar_etapas_card, form, hr, .row:last").hide();
 
         // Injeta o alerta de bloqueio na tela
-        $div.find(".wizard-card").append(
+        $div.find("#form_main_container").append(
             '<div class="alert alert-warning text-center" style="padding:40px; margin-top:20px; border-color: #faebcc; background-color: #fcf8e3;">' +
             '<h3 style="color:#8a6d3b;"><i class="flaticon flaticon-lock icon-md"></i> Acesso Bloqueado</h3>' +
             '<p style="color:#8a6d3b; font-size:16px; margin-top: 15px;">' + mensagem + '</p>' +
@@ -2058,7 +2058,7 @@ var AdmissaoWidget = SuperWidget.extend({
             '</div></div>';
 
         $("#box_progresso_envio_" + that.instanceId).remove();
-        $div.find(".wizard-card hr").before(containerProgresso);
+        $div.find("#form_main_container hr").before(containerProgresso);
 
         var $textoProgresso = $("#texto_progresso_" + that.instanceId);
         var $barraProgresso = $("#barra_progresso_" + that.instanceId);
@@ -2150,7 +2150,7 @@ var AdmissaoWidget = SuperWidget.extend({
 
                 // Aguarda 800ms para o candidato ver a barra encher, e depois mostra a tela final
                 setTimeout(function () {
-                    $div.find(".wizard-card").html('<div class="alert alert-success text-center" style="padding:40px; margin-top:20px;"><h3>Sucesso!</h3><p style="font-size: 16px;">Seus dados e documentos foram enviados e o processo foi encaminhado ao RH.</p><i class="flaticon flaticon-check-circle icon-xl text-success" style="font-size: 60px; margin-top: 20px; display: inline-block;"></i></div>');
+                    $div.find("#form_main_container").html('<div class="alert alert-success text-center" style="padding:40px; margin-top:20px;"><h3>Sucesso!</h3><p style="font-size: 16px;">Seus dados e documentos foram enviados e o processo foi encaminhado ao RH.</p><i class="flaticon flaticon-check-circle icon-xl text-success" style="font-size: 60px; margin-top: 20px; display: inline-block;"></i></div>');
                     $('html, body').animate({ scrollTop: $div.offset().top - 100 }, 'slow');
                 }, 800);
 

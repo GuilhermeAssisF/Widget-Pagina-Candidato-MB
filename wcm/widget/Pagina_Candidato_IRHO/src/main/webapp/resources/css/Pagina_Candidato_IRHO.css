@@ -1,302 +1,496 @@
-/* Scoped Styles para o Widget de Admissão */
+/* ==========================================================================
+   DESIGN SYSTEM - SAAS (Página do Candidato - TEMA ROXO)
+   ========================================================================== */
 
-/* Card Principal */
-.admissao-container .wizard-card {
-    background: #fff;
-    border-radius: 4px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    padding: 30px;
-    max-width: 900px;
-    margin: 0 auto 50px auto;
-    position: relative;
-    font-family: 'Open Sans', sans-serif; /* Garante a fonte do teste */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+div[id^="AdmissaoWidget_"] {
+    font-family: 'Inter', sans-serif !important;
 }
 
-/* Barra de Progresso (Wizard) */
-.admissao-container .wizard-progress {
+:root {
+    /* Cores extraídas do Painel de Admissão */
+    --color-primary: #8e7dd6; 
+    --color-primary-dark: #58489d;
+    --color-primary-light: #f3f0fd;
+    --color-primary-hover: #6f5ebc;
+    
+    /* Gradientes da Identidade Visual do Painel */
+    --header-grad-inicio: #8e7dd6;
+    --header-grad-fim: #58489d;
+
+    /* Sombras e Bordas SaaS do Painel */
+    --sombra-header: 0 10px 25px -5px rgba(117, 65, 154, 0.3);
+    --radius-lg: 16px;
+}
+
+/* Aplicação da Identidade no Cabeçalho */
+.custom-page-header {
+    background: linear-gradient(135deg, var(--header-grad-inicio) 0%, var(--header-grad-fim) 100%) !important;
+    padding: 20px 32px !important;
+    box-shadow: var(--sombra-header) !important;
+    border-radius: var(--radius-lg);
+    max-width: 1000px;
+    margin: 24px auto 0 auto;
+}
+
+/* Ajuste do Glassmorphism para os botões do cabeçalho */
+.header-glass-card {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(8px); /* Efeito de vidro idêntico ao painel */
+    border-radius: 12px;
+}
+
+/* ==========================================================================
+   HEADER SUPERIOR (PAINEL ADMISSÃO)
+   ========================================================================== */
+.custom-page-header {
+    background: linear-gradient(135deg, var(--sidebar-grad-inicio) 0%, var(--sidebar-grad-fim) 100%);
+    padding: 20px 40px;
     display: flex;
     justify-content: space-between;
-    margin-bottom: 40px;
-    position: relative;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    color: #fff;
+    border-radius: 16px;
+    max-width: 1000px;
+    margin: 24px auto 0 auto; /* Mantém o padrão de margem do Painel */
 }
 
-/* Linha conectora entre os passos */
-.admissao-container .wizard-progress::before {
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* ==========================================
+   CAIXA DE VIDRO E LOGO
+   ========================================== */
+.header-logo-wrapper {
+    background: rgba(255, 255, 255, 0.1) !important;
+    /* Um ligeiro ajuste no padding para garantir que a imagem tem o mesmo respiro de todos os lados */
+    padding: 8px 12px !important; 
+    border-radius: 12px !important;
+    margin-right: 16px !important; 
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    /* Força o alinhamento central absoluto */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: max-content; 
+}
+
+.header-logo {
+    max-height: 30px !important; /* Logo reduzida (antes estava 45px) */
+    width: auto !important;
+    margin: 0 !important; /* Remove qualquer margem nativa que estivesse a empurrar a logo para a direita */
+    display: block !important;
+    object-fit: contain;
+    filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.185)) !important;
+}
+
+/* ==========================================
+   ALINHAMENTO E ESPAÇAMENTO DOS TEXTOS
+   ========================================== */
+.header-text-group {
+    display: flex !important;
+    flex-direction: column !important; /* Empilha o Título e o Subtítulo */
+    justify-content: center !important;
+    gap: 2px !important; /* Define exatamente 2px de distância entre eles */
+}
+
+.header-text-group h2 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    /* Reduz a altura invisível da linha que afastava os textos */
+    line-height: 1.1 !important; 
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.089) !important;
+}
+
+.header-text-group .header-subtitle {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    font-weight: 500;
+    letter-spacing: 2px;
+    margin: 0 !important;
+    /* Garante que a legenda não tem margens invisíveis a atrapalhar */
+    line-height: 1 !important; 
+}
+
+/* ==========================================================================
+   STEPPER HORIZONTAL MODERNO
+   ========================================================================== */
+.modern-stepper-wrapper {
+    background: var(--color-surface);
+    padding: 24px 0;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.stepper-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+.stepper-list {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    width: 100%;
+}
+
+/* Linha Cinza de Fundo */
+.stepper-list::before {
     content: '';
     position: absolute;
-    top: 15px;
-    left: 0;
-    right: 0;
+    top: 12px;
+    left: 20px;
+    right: 20px;
     height: 2px;
-    background: #e6e6e6;
-    z-index: 0;
-}
-
-/* Item do Passo */
-.admissao-container .step-item {
+    background: #e5e7eb;
     z-index: 1;
+}
+
+.step-item {
+    position: relative;
+    z-index: 2;
+    flex: 1;
     text-align: center;
-    width: 100px;
-    background-color: transparent; /* Fix para sobreposição */
-    position: relative; /* Fix para z-index */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-/* Círculo do Passo */
-.admissao-container .step-circle {
-    width: 35px;
-    height: 35px;
-    background: #fff;
-    border: 2px solid #ccc;
+/* Linha Roxa Conectando Steps Completos */
+.step-item::after {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--color-primary);
+    z-index: 1;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+}
+
+.step-item.completed::after {
+    transform: scaleX(1);
+}
+
+.step-item:last-child::after {
+    display: none;
+}
+
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 3;
+    background: var(--color-surface);
+    padding: 0 8px;
+}
+
+.step-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    line-height: 31px;
-    font-weight: bold;
-    color: #999;
-    margin: 0 auto;
-    transition: all 0.3s;
-    position: relative; /* Garante que fique acima da linha */
-}
-
-/* Label do Passo */
-.admissao-container .step-label {
-    font-size: 11px;
-    color: #999;
-    margin-top: 5px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-/* --- Estados Ativos --- */
-.admissao-container .step-item.active .step-circle {
-    border-color: #1eaad9;
+    border: 2px solid #cbd5e1;
     background: #fff;
-    color: #1eaad9;
-    box-shadow: 0 0 0 3px rgba(30, 170, 217, 0.2);
+    transition: all 0.3s ease;
+    font-size: 13px;
+    font-weight: 700;
+    color: #94a3b8;
 }
 
-.admissao-container .step-item.active .step-label {
-    color: #1eaad9;
-}
-
-/* --- Estados Completados --- */
-.admissao-container .step-item.completed .step-circle {
-    background: #1eaad9;
-    border-color: #1eaad9;
+.step-item.active .step-icon {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(131, 113, 208, 0.2);
     color: #fff;
 }
 
-.admissao-container .step-item.completed .step-label {
-    color: #1eaad9;
+.step-item.completed .step-icon {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: #fff;
 }
 
-/* Conteúdo e Animação */
-.admissao-container .step-content {
+.step-label {
+    font-size: 12px;
+    margin-top: 8px;
+    color: #94a3b8;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.step-item.active .step-label {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.step-item.completed .step-label {
+    color: #334155;
+}
+
+@media (max-width: 768px) {
+    .step-label {
+        font-size: 10px;
+    }
+    .custom-page-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+}
+
+/* ==========================================================================
+   INPUTS TRADICIONAIS (LABELS NO TOPO) - CONFORME REFERÊNCIA
+   ========================================================================== */
+
+.form-group {
+    margin-bottom: var(--spacing-md);
+    position: relative;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--color-text) !important;
+    margin-bottom: 6px !important;
+    position: static !important;
+    pointer-events: auto !important;
+}
+
+.form-group input.form-control,
+.form-group select.form-control {
+    width: 100%;
+    height: 44px; /* Altura menor, mais elegante */
+    padding: 10px 14px;
+    border: var(--border-width) solid var(--color-border) !important;
+    border-radius: var(--radius-sm) !important;
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    font-size: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important; /* Sombra bem leve igual prints */
+    transition: all 0.2s ease;
+}
+
+.form-group select.form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px top 50% !important;
+    background-size: 10px auto !important;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 3px rgba(131, 113, 208, 0.15) !important;
+    outline: none;
+}
+
+.form-group input:disabled,
+.form-group input[readonly],
+.form-group select:disabled,
+.form-group select[readonly] {
+    background-color: var(--color-bg) !important;
+    color: var(--color-text-muted) !important;
+    cursor: not-allowed;
+    border-color: #f3f4f6 !important;
+}
+
+/* ==========================================================================
+   BOTÕES E TABS (REFINADOS)
+   ========================================================================== */
+
+.btn {
+    font-family: inherit;
+    font-weight: 600 !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 10px 24px !important;
+    transition: all 0.2s ease !important;
+    font-size: 14px !important;
+    border: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: var(--color-text) !important; /* Como "Save Task" escuro da imagem */
+    color: #FFF !important;
+}
+
+.btn-primary:hover {
+    background-color: #374151 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-info, .btn-secondary {
+    background-color: var(--color-primary) !important;
+    color: #ffffff !important;
+}
+
+.btn-info:hover, .btn-secondary:hover {
+    background-color: var(--color-primary-hover) !important;
+    box-shadow: 0 4px 12px rgba(131, 113, 208, 0.2) !important;
+}
+
+.btn-accept, .btn-success {
+    background-color: var(--color-text) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 10px 24px !important;
+}
+
+.btn-accept:hover, .btn-success:hover {
+    background-color: #374151 !important;
+}
+
+.btn-decline, .btn-danger {
+    background-color: var(--color-surface) !important;
+    color: var(--color-danger) !important;
+    border: 1px solid var(--color-danger) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 10px 24px !important;
+}
+
+.btn-decline:hover, .btn-danger:hover {
+    background-color: var(--color-danger-bg) !important;
+}
+
+.nav-tabs {
+    border: none !important;
+    background-color: transparent !important;
+    display: inline-flex;
+    margin-bottom: var(--spacing-lg);
+    gap: 8px;
+}
+
+.nav-tabs > li {
+    margin: 0 !important;
+}
+
+.nav-tabs > li > a {
+    border: 1px solid var(--color-border) !important;
+    color: var(--color-text-muted) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 8px 16px !important;
+    font-weight: 500;
+    margin: 0 !important;
+    background: var(--color-surface);
+}
+
+.nav-tabs > li > a:hover {
+    background-color: var(--color-bg) !important;
+    color: var(--color-text) !important;
+    border-color: #d1d5db !important;
+}
+
+.nav-tabs > li.active > a {
+    background-color: var(--color-surface) !important;
+    color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 2px 8px rgba(131, 113, 208, 0.1) !important;
+    font-weight: 600;
+}
+
+.tab-content.shadow-panel {
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+.section-title {
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title i {
+    color: var(--color-primary);
+}
+
+/* Animação das steps */
+.step-content {
     display: none;
-    animation: admissaoFadeIn 0.4s ease-in-out;
+    animation: fadeIn 0.3s ease;
 }
-
-.admissao-container .step-content.active {
+.step-content.active {
     display: block;
 }
-
-@keyframes admissaoFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(5px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-/* Títulos de Seção */
-.admissao-container .section-title {
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-    color: #555;
-    margin-top: 0;
-}
-
-/* Upload Boxes */
-.admissao-container .upload-box {
-    border: 2px dashed #ddd;
-    padding: 10px; /* Padding menor para dar espaço ao conteúdo */
+/* Upload box */
+.upload-box {
+    border: 1.5px dashed #cbd5e1;
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
     text-align: center;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: 0.2s;
-    background: #fff;
-    
-    /* --- AJUSTES DE FLEXBOX --- */
-    height: 210px; /* Altura um pouco maior para evitar cortes */
+    transition: all 0.2s;
+    height: 180px;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Centraliza tudo verticalmente */
-    align-items: center;     /* Centraliza tudo horizontalmente */
-    overflow: hidden;
+    justify-content: center;
+    align-items: center;
+}
+.upload-box:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+.upload-box.uploaded {
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
 }
 
-.admissao-container .upload-box:hover {
-    border-color: #1eaad9;
-    background: #f9fdfc;
+.panel-default {
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    background-color: var(--color-surface) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    margin-bottom: var(--spacing-lg) !important;
 }
 
-.admissao-container .upload-box.uploaded {
-    border-color: #5cb85c;
-    background: #dff0d8;
+.panel-heading {
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    color: var(--color-text) !important;
+    font-weight: 600 !important;
+    padding: 16px 20px !important;
 }
 
-/* Ajustes em Ícones e Textos dentro das boxes */
-.admissao-container .upload-box i {
-    display: block;
-    margin-bottom: 10px;
-}
-
-.admissao-container .upload-box h5 {
-    margin: 5px 0;
-    font-size: 14px;
-}
-
-/* Tabelas e Paineis */
-.admissao-container .table {
-    background: #fff;
-}
-
-.admissao-container .panel {
-    box-shadow: none;
-    border-color: #ddd;
-}
-
-/* Botão Anexar dentro da caixa */
-.admissao-container .upload-box .btn {
-    margin-top: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 11px;
-    padding: 5px 15px;
-}
-
-.admissao-container .upload-box p.text-muted {
-    width: 95%;              /* Ocupa quase toda a largura */
-    white-space: nowrap;     /* Força uma única linha */
-    overflow: hidden;        /* Esconde o excedente */
-    text-overflow: ellipsis; /* Adiciona os "..." */
-    
-    /* --- CORREÇÃO DO CORTE --- */
-    line-height: 20px;       /* Altura segura para não cortar letras g/j/p */
-    min-height: 20px;        /* Garante que o elemento tenha altura mínima */
-    margin: 10px 0;          /* Espaço em cima e embaixo */
-    font-size: 12px;
-    flex-shrink: 0;          /* IMPEDE que o flexbox esmague esse item */
-    color: #777;
-}
-
-/* 1. Linha base das abas (o chão onde elas pisam) */
-.admissao-container .nav-tabs {
-    border-bottom: 1px solid #ddd;
-}
-
-/* 2. A Aba Ativa (O Segredo do Contorno) */
-.admissao-container .nav-tabs > li.active > a, 
-.admissao-container .nav-tabs > li.active > a:hover, 
-.admissao-container .nav-tabs > li.active > a:focus {
-    background-color: #fff;     /* Mesma cor do fundo do conteúdo */
-    color: #555;                /* Cor do texto */
-    cursor: default;
-    
-    /* BORDAS: */
-    border: 1px solid #ddd;     /* Borda Cinza em volta */
-    border-bottom-color: transparent; /* SEM borda embaixo para fundir */
-    
-    /* POSICIONAMENTO: */
-    margin-bottom: -1px;        /* Puxa 1px para baixo para cobrir a linha */
-    
-    /* DETALHE VISUAL (Opcional): Borda laranja no topo igual a logo */
-    border-top: 3px solid #ec7e2f; 
-    font-weight: bold;
-}
-
-/* 3. A Caixa de Conteúdo (O corpo da pasta) */
-.admissao-container .tab-content {
-    border: 1px solid #ddd;     /* Borda em volta de tudo */
-    border-top: none;           /* Remove o topo para usar a linha das tabs */
-    background: #fff;
-    padding: 20px;
-    
-    /* Arredondar apenas embaixo */
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-    
-    /* Sombra suave para destacar do fundo */
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-
-/* 4. Estilo das Abas NÃO ativas (Hover) */
-.admissao-container .nav-tabs > li > a {
-    margin-right: 2px;
-    border-radius: 4px 4px 0 0;
-    color: #1eaad9; /* Azul padrão */
-}
-
-.admissao-container .nav-tabs > li > a:hover {
-    background-color: #f9f9f9;
-    border-color: #eee #eee #ddd;
-}
-
-/* =========================================================================
-   CUSTOMIZAÇÃO VISUAL: CAIXAS DE TEXTO (INPUTS/TEXTAREAS)
-   by IRHO Admissão Digital
-   ========================================================================= */
-
-/* 1. Alvo Global: Input de Texto, E-mail, Data, Zoom e Áreas de Texto */
-.admissao-container input[type="text"],
-.admissao-container input[type="email"],
-.admissao-container input[type="date"],
-.admissao-container .flaticon-zoom, 
-.admissao-container textarea {
-    padding: 10px 15px; 
-    border-radius: 4px; 
-    border: 1px solid #d2d6de; 
-    background-color: #fff; 
-    color: #333; 
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out;
-}
-
-/* 2. Efeito visual ao CLICAR / FOCAR (O mais importante para UX) */
-.admissao-container input:focus,
-.admissao-container textarea:focus {
-    border-color: #3c8dbc;
-    outline: 0; 
-    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 6px rgba(102, 175, 233, .6);
-}
-
-/* 3. Ajuste Específico para a Área de Resposta da Correção */
-.admissao-container #txtRespostaCorrecaoCandidato {
-    resize: vertical; /* Permite ao candidato aumentar o tamanho da caixa, mas só para baixo */
-    min-height: 100px; /* Garante que não fique muito espremido */
-    margin-top: 5px; /* Separa do label */
-}
-
-/* 4. Estilização para Inputs Desabilitados (Read-only) */
-.admissao-container input:disabled,
-.admissao-container input[readonly],
-.admissao-container textarea:disabled,
-.admissao-container textarea[readonly] {
-    background-color: #eee; 
-    border-color: #ddd;
-    color: #666;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-.vt-card .form-group {
-    margin-bottom: 10px;
-}
-.vt-card label {
-    font-size: 11px;
-    color: #777;
-    margin-bottom: 3px;
+.panel-body {
+    padding: 20px !important;
 }
