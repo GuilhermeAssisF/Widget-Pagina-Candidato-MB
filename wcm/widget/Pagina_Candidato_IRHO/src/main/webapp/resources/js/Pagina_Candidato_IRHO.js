@@ -540,34 +540,23 @@ var AdmissaoWidget = SuperWidget.extend({
                                 }
 
                                 // --- LÓGICA DE BLOQUEIO BANCÁRIO ---
-                                // Agora busca pelo campo correto do formulário principal (BancoPAgto ou txtCodBanPgto)
                                 var valBanco = getVal(["zoom_banco"]);
-                                var valAgencia = getVal(["zoom_agencia"]);  // Puxa a agência se também houver
+                                var valAgencia = getVal(["zoom_agencia"]);
 
                                 var $inputBanco = $("#cand_banco_" + that.instanceId);
                                 var $inputAgencia = $("#cand_agencia_" + that.instanceId);
 
                                 if (valBanco) {
-                                    // Se houver banco no formulário principal, exibe a aba e esconde a pergunta
-                                    $("#div_campos_bancarios_" + that.instanceId).show();
-                                    $("#cand_possui_conta_itau_" + that.instanceId).closest(".row").hide();
-                                    
-                                    // Preenche, bloqueia e pinta de cinza
                                     $inputBanco.val(valBanco).prop("readonly", true).css({ "background-color": "#eee", "pointer-events": "none" });
-
                                     if (valAgencia) {
-                                        // Se houver agência também, preenche e bloqueia
                                         $inputAgencia.val(valAgencia).prop("readonly", true).css({ "background-color": "#eee", "pointer-events": "none" });
                                     } else {
-                                        // Se houver banco mas não agência, libera a agência para o candidato digitar
-                                        $inputAgencia.val("").prop("readonly", false).css({ "background-color": "#fff", "pointer-events": "auto" });
+                                        $inputAgencia.prop("readonly", false).css({ "background-color": "#fff", "pointer-events": "auto" });
                                     }
                                 } else {
-                                    // Se o RH não preencheu nada no formulário principal, libera ambos para o candidato
                                     $inputBanco.prop("readonly", false).css({ "background-color": "#fff", "pointer-events": "auto" });
                                     $inputAgencia.prop("readonly", false).css({ "background-color": "#fff", "pointer-events": "auto" });
                                 }
-                                // ------------------------------------
 
                                 var sexoCodigo = getVal(["txtSexoValue", "txtSexo"]);
                                 var sexoDescricao = (sexoCodigo === "M" || sexoCodigo.toLowerCase() === "masculino") ? "Masculino" : (sexoCodigo === "F" || sexoCodigo.toLowerCase() === "feminino") ? "Feminino" : "";
@@ -789,23 +778,79 @@ var AdmissaoWidget = SuperWidget.extend({
 
     getKeyStorage: function () { return "admissao_draft_" + (this.idOrigem || "novo"); },
 
+    // =========================================================================
+    // FUNÇÕES VISUAIS: Pintam as caixas de verde ao recarregar a página (F5)
+    // =========================================================================
+
+    // 1. Para os Documentos Gerais do Candidato
+    atualizarVisualDocumentoSucesso: function (prefixoCampo, nomeArquivo) {
+        var that = this;
+        var $box = $("#box_" + prefixoCampo + "_" + that.instanceId);
+        var $status = $("#status_" + prefixoCampo + "_" + that.instanceId);
+        var $icon = $box.find("i.flaticon");
+        var $btn = $box.find("button");
+
+        if ($box.length) {
+            $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
+            $icon.removeClass("text-info text-warning flaticon-refresh is-spinning flaticon-file-check flaticon-cloudupload").addClass("text-success flaticon-check-circle");
+            $box.find("h5").addClass("text-success");
+            $status.html('<strong style="color:#3c763d;">Salvo na nuvem: </strong>' + nomeArquivo).removeClass("text-muted").addClass("text-success");
+            $btn.text("Substituir Arquivo").removeClass("btn-default btn-warning btn-danger").addClass("btn-success").prop("disabled", false);
+        }
+    },
+
+    // 2. Para os Documentos dos Dependentes
+    atualizarVisualDocumentoDependenteSucesso: function ($hiddenInput, nomeArquivo) {
+        var $box = $hiddenInput.siblings(".upload-box");
+        var $status = $box.find(".dep-file-status");
+        var $icon = $box.find("i.flaticon");
+        var $btn = $box.find(".dep-file-btn");
+
+        if ($box.length) {
+            $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
+            $icon.removeClass("text-info text-warning flaticon-refresh is-spinning flaticon-person flaticon-assignment-ind flaticon-file-check flaticon-local-hospital text-danger flaticon-close").addClass("text-success flaticon-check-circle");
+            $box.find("h5").addClass("text-success");
+            $status.html('<strong style="color:#3c763d;">Salvo na nuvem: </strong>' + nomeArquivo).removeClass("text-muted").addClass("text-success");
+            $btn.text("Substituir Arquivo").removeClass("btn-default btn-warning btn-danger").addClass("btn-success").prop("disabled", false);
+        }
+    },
+
     salvarRascunhoLocal: function () {
         var that = this;
+        if (that.bloqueioRestauracaoAtivo) return;
+
         var $div = $("#AdmissaoWidget_" + this.instanceId);
         try {
             var dadosCampos = {};
             $div.find("input, select, textarea").each(function () {
                 var $el = $(this); var id = $el.attr("id");
-                if (id && id.indexOf("_base64_") === -1 && $el.attr("type") !== "file") {
+                if (id && $el.attr("type") !== "file") {
                     var cleanId = id.replace("_" + that.instanceId, "");
+                    if (id.indexOf("_base64_") !== -1) {
+                        if ($el.val() === "[ENVIADO_PROCESSO]") dadosCampos[cleanId] = $el.val();
+                        return;
+                    }
                     if ($el.attr("type") === "checkbox" || $el.attr("type") === "radio") {
                         if ($el.is(":checked")) dadosCampos[cleanId] = $el.val();
-                        else if ($el.attr("type") === "checkbox" && !dadosCampos[cleanId]) dadosCampos[cleanId] = false;
                     } else {
                         dadosCampos[cleanId] = $el.val();
                     }
                 }
             });
+
+            // SALVA ROTAS DE VALE TRANSPORTE
+            var dadosRotasVT = [];
+            $div.find(".vt-card").each(function () {
+                var $card = $(this);
+                dadosRotasVT.push({
+                    destino: $card.find(".vt-destino").val(), tipo: $card.find(".vt-tipo").val(),
+                    empresa: $card.find(".vt-empresa").val(), linha: $card.find(".vt-linha").val(), valor: $card.find(".vt-valor").val()
+                });
+            });
+
+            // SALVA DEPENDENTES SELECIONADOS NO PLANO DE SAÚDE
+            var depsSelecionadosPS = [];
+            $div.find(".check-plano-saude:checked").each(function () { depsSelecionadosPS.push($(this).data("nome-dep")); });
 
             var dadosDependentes = [];
             $div.find(".dependente-card").each(function () {
@@ -813,11 +858,14 @@ var AdmissaoWidget = SuperWidget.extend({
                 $card.find("input, select").each(function () {
                     var className = $(this).attr("class");
                     if (className) {
-                        var classes = className.split(" ");
+                        var classes = className.split(/\s+/);
                         for (var i = 0; i < classes.length; i++) {
                             if (classes[i].indexOf("dep-") === 0) {
                                 if ($(this).attr("type") === "checkbox") objDep[classes[i]] = $(this).prop("checked");
-                                else objDep[classes[i]] = $(this).val();
+                                else {
+                                    objDep[classes[i]] = $(this).val();
+                                    if (classes[i].indexOf("dep-base64-") === 0) objDep[classes[i] + "-name"] = $(this).attr("data-filename") || "";
+                                }
                             }
                         }
                     }
@@ -826,89 +874,163 @@ var AdmissaoWidget = SuperWidget.extend({
             });
 
             var estado = {
-                passo: this.passoAtual, abas: this.abasVisitadas,
-                campos: dadosCampos, dependentes: dadosDependentes, timestamp: new Date().getTime()
+                passo: this.passoAtual, campos: dadosCampos, dependentes: dadosDependentes,
+                rotasVT: dadosRotasVT, depsPS: depsSelecionadosPS, timestamp: new Date().getTime()
             };
             localStorage.setItem(this.getKeyStorage(), JSON.stringify(estado));
         } catch (e) { console.warn("Erro ao salvar local:", e); }
     },
 
     restaurarRascunhoLocal: function () {
-        var that = this; var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        
+        // ATIVA A TRAVA DE SEGURANÇA CONTRA CONFLITOS DE RECARGA (F5)
+        that.bloqueioRestauracaoAtivo = true;
+
         try {
             var json = localStorage.getItem(this.getKeyStorage());
-            if (json) {
-                var estado = JSON.parse(json);
-                if (estado.campos) {
-                    for (var key in estado.campos) {
-                        var valor = estado.campos[key]; var $el = $("#" + key + "_" + that.instanceId);
-                        if ($el.length > 0) {
-                            if ($el.attr("type") === "radio") {
-                                $el.val(valor);
-                            } else if ($el.attr("type") === "checkbox") {
-                                $el.prop("checked", (valor === true || valor === "true" || valor === $el.val()));
-                            } else {
-                                $el.val(valor);
-                                // NOVO: Lógica para selects assíncronos (Cidades e Naturalidade)
-                                // Se for um select e o valor ainda não existir nas opções (carregamento pendente), guarda como pendente
-                                if ($el.is('select') && $el.find('option[value="' + valor + '"]').length === 0) {
-                                    $el.attr('data-valor-pendente', valor);
-                                }
-                            }
-                            $el.trigger('change');
-                        }
-                    }
-                }
-                if (estado.dependentes && estado.dependentes.length > 0) {
-                    $("#container_dependentes_" + that.instanceId).empty();
-                    estado.dependentes.forEach(function (depData, index) {
-                        var obrigatorio = (index === 0);
-                        that.adicionarDependente(depData['dep-parentesco'] || "", obrigatorio);
-                        var $ultimoCard = $div.find(".dependente-card").last();
-                        for (var classKey in depData) {
-                            var $campo = $ultimoCard.find("." + classKey);
-                            if ($campo.length) {
-                                if ($campo.attr("type") === "checkbox") $campo.prop("checked", depData[classKey]);
-                                else $campo.val(depData[classKey]);
-                                if (classKey === "dep-parentesco" || classKey === "dep-pensao") $campo.trigger('change');
-                            }
-                        }
-                        if (depData['dep-nome'] && depData['dep-cpf'] && depData['dep-nasc']) {
-                            $ultimoCard.find(".dep-nome").prop("readonly", true);
-                            $ultimoCard.find(".dep-nasc").prop("readonly", true);
-                        }
-                    });
-                } else {
-                    var isEstagio = (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio");
-                    if ($div.find(".dependente-card").length === 0 && !isEstagio) {
-                        this.adicionarDependente("Mae", true);
-                    }
-                }
+            if (!json) return;
+            var estado = JSON.parse(json);
 
-                if (estado.passo && estado.passo > 1) {
-                    that.abasVisitadas = estado.abas || {};
-                    setTimeout(function () {
-                        that.irParaPasso(estado.passo);
-                        FLUIGC.toast({ message: 'Rascunho recuperado. Etapa: ' + estado.passo, type: 'info' });
-                    }, 500);
-                }
-            } else {
-                var isEstagio = (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio");
-                if ($div.find(".dependente-card").length === 0 && !isEstagio) {
-                    this.adicionarDependente("Mae", true);
+            if (estado.campos) {
+                for (var key in estado.campos) {
+                    var valor = estado.campos[key];
+                    var $el = $("#" + key + "_" + that.instanceId);
+
+                    // Restaura visual dos documentos gerais e da foto (Deploy V1)
+                    if (key.indexOf("_nome") !== -1 || key === "cand_foto_base64") {
+                        if (key === "cand_foto_base64" && valor === "[ENVIADO_PROCESSO]") {
+                            var nomeFoto = estado.campos["cand_foto_nome"] || "foto.jpg";
+                            setTimeout(function () {
+                                $("#preview_foto_" + that.instanceId).html('<div class="alert alert-success" style="padding: 10px; border-radius: 5px;"><i class="flaticon flaticon-check-circle"></i> Foto Salva na Nuvem: ' + nomeFoto + '</div>');
+                            }, 800);
+                        } else {
+                            var prefixoDoc = key.replace("_nome", "");
+                            var flagEnviado = estado.campos[prefixoDoc + "_base64"];
+                            if (flagEnviado === "[ENVIADO_PROCESSO]") {
+                                (function(pref, nomeArq) {
+                                    setTimeout(function() { that.atualizarVisualDocumentoSucesso(pref, nomeArq); }, 800);
+                                })(prefixoDoc, valor);
+                            }
+                        }
+                    }
+
+                    if ($el.length > 0) {
+                        if ($el.attr("type") === "checkbox" || $el.attr("type") === "radio") {
+                            $el.prop("checked", true);
+                        } else {
+                            $el.val(valor);
+                            // TRATAMENTO DE SELECTS DE DATASET (Cidades, Naturalidade, Tipo Sanguíneo)
+                            if ($el.is('select') && valor && $el.find('option[value="' + valor + '"]').length === 0) {
+                                $el.attr('data-valor-pendente', valor);
+                                $el.append('<option value="' + valor + '" selected>' + valor + '</option>');
+                            }
+                        }
+                        $el.trigger('change'); 
+                    }
                 }
             }
 
-            // ========================================================================
-            // CORREÇÃO: AS CHAMADAS DA TOTVS AGORA FICAM AQUI FORA!
-            // Assim o sistema vai buscar os dados no servidor do Fluig mesmo num dispositivo "virgem"
-            // ========================================================================
+            if (estado.rotasVT && estado.rotasVT.length > 0) {
+                $("#container_rotas_vt_" + that.instanceId).empty();
+                estado.rotasVT.forEach(function (rota) {
+                    that.adicionarRotaVT();
+                    var $ultimaRota = $div.find(".vt-card").last();
+                    $ultimaRota.find(".vt-destino").val(rota.destino);
+                    $ultimaRota.find(".vt-tipo").val(rota.tipo);
+                    $ultimaRota.find(".vt-empresa").val(rota.empresa);
+                    $ultimaRota.find(".vt-linha").val(rota.linha);
+                    $ultimaRota.find(".vt-valor").val(rota.valor);
+                });
+            }
+
+            if (estado.dependentes && estado.dependentes.length > 0) {
+                $("#container_dependentes_" + that.instanceId).empty();
+                estado.dependentes.forEach(function (depData, index) {
+                    var obrigatorio = (index === 0);
+                    that.adicionarDependente(depData['dep-parentesco'] || "", obrigatorio);
+                    var $ultimoCard = $div.find(".dependente-card").last();
+
+                    for (var classKey in depData) {
+                        if (classKey.indexOf("-name") > -1) continue;
+                        var $campo = $ultimoCard.find("." + classKey);
+                        if ($campo.length) {
+                            if ($campo.attr("type") === "file") continue; 
+                            
+                            if ($campo.attr("type") === "checkbox") {
+                                $campo.prop("checked", depData[classKey]);
+                            } else {
+                                $campo.val(depData[classKey]);
+                            }
+
+                            if (classKey.indexOf("dep-base64-") === 0 && depData[classKey] === "[ENVIADO_PROCESSO]") {
+                                $campo.attr("data-filename", depData[classKey + "-name"] || "Documento Recuperado");
+                            }
+                        }
+                    }
+
+                    if (depData['dep-nome'] && depData['dep-cpf'] && depData['dep-nasc']) {
+                        $ultimoCard.find(".dep-nome").prop("readonly", true);
+                        $ultimoCard.find(".dep-nasc").prop("readonly", true);
+                    }
+
+                    $ultimoCard.find(".dep-parentesco").trigger('change');
+                    $ultimoCard.find(".dep-nasc").trigger("change");
+
+                    setTimeout(function() {
+                        for (var ckDoc in depData) {
+                            if (ckDoc.indexOf("dep-base64-") === 0 && depData[ckDoc] === "[ENVIADO_PROCESSO]") {
+                                var $cH = $ultimoCard.find("." + ckDoc);
+                                if ($cH.length > 0) {
+                                    that.atualizarVisualDocumentoDependenteSucesso($cH, depData[ckDoc + "-name"]);
+                                }
+                            }
+                        }
+                    }, 500);
+                });
+            } else {
+                var isEstagio = (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio");
+                if ($div.find(".dependente-card").length === 0 && !isEstagio) {
+                    that.adicionarDependente("Mae", true);
+                }
+            }
+
+            // =========================================================================
+            // Atraso cirúrgico de 1 segundo para garantir que triggers
+            // de Filial, Sindicato ou Cargo não limpem o campo após ser preenchido
+            // =========================================================================
+            setTimeout(function () {
+                if (estado.campos) {
+                    if (estado.campos["cand_ps_opcao"]) {
+                        $div.find('#cand_ps_opcao_' + that.instanceId).val(estado.campos["cand_ps_opcao"]).trigger('change');
+                    }
+                    if (estado.campos["cand_odonto_opcao"]) {
+                        $div.find('#cand_odonto_opcao_' + that.instanceId).val(estado.campos["cand_odonto_opcao"]).trigger('change');
+                    }
+                }
+                that.atualizarOpcoesPlanoSaude();
+                if (typeof that.atualizarDependentesOdonto === "function") {
+                    that.atualizarDependentesOdonto();
+                }
+            }, 1000);
+
+            if (estado.passo) {
+                setTimeout(function () { that.irParaPasso(estado.passo); }, 500);
+            }
+
+        } catch (e) { 
+            console.warn("Erro ao restaurar rascunho local:", e); 
+        } finally {
             setTimeout(function () {
                 that.restaurarUIAssinaturas();
                 that.recuperarBase64Assinados();
-            }, 600);
-
-        } catch (e) { console.warn("Erro restore:", e); }
+                
+                // Desativa a trava de proteção
+                that.bloqueioRestauracaoAtivo = false;
+                console.log("[DEBUG_DEP] 🟢 Restauração completa. Auto-save reativado.");
+            }, 2000);
+        }
     },
 
     limparRascunhoLocal: function () { localStorage.removeItem(this.getKeyStorage()); },
@@ -974,12 +1096,23 @@ var AdmissaoWidget = SuperWidget.extend({
             var valor = $(this).val();
             var $divPlanos = $("#div_po_planos_" + that.instanceId);
             var $inputTipoPlano = $("#cand_po_tipo_plano_" + that.instanceId);
+            var $divDependentes = $("#div_po_dependentes_" + that.instanceId); // Novo contentor de dependentes
 
             if (valor === "Sim") {
                 $divPlanos.slideDown();
+                $divDependentes.slideDown(); // Mostra a área de seleção
+
+                // Chama a função para buscar os dependentes cadastrados e montar os checkboxes
+                if (typeof that.atualizarDependentesOdonto === "function") {
+                    that.atualizarDependentesOdonto();
+                }
             } else {
                 $divPlanos.slideUp();
-                $inputTipoPlano.val(""); // Limpa o plano selecionado caso desista
+                $divDependentes.slideUp(); // Esconde a área
+                $inputTipoPlano.val(""); // Limpa o plano selecionado
+
+                // Desmarca todos os checkboxes de dependentes do odonto caso o candidato desista
+                $("#container_dependentes_odonto_" + that.instanceId).find("input[type='checkbox']").prop("checked", false);
             }
         });
 
@@ -989,16 +1122,23 @@ var AdmissaoWidget = SuperWidget.extend({
             that.marcarAbaComoVisitada(targetId); that.salvarRascunhoLocal();
         });
 
-        // REGRA DE PARENTESCO
+        // REGRA DE PARENTESCO E SALÁRIO FAMÍLIA
         $div.off("change", ".dep-parentesco").on("change", ".dep-parentesco", function () {
             var valor = $(this).val();
             var $card = $(this).closest(".dependente-card");
             var $campoSexo = $card.find(".dep-sexo");
+            var $divSalarioFamilia = $card.find(".div-salario-familia");
 
             if (valor === "Mae") {
                 $campoSexo.val("Feminino").prop("readonly", true).css({ "pointer-events": "none", "background-color": "#eee" }).attr("tabindex", "-1");
             } else {
                 $campoSexo.prop("readonly", false).css({ "pointer-events": "auto", "background-color": "#fff" }).removeAttr("tabindex");
+            }
+
+            if (valor === "Filho") $divSalarioFamilia.slideDown();
+            else {
+                $divSalarioFamilia.slideUp();
+                $card.find(".dep-sf").val("Nao");
             }
         });
 
@@ -1074,32 +1214,52 @@ var AdmissaoWidget = SuperWidget.extend({
             }
         });
 
-        // Conversor de arquivo e Estilização Visual nos cards do dependente
+
         // Conversor de arquivo e Estilização Visual nos cards do dependente (COM COMPRESSÃO)
         $div.off("change", ".dep-file-cpf, .dep-file-rgf, .dep-file-rgv, .dep-file-certnasc, .dep-file-vacina").on("change", ".dep-file-cpf, .dep-file-rgf, .dep-file-rgv, .dep-file-certnasc, .dep-file-vacina", function () {
-            var input = this;
-            var $hidden = $(input).next("input[type='hidden']");
-            var $box = $(input).siblings(".upload-box");
+            var input = this; var $card = $(input).closest(".dependente-card");
+            var nomeDependente = $card.find(".dep-nome").val() || "Dependente";
+            var $hidden = $(input).next("input[type='hidden']"); var $box = $(input).siblings(".upload-box");
+            var $icon = $box.find("i.flaticon"); var $btn = $box.find(".dep-file-btn"); var $status = $box.find(".dep-file-status");
+
+            var docType = "Documento";
+            if ($(input).hasClass("dep-file-cpf")) docType = "CPF OCR";
+            else if ($(input).hasClass("dep-file-rgf")) docType = "RG Frente OCR";
+            else if ($(input).hasClass("dep-file-rgv")) docType = "RG Verso OCR";
+            else if ($(input).hasClass("dep-file-certnasc")) docType = "Certidão Civil OCR";
+            else if ($(input).hasClass("dep-file-vacina")) docType = "Cartão Vacina OCR";
+
+            var descricaoFluig = docType + " - " + nomeDependente;
 
             if (input.files && input.files[0]) {
-                var file = input.files[0];
-                var fileName = file.name;
+                var file = input.files[0]; var fileName = file.name;
+                if (file.size > 5 * 1024 * 1024) { FLUIGC.toast({ title: 'Erro', message: 'O arquivo excede 5MB.', type: 'danger' }); $(input).val(""); return; }
 
-                // USA A NOVA FUNÇÃO DE COMPRESSÃO AQUI TAMBÉM
+                $box.css({ "border": "2px dashed #f0ad4e", "background-color": "#fcf8e3", "opacity": "0.8" });
+                $icon.removeClass("text-info flaticon-person flaticon-assignment-ind flaticon-file-check flaticon-local-hospital text-success flaticon-check-circle text-danger flaticon-close").addClass("text-warning flaticon-refresh is-spinning");
+                $btn.text("Enviando...").removeClass("btn-default btn-success btn-danger").addClass("btn-warning").prop("disabled", true);
+                $status.html("Transferindo...");
+
                 that.comprimirImagemBase64(file, function (base64Otimizado) {
-                    // 1. Salva os dados no campo oculto para o envio
-                    $hidden.val(base64Otimizado);
-                    $hidden.attr("data-filename", fileName);
-
-                    // 2. Transforma a caixa visualmente em VERDE (Sucesso)
-                    $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
-                    $box.find("i.flaticon").removeClass("text-info flaticon-person flaticon-assignment-ind flaticon-file-check flaticon-local-hospital").addClass("text-success flaticon-check-circle");
-                    $box.find("h5").addClass("text-success");
-                    $box.find(".dep-file-status").html('<strong style="color:#3c763d;">Anexado: </strong>' + fileName).removeClass("text-muted").addClass("text-success");
-                    $box.find(".dep-file-btn").text("Alterar Arquivo").removeClass("btn-default").addClass("btn-success");
-
-                    FLUIGC.toast({ message: 'Documento do dependente anexado!', type: 'success' });
-                    that.salvarRascunhoLocal();
+                    var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
+                    that.uploadAnexoIndividual(base64Clean, fileName, descricaoFluig,
+                        function (sucesso) {
+                            $hidden.val("[ENVIADO_PROCESSO]"); $hidden.attr("data-filename", fileName);
+                            $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
+                            $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-success flaticon-check-circle");
+                            $box.find("h5").addClass("text-success");
+                            $status.html('<strong style="color:#3c763d;">Salvo: </strong>' + fileName).removeClass("text-muted").addClass("text-success");
+                            $btn.text("Alterar").removeClass("btn-warning").addClass("btn-success").prop("disabled", false);
+                            that.salvarRascunhoLocal();
+                        },
+                        function (erro) {
+                            FLUIGC.toast({ title: 'Falha', message: erro, type: 'danger' });
+                            $box.css({ "border": "2px dashed #d9534f", "background-color": "#f2dede", "opacity": "1" });
+                            $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-danger flaticon-close");
+                            $btn.text("Tentar Novamente").removeClass("btn-warning").addClass("btn-danger").prop("disabled", false);
+                            $status.html("Erro. Tente de novo."); $(input).val("");
+                        }
+                    );
                 });
             }
         });
@@ -1194,17 +1354,32 @@ var AdmissaoWidget = SuperWidget.extend({
             }
         });
 
-        // Listener da Opção do Plano de Saúde
-        $div.on('change', '#cand_ps_opcao_' + that.instanceId, function () {
-            var opcao = $(this).val();
-            if (opcao.indexOf("Opto") > -1) {
-                $div.find("#div_ps_detalhes_" + that.instanceId).slideDown();
-                $div.find("#div_ps_custos_" + that.instanceId).slideDown();
-                // Dispara a atualização dinâmica dos nomes
-                that.atualizarOpcoesPlanoSaude();
+        // Lógica de Plano de Saúde (CORRIGIDA COM OS IDs EXATOS DO VIEW.FTL)
+        $div.off("change", "#cand_ps_opcao_" + this.instanceId).on("change", "#cand_ps_opcao_" + this.instanceId, function () {
+            var valor = $(this).val();
+
+            // IDs exatos baseados no seu HTML
+            var $divPlanos = $("#div_ps_planos_" + that.instanceId);
+            var $inputTipoPlano = $("#cand_ps_tipo_plano_" + that.instanceId);
+
+            // Aqui estava o erro! O ID correto é div_ps_detalhes_
+            var $divDependentes = $("#div_ps_detalhes_" + that.instanceId);
+
+            if (valor === "Opto pela inclusão de dependente(s) e estou ciente dos custos e regras") {
+                $divPlanos.slideDown();
+                $divDependentes.slideDown();
+
+                // Desenha os checkboxes
+                if (typeof that.atualizarOpcoesPlanoSaude === "function") {
+                    that.atualizarOpcoesPlanoSaude();
+                }
             } else {
-                $div.find("#div_ps_detalhes_" + that.instanceId).slideUp();
-                $div.find("#div_ps_custos_" + that.instanceId).slideUp();
+                $divPlanos.slideUp();
+                $divDependentes.slideUp();
+
+                // Limpa tudo se o candidato mudar de ideias
+                $inputTipoPlano.val("");
+                $("#container_dependentes_plano_" + that.instanceId).find("input[type='checkbox']").prop("checked", false);
             }
         });
 
@@ -1246,35 +1421,30 @@ var AdmissaoWidget = SuperWidget.extend({
         });
 
         $div.on('click', '#btn_capturar_foto_' + that.instanceId, function () {
-            var video = $div.find('#video_camera_' + that.instanceId)[0];
-            var canvas = $div.find('#canvas_camera_' + that.instanceId)[0];
+            var video = $div.find('#video_camera_' + that.instanceId)[0]; var canvas = $div.find('#canvas_camera_' + that.instanceId)[0];
             var $areaCamera = $div.find('#area_camera_' + that.instanceId);
 
-            // Define o tamanho do canvas para o tamanho real do vídeo capturado
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            // Desenha a imagem capturada no canvas
-            var context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Converte e comprime para Base64 (JPEG com 70% de qualidade, a mesma métrica que você já usava no comprimirImagemBase64)
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            var context = canvas.getContext('2d'); context.drawImage(video, 0, 0, canvas.width, canvas.height);
             var base64Otimizado = canvas.toDataURL('image/jpeg', 0.7);
 
-            // Atualiza o preview redondo e os inputs ocultos que vão para o Fluig
-            $("#preview_foto_" + that.instanceId).css('background-image', 'url(' + base64Otimizado + ')').css('background-size', 'cover').html('');
-            $("#cand_foto_base64_" + that.instanceId).val(base64Otimizado);
-            $("#cand_foto_nome_" + that.instanceId).val("Foto_Camera_" + new Date().getTime() + ".jpg");
+            var fileName = "Foto_Camera_" + new Date().getTime() + ".jpg";
+            var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
 
-            // Salva o rascunho
-            that.salvarRascunhoLocal();
+            FLUIGC.toast({ message: 'Enviando foto...', type: 'info' });
 
-            FLUIGC.toast({ message: 'Foto capturada com sucesso!', type: 'success' });
+            that.uploadAnexoIndividual(base64Clean, fileName, "Foto do Candidato",
+                function (sucesso) {
+                    $("#preview_foto_" + that.instanceId).css('background-image', 'url(' + base64Otimizado + ')').css('background-size', 'cover').html('');
+                    $("#cand_foto_base64_" + that.instanceId).val("[ENVIADO_PROCESSO]");
+                    $("#cand_foto_nome_" + that.instanceId).val(fileName);
+                    that.salvarRascunhoLocal();
+                    FLUIGC.toast({ message: 'Foto salva com sucesso!', type: 'success' });
+                },
+                function (erro) { FLUIGC.toast({ title: 'Erro', message: 'Falha ao salvar a foto: ' + erro, type: 'danger' }); }
+            );
 
-            // Desliga a câmera e esconde a UI
-            if (videoStream) {
-                videoStream.getTracks().forEach(function (track) { track.stop(); });
-            }
+            if (videoStream) videoStream.getTracks().forEach(function (track) { track.stop(); });
             $areaCamera.slideUp();
         });
 
@@ -1647,6 +1817,7 @@ var AdmissaoWidget = SuperWidget.extend({
             "ValeTransp": $div.find("#cand_vt_opcao_" + that.instanceId).val() === "Opto" ? "1" : "2",
 
             "TxtIncPlanoSaudeOpcao": $div.find("#cand_ps_opcao_" + that.instanceId).val(),
+            "TxtIncPlanoSaudeTipo": ($div.find("#cand_ps_opcao_" + that.instanceId).val() || "").indexOf("Opto") !== -1 ? $div.find("#cand_ps_tipo_plano_" + that.instanceId + " option:selected").text() : "",
             "TxtDepsPlanoSaude": strDependentesPS,
 
             "BancoPAgto": $div.find("#cand_banco_" + that.instanceId).val(),
@@ -1724,6 +1895,16 @@ var AdmissaoWidget = SuperWidget.extend({
 
         // Salva em um campo do formulário (Ex: TxtDepsPlanoSaude)
         dadosCandidato["TxtDepsPlanoSaude"] = selecionadosPS.join(", ");
+
+        var selecionadosPO = [];
+        $div.find(".check-plano-odonto:checked").each(function () {
+            selecionadosPO.push("- " + $(this).data("nome-dep") + " (" + $(this).data("parentesco-dep") + ")");
+        });
+
+        // Salva em um campo do formulário
+        dadosCandidato["TxtDepsPlanoOdonto"] = selecionadosPO.join(", ");
+        dadosCandidato["TxtIncPlanoOdontoOpcao"] = $div.find("#cand_po_opcao_" + that.instanceId).val();
+        dadosCandidato["TxtIncPlanoOdontoTipo"] = $div.find("#cand_po_opcao_" + that.instanceId).val() === "Sim" ? $div.find("#cand_po_tipo_plano_" + that.instanceId + " option:selected").text() : "";
 
         var deps = [];
         var countDeps = 0;
@@ -1828,129 +2009,26 @@ var AdmissaoWidget = SuperWidget.extend({
         });
     },
 
-    soapSaveAndSendTask: function (solicitacaoId, dadosObjeto, callbackSucesso, callbackErro) {
+    soapSaveAndSendTask: function (comentarios, callbackSucesso, callbackErro) {
         var that = this;
-        var atividadeDestino = 97;
-
-        function escapeXML(str) {
-            if (typeof str !== 'string') return str;
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-        }
-
-        var cardDataXml = "";
-        for (var key in dadosObjeto) {
-            if (dadosObjeto.hasOwnProperty(key)) {
-                var valor = (dadosObjeto[key] === undefined || dadosObjeto[key] === null) ? "" : String(dadosObjeto[key]);
-                cardDataXml += '<item><item>' + key + '</item><item>' + escapeXML(valor) + '</item></item>';
-            }
-        }
-
-        var attachmentsXml = "";
-        var seq = 0;
-
-        // 1. FOTO DO CANDIDATO
-        var fotoBase64 = $("#cand_foto_base64_" + that.instanceId).val();
-        var fotoNome = $("#cand_foto_nome_" + that.instanceId).val();
-        if (fotoBase64 && fotoNome) {
-            var b64Clean = fotoBase64.indexOf(",") > -1 ? fotoBase64.split(",")[1] : fotoBase64;
-            attachmentsXml += '<item><attachmentSequence>' + seq + '</attachmentSequence><attachments><attach>true</attach><fileName>' + escapeXML(fotoNome) + '</fileName><filecontent>' + b64Clean + '</filecontent></attachments><description>Foto do Candidato</description><fileName>' + escapeXML(fotoNome) + '</fileName></item>';
-            seq++;
-        }
-
-        // 1.5 CARTA PROPOSTA ASSINADA
-        var cartaBase64 = $("#carta_assinada_base64_" + that.instanceId).val();
-        var cartaNome = $("#carta_assinada_nome_" + that.instanceId).val();
-        if (cartaBase64 && cartaNome) {
-            var b64Clean = cartaBase64.indexOf(",") > -1 ? cartaBase64.split(",")[1] : cartaBase64;
-            attachmentsXml += '<item><attachmentSequence>' + seq + '</attachmentSequence><attachments><attach>true</attach><fileName>' + escapeXML(cartaNome) + '</fileName><filecontent>' + b64Clean + '</filecontent></attachments><description>Carta Proposta Assinada (TAE)</description><fileName>' + escapeXML(cartaNome) + '</fileName></item>';
-            seq++;
-        }
-
-        // 1.6 TERMO LGPD ASSINADO
-        var lgpdBase64 = $("#termo_lgpd_assinada_base64_" + that.instanceId).val();
-        var lgpdNome = $("#termo_lgpd_assinada_nome_" + that.instanceId).val();
-        if (lgpdBase64 && lgpdNome) {
-            var b64Clean = lgpdBase64.indexOf(",") > -1 ? lgpdBase64.split(",")[1] : lgpdBase64;
-            attachmentsXml += '<item><attachmentSequence>' + seq + '</attachmentSequence><attachments><attach>true</attach><fileName>' + escapeXML(lgpdNome) + '</fileName><filecontent>' + b64Clean + '</filecontent></attachments><description>Termo LGPD Assinado (TAE)</description><fileName>' + escapeXML(lgpdNome) + '</fileName></item>';
-            seq++;
-        }
-
-        // 1.7 FICHA CADASTRAL DE AUDITORIA
-        var fichaBase64 = $("#ficha_auditoria_base64_" + that.instanceId).val();
-        var fichaNome = $("#ficha_auditoria_nome_" + that.instanceId).val();
-        if (fichaBase64 && fichaNome) {
-            var b64CleanFicha = fichaBase64.indexOf(",") > -1 ? fichaBase64.split(",")[1] : fichaBase64;
-            attachmentsXml += '<item><attachmentSequence>' + seq + '</attachmentSequence><attachments><attach>true</attach><fileName>' + escapeXML(fichaNome) + '</fileName><filecontent>' + b64CleanFicha + '</filecontent></attachments><description>Ficha Cadastral Preenchida (Auditoria)</description><fileName>' + escapeXML(fichaNome) + '</fileName></item>';
-            seq++;
-        }
-
-        // 2. DOCUMENTOS DINÂMICOS (CHECKLIST)
-        for (var i = 0; i < that.configDocs.length; i++) {
-            var docConfig = that.configDocs[i];
-            var nomeCampoInterno = docConfig.doc_campo_interno ? docConfig.doc_campo_interno.trim() : "";
-            var base64Full = $("#" + nomeCampoInterno + "_base64_" + that.instanceId).val();
-            var fileName = $("#" + nomeCampoInterno + "_nome_" + that.instanceId).val();
-
-            if (base64Full && fileName) {
-                var b64Clean = base64Full.indexOf(",") > -1 ? base64Full.split(",")[1] : base64Full;
-                attachmentsXml += '<item><attachmentSequence>' + seq + '</attachmentSequence><attachments><attach>true</attach><fileName>' + escapeXML(fileName) + '</fileName><filecontent>' + b64Clean + '</filecontent></attachments><description>' + escapeXML(docConfig.doc_titulo) + '</description><fileName>' + escapeXML(fileName) + '</fileName></item>';
-                seq++;
-            }
-        }
-
-        // 2.5 DOCUMENTOS FIXOS
-        if (that.docsFixosExigidos) {
-            for (var f = 0; f < that.docsFixosExigidos.length; f++) {
-                var docF = that.docsFixosExigidos[f];
-                var base64Fixo = $("#" + docF.id + "_base64_" + that.instanceId).val();
-                var nomeFixo = $("#" + docF.id + "_nome_" + that.instanceId).val();
-
-                if (base64Fixo && nomeFixo) {
-                    var b64CleanFixo = base64Fixo.indexOf(",") > -1 ? base64Fixo.split(",")[1] : base64Fixo;
-                    attachmentsXml += '<item><attachmentSequence>' + seq + '</attachmentSequence><attachments><attach>true</attach><fileName>' + escapeXML(nomeFixo) + '</fileName><filecontent>' + b64CleanFixo + '</filecontent></attachments><description>' + escapeXML(docF.titulo) + '</description><fileName>' + escapeXML(nomeFixo) + '</fileName></item>';
-                    seq++;
-                }
-            }
-        }
-
-        // 3. DOCUMENTOS DOS DEPENDENTES
-        var $div = $("#AdmissaoWidget_" + this.instanceId);
-        $div.find(".dependente-card").each(function (index) {
-            var $card = $(this);
-            var nomeDependente = $card.find(".dep-nome").val() || ("Dependente " + (index + 1));
-
-            function addAnexoDep(base64Str, nomeArquivoOriginal, descFallback) {
-                if (base64Str) {
-                    var b64Clean = base64Str.indexOf(",") > -1 ? base64Str.split(",")[1] : base64Str;
-                    var nomeArquivo = nomeArquivoOriginal || (descFallback.replace(/\s+/g, '_') + ".pdf");
-
-                    attachmentsXml += '<item><attachmentSequence>' + seq + '</attachmentSequence><attachments><attach>true</attach><fileName>' + escapeXML(nomeArquivo) + '</fileName><filecontent>' + b64Clean + '</filecontent></attachments><description>' + descFallback + ' - ' + escapeXML(nomeDependente) + '</description><fileName>' + escapeXML(nomeArquivo) + '</fileName></item>';
-                    seq++;
-                }
-            }
-
-            addAnexoDep($card.find(".dep-base64-cpf").val(), $card.find(".dep-base64-cpf").attr("data-filename"), "CPF OCR");
-            addAnexoDep($card.find(".dep-base64-rgf").val(), $card.find(".dep-base64-rgf").attr("data-filename"), "RG Frente OCR");
-            addAnexoDep($card.find(".dep-base64-rgv").val(), $card.find(".dep-base64-rgv").attr("data-filename"), "RG Verso OCR");
-            addAnexoDep($card.find(".dep-base64-certnasc").val(), $card.find(".dep-base64-certnasc").attr("data-filename"), "Certidao Civil OCR");
-            addAnexoDep($card.find(".dep-base64-vacina").val(), $card.find(".dep-base64-vacina").attr("data-filename"), "Cartao Vacina OCR");
-        });
-
-        // ==============================================================
-        // CORREÇÃO: PAYLOAD BLINDADO CONTRA A FALTA DE NÚMEROS
-        // ==============================================================
-        var payloadObj = {
-            processInstanceId: parseInt(solicitacaoId, 10), // FORÇANDO INTEIRO
-            choosedState: parseInt(atividadeDestino, 10),   // FORÇANDO INTEIRO
-            threadSequence: 0,                              // EVITANDO O "UNDEFINED" NO XML
-            userId: "",                                     // EVITANDO O "UNDEFINED" NO XML
-            managerMode: false,
-            comments: "Envio via Widget Pública (Admissão) - Todos Anexos via SOAP e Proxy",
-            attachmentsXml: attachmentsXml,
-            cardDataXml: cardDataXml
-        };
-
+        var idSolicitacao = $("#idSolicitacaoRH_" + that.instanceId).val();
         var url = WCMAPI.getServerURL() + '/api/public/ecm/dataset/datasets';
+
+        var pdfAuditoriaBase64 = $("#ficha_auditoria_base64_" + that.instanceId).val();
+        var attachmentsXml = "";
+
+        if (pdfAuditoriaBase64 && pdfAuditoriaBase64 !== "") {
+            var cleanBase64 = pdfAuditoriaBase64.indexOf(",") > -1 ? pdfAuditoriaBase64.split(",")[1] : pdfAuditoriaBase64;
+            attachmentsXml = '<item><attachmentSequence>0</attachmentSequence><attachments><attach>true</attach>' +
+                '<fileName>Ficha_Cadastral_Auditoria.pdf</fileName>' +
+                '<filecontent>' + cleanBase64 + '</filecontent></attachments>' +
+                '<description>Ficha Cadastral de Auditoria</description>' +
+                '<fileName>Ficha_Cadastral_Auditoria.pdf</fileName></item>';
+        }
+
+        var payloadObj = {
+            processInstanceId: parseInt(idSolicitacao, 10), choosedState: 97, comments: comentarios, attachmentsXml: attachmentsXml
+        };
 
         var dataProxy = {
             name: "ds_irho_api_proxy",
@@ -1964,56 +2042,20 @@ var AdmissaoWidget = SuperWidget.extend({
             url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(dataProxy),
             headers: { "Authorization": that.getOAuthHeader(url, 'POST').Authorization },
             success: function (resProxy) {
+                var respStr = "";
                 if (resProxy.content && resProxy.content.values && resProxy.content.values.length > 0) {
-                    var rProxy = resProxy.content.values[0];
-                    if (rProxy.status == "success") {
+                    respStr = resProxy.content.values[0].response;
+                }
 
-                        // LEITURA SEGURA (Sem usar jQuery para não dar Syntax Error)
-                        var respStr = rProxy.response;
-                        try {
-                            var jsonResp = JSON.parse(respStr);
-                            if (jsonResp.response) respStr = jsonResp.response;
-                        } catch (e) { }
-
-                        if (respStr.indexOf("faultstring") > -1) {
-                            try {
-                                var parser = new DOMParser();
-                                var xmlDoc = parser.parseFromString(respStr, "text/xml");
-                                var faultText = xmlDoc.getElementsByTagName("faultstring")[0].textContent;
-                                callbackErro(faultText);
-                            } catch (e) {
-                                callbackErro("Erro no Fluig: " + respStr);
-                            }
-                        } else if (respStr.indexOf("ERROR:") > -1) {
-                            // Captura erros que vêm dentro do body normal (ex: "Processo X não está sob a responsabilidade do usuário Y")
-                            try {
-                                var parser2 = new DOMParser();
-                                var xmlDoc2 = parser2.parseFromString(respStr, "text/xml");
-                                var items = xmlDoc2.getElementsByTagName("item");
-                                var errorMsg = "";
-                                for (var ei = 0; ei < items.length; ei++) {
-                                    var txt = items[ei].textContent.trim();
-                                    if (txt && txt !== "ERROR:" && txt.length > 2) {
-                                        errorMsg = txt;
-                                        break;
-                                    }
-                                }
-                                callbackErro(errorMsg || "Erro retornado pelo Fluig: " + respStr);
-                            } catch (e2) {
-                                callbackErro("Erro no Fluig (parse): " + respStr);
-                            }
-                        } else {
-                            callbackSucesso(respStr);
-                        }
-
-                    } else {
-                        callbackErro(rProxy.message + " - " + rProxy.response);
-                    }
+                if (respStr.indexOf("ERROR:") > -1 || respStr.indexOf("could not execute statement") > -1) {
+                    callbackErro("Erro ao movimentar no Fluig: Problema de gravação no banco de dados.");
+                } else if (respStr.indexOf("faultstring") > -1) {
+                    callbackErro("Erro na integração SOAP.");
                 } else {
-                    callbackErro("Retorno vazio do proxy ao tentar saveAndSendTask.");
+                    callbackSucesso(respStr);
                 }
             },
-            error: function (xhr, status, error) { callbackErro("Erro na requisição SendTask via Proxy: " + error); }
+            error: function (xhr, status, error) { callbackErro("Falha na comunicação: " + error); }
         });
     },
 
@@ -2138,7 +2180,7 @@ var AdmissaoWidget = SuperWidget.extend({
         // Efetua as chamadas SOAP para gravar o formulário e movimentar a tarefa
         that.soapUpdateCardData(that.documentIdFicha, dadosCandidato, function (sucessoUpdate) {
 
-            that.soapSaveAndSendTask(idSolicitacao, {}, function (sucessoMove) {
+            that.soapSaveAndSendTask("Envio final via Widget", function (sucessoMove) {
                 clearInterval(intervalFeedback);
 
                 // FINALIZAÇÃO VISUAL: Enche a barra até 100% e muda para Verde
@@ -2361,10 +2403,20 @@ var AdmissaoWidget = SuperWidget.extend({
         var $container = $div.find("#container_dependentes_plano_" + this.instanceId);
         var $msgAviso = $div.find("#msg_elegibilidade_plano_" + this.instanceId);
 
+        // 1. SALVA NA MEMÓRIA QUEM JÁ ESTAVA MARCADO
+        var jaMarcados = [];
+        $div.find(".check-plano-saude:checked").each(function () { jaMarcados.push($(this).data("nome-dep")); });
+
+        try {
+            var json = localStorage.getItem(that.getKeyStorage());
+            if (json) {
+                var estado = JSON.parse(json);
+                if (estado.depsPS) { estado.depsPS.forEach(function(nome) { if (jaMarcados.indexOf(nome) === -1) jaMarcados.push(nome); }); }
+            }
+        } catch(e) {}
+
         $container.empty();
         var possuiElegivel = false;
-
-        // Busca os dependentes na aba 5
         var $listaDependentes = $div.find("#container_dependentes_" + this.instanceId + " .dependente-card");
 
         $listaDependentes.each(function () {
@@ -2373,17 +2425,19 @@ var AdmissaoWidget = SuperWidget.extend({
             var parentesco = $card.find(".dep-parentesco").val() || "";
             var strParentesco = String(parentesco).toUpperCase();
 
-            // Regra de elegibilidade: Filho/Enteado ou Cônjuge/Companheiro
             var isFilho = (strParentesco.indexOf("FILHO") > -1 || strParentesco.indexOf("ENTEADO") > -1);
             var isConjuge = (strParentesco.indexOf("CONJUGE") > -1 || strParentesco.indexOf("CÔNJUGE") > -1 || strParentesco.indexOf("COMPANHEIRO") > -1);
 
             if (nome.trim() !== "" && (isFilho || isConjuge)) {
                 possuiElegivel = true;
                 var descParentesco = isConjuge ? "Cônjuge" : "Filho(a)";
+                
+                // 2. RECRIAR COM A MARCAÇÃO ATIVA
+                var checkedAttr = (jaMarcados.indexOf(nome) > -1) ? "checked" : "";
 
                 var html = '<div class="checkbox" style="margin-top: 5px; margin-bottom: 5px;">' +
                     '    <label>' +
-                    '        <input type="checkbox" class="check-plano-saude" data-nome-dep="' + nome + '" data-parentesco-dep="' + descParentesco + '">' +
+                    '        <input type="checkbox" class="check-plano-saude" data-nome-dep="' + nome + '" data-parentesco-dep="' + descParentesco + '" ' + checkedAttr + '>' +
                     '        <strong>' + nome + '</strong> <small class="text-muted">(' + descParentesco + ')</small>' +
                     '    </label>' +
                     '</div>';
@@ -2391,20 +2445,95 @@ var AdmissaoWidget = SuperWidget.extend({
             }
         });
 
-        // Captura a opção atual do select
         var opcaoSelecionada = $div.find('#cand_ps_opcao_' + that.instanceId).val() || "";
+        $msgAviso.hide(); $container.hide();
 
-        // RESET: Esconde ambos por padrão para evitar que o aviso apareça no "Selecione..." ou no "Não opto"
-        $msgAviso.hide();
-        $container.hide();
-
-        // Lógica de exibição condicional: Só age se o usuário escolheu "Opto..."
         if (opcaoSelecionada.indexOf("Opto") > -1) {
-            if (possuiElegivel) {
-                $container.show();
-            } else {
-                $msgAviso.show(); // Só mostra o erro se ele quer incluir mas não tem ninguém elegível
+            if (possuiElegivel) $container.show();
+            else $msgAviso.show(); 
+        }
+    },
+
+    uploadAnexoIndividual: function (base64Clean, fileName, description, callbackSucesso, callbackErro) {
+        var that = this;
+        var idSolicitacao = $("#idSolicitacaoRH_" + that.instanceId).val();
+        var url = WCMAPI.getServerURL() + '/api/public/ecm/dataset/datasets';
+
+        if (!idSolicitacao) { callbackErro("ID da solicitação não encontrado."); return; }
+
+        var payloadObj = { processInstanceId: parseInt(idSolicitacao, 10), fileName: fileName, description: description, base64: base64Clean };
+
+        var dataProxy = {
+            name: "ds_irho_api_proxy",
+            constraints: [
+                { _field: "action", _initialValue: "UPLOAD_ATTACHMENT", _finalValue: "UPLOAD_ATTACHMENT", _type: 1, _likeSearch: false },
+                { _field: "payload", _initialValue: JSON.stringify(payloadObj), _finalValue: JSON.stringify(payloadObj), _type: 1, _likeSearch: false }
+            ]
+        };
+
+        $.ajax({
+            url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(dataProxy),
+            headers: { "Authorization": that.getOAuthHeader(url, 'POST').Authorization },
+            success: function (resProxy) {
+                if (resProxy.content && resProxy.content.values && resProxy.content.values.length > 0) {
+                    var rProxy = resProxy.content.values[0];
+                    if (rProxy.status == "success") {
+                        var respStr = String(rProxy.response);
+                        if (respStr.indexOf("ERROR:") > -1 || respStr.indexOf("could not execute statement") > -1 || respStr.indexOf("faultstring") > -1) {
+                            callbackErro("Falha no Fluig ao salvar este arquivo.");
+                        } else {
+                            callbackSucesso(respStr);
+                        }
+                    } else { callbackErro(rProxy.message); }
+                } else { callbackErro("Erro ao comunicar com o servidor."); }
+            },
+            error: function (xhr, status, error) { callbackErro("Falha na requisição de upload: " + error); }
+        });
+    },
+
+    atualizarDependentesOdonto: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var $container = $div.find("#container_dependentes_odonto_" + this.instanceId);
+        var $msgAlerta = $div.find("#msg_elegibilidade_odonto_" + this.instanceId);
+
+        $container.empty();
+        var encontrouElegivel = false;
+
+        // Busca todos os dependentes cadastrados (Passo 5)
+        var $listaDependentes = $div.find("#container_dependentes_" + this.instanceId + " .dependente-card");
+
+        $listaDependentes.each(function () {
+            var $card = $(this);
+            var parentesco = $card.find(".dep-parentesco").val() || "";
+            var nome = $card.find(".dep-nome").val() || "";
+            var strParentesco = String(parentesco).toUpperCase();
+
+            // Regra de elegibilidade (Cônjuge, Companheiro(a), Filho(a), Enteado(a))
+            var isFilho = (strParentesco.indexOf("FILHO") > -1 || strParentesco.indexOf("ENTEADO") > -1);
+            var isConjuge = (strParentesco.indexOf("CONJUGE") > -1 || strParentesco.indexOf("CÔNJUGE") > -1 || strParentesco.indexOf("COMPANHEIRO") > -1);
+
+            if (nome.trim() !== "" && (isFilho || isConjuge)) {
+                encontrouElegivel = true;
+                var descParentesco = isConjuge ? "Cônjuge" : "Filho(a)";
+
+                // Cria o checkbox estilizado 
+                // (Mantive os estilos inline aqui por segurança, mas herdam as classes do CSS que fizemos)
+                var htmlCheckbox =
+                    '<label class="dep-selection-item" style="display: flex; align-items: center; padding: 8px 12px; background: #fff; border: 1px solid #E0E6E5; border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s;">' +
+                    '    <input type="checkbox" class="check-plano-odonto" data-nome-dep="' + nome + '" data-parentesco-dep="' + descParentesco + '" style="margin-right: 12px; width: 18px; height: 18px;">' +
+                    '    <span><strong>' + nome + '</strong> <small class="text-muted">(' + descParentesco + ')</small></span>' +
+                    '</label>';
+
+                $container.append(htmlCheckbox);
             }
+        });
+
+        // Mostra o alerta se não encontrar ninguém elegível
+        if (!encontrouElegivel) {
+            $msgAlerta.show();
+        } else {
+            $msgAlerta.hide();
         }
     },
 
@@ -2448,22 +2577,41 @@ var AdmissaoWidget = SuperWidget.extend({
     },
 
     processarArquivo: function (el) {
-        var that = this; var input = el; var prefixoCampo = $(el).attr("data-process-file"); var $box = $("#box_" + prefixoCampo + "_" + that.instanceId); var $status = $("#status_" + prefixoCampo + "_" + that.instanceId); var $icon = $box.find("i.flaticon");
+        var that = this; var input = el; var prefixoCampo = $(el).attr("data-process-file");
+        var $box = $("#box_" + prefixoCampo + "_" + that.instanceId); var $status = $("#status_" + prefixoCampo + "_" + that.instanceId);
+        var $icon = $box.find("i.flaticon"); var $btn = $box.find("button");
+
         if (input.files && input.files[0]) {
-            var file = input.files[0]; if (file.size > 5 * 1024 * 1024) { FLUIGC.toast({ title: 'Erro', message: 'O arquivo excede 5MB.', type: 'danger' }); $(input).val(""); return; }
+            var file = input.files[0];
+            if (file.size > 5 * 1024 * 1024) { FLUIGC.toast({ title: 'Erro', message: 'O arquivo excede 5MB.', type: 'danger' }); $(input).val(""); return; }
+
+            $box.css({ "border": "2px dashed #f0ad4e", "background-color": "#fcf8e3", "opacity": "0.8" });
+            $icon.removeClass("text-info flaticon-file-check flaticon-cloudupload text-success flaticon-check-circle").addClass("text-warning flaticon-refresh is-spinning");
+            $btn.text("Enviando...").removeClass("btn-default btn-success").addClass("btn-warning").prop("disabled", true);
+            $status.html("Transferindo...");
 
             that.comprimirImagemBase64(file, function (base64Otimizado) {
-                $("#" + prefixoCampo + "_base64_" + that.instanceId).val(base64Otimizado);
-                $("#" + prefixoCampo + "_nome_" + that.instanceId).val(file.name);
-
-                $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
-                $icon.removeClass("text-info flaticon-file-check flaticon-cloudupload").addClass("text-success flaticon-check-circle");
-                $box.find("h5").addClass("text-success");
-                $status.html('<strong style="color:#3c763d;">Arquivo: </strong>' + file.name).removeClass("text-muted").addClass("text-success");
-                $box.find("button").text("Alterar Arquivo").removeClass("btn-default").addClass("btn-success");
-
-                FLUIGC.toast({ message: 'Documento anexado com sucesso!', type: 'success' });
-                that.salvarRascunhoLocal();
+                var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
+                that.uploadAnexoIndividual(base64Clean, file.name, prefixoCampo,
+                    function (sucesso) {
+                        $("#" + prefixoCampo + "_nome_" + that.instanceId).val(file.name);
+                        $("#" + prefixoCampo + "_base64_" + that.instanceId).val("[ENVIADO_PROCESSO]");
+                        $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
+                        $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-success flaticon-check-circle");
+                        $box.find("h5").addClass("text-success");
+                        $status.html('<strong style="color:#3c763d;">Salvo: </strong>' + file.name).removeClass("text-muted").addClass("text-success");
+                        $btn.text("Substituir").removeClass("btn-warning").addClass("btn-success").prop("disabled", false);
+                        FLUIGC.toast({ message: 'Documento salvo no Fluig com sucesso!', type: 'success' });
+                        that.salvarRascunhoLocal();
+                    },
+                    function (erro) {
+                        FLUIGC.toast({ title: 'Falha', message: erro, type: 'danger' });
+                        $box.css({ "border": "2px dashed #d9534f", "background-color": "#f2dede", "opacity": "1" });
+                        $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-danger flaticon-close");
+                        $btn.text("Tentar Novamente").removeClass("btn-warning").addClass("btn-danger").prop("disabled", false);
+                        $status.html("Erro. Tente de novo."); $(input).val("");
+                    }
+                );
             });
         }
     },
@@ -2530,6 +2678,7 @@ var AdmissaoWidget = SuperWidget.extend({
 
         $.ajax({
             url: url, type: 'GET',
+            cache: true,
             headers: { "Authorization": that.getOAuthHeader(url, 'GET').Authorization },
             success: function (res) {
                 var downloadUrl = res.content;
@@ -2678,6 +2827,7 @@ var AdmissaoWidget = SuperWidget.extend({
                     }
 
                     that.restaurarUIAssinaturas(); // Atualiza a tela instantaneamente
+
                     baixarProximo(index + 1); // Chama o próximo
                 }, function (errDoc) {
                     console.error("Erro ao recuperar PDF " + doc.type);
@@ -2712,11 +2862,11 @@ var AdmissaoWidget = SuperWidget.extend({
 
             // MOCK DE ASSINATURA (PROTÓTIPO)
             btn.html('<i class="flaticon flaticon-refresh icon-spin"></i> Simulando assinatura (Protótipo)...');
-            setTimeout(function() {
+            setTimeout(function () {
                 var idDocMock = "MOCK_" + new Date().getTime();
                 $("#tae_proposta_iddoc_" + that.instanceId).val(idDocMock);
                 $("#tae_proposta_status_" + that.instanceId).val("assinado");
-                
+
                 if ($("#carta_assinada_base64_" + that.instanceId).length === 0) {
                     $("#formCandidato_" + that.instanceId).append('<input type="hidden" id="carta_assinada_base64_' + that.instanceId + '"><input type="hidden" id="carta_assinada_nome_' + that.instanceId + '" value="Carta_Proposta_Assinada.pdf">');
                 }
@@ -2782,6 +2932,12 @@ var AdmissaoWidget = SuperWidget.extend({
                             // Mostra a tela do Iframe
                             that.restaurarUIAssinaturas();
 
+                            that.uploadAnexoIndividual(base64Clean, "Documento_Assinado.pdf", "Documento Assinado", function () {
+                                FLUIGC.toast({ title: 'Sucesso', message: 'Assinatura anexada ao processo!', type: 'success' });
+                            }, function (err) {
+                                console.error("Erro no upload:", err);
+                            });
+
                         }, function (errDoc) {
                             FLUIGC.toast({ title: 'Erro', message: 'Assinado, mas falhou ao transferir o PDF final.', type: 'danger' });
                             btnVerificar.prop("disabled", false).html('<i class="flaticon flaticon-check-circle"></i> Tentar Novamente');
@@ -2812,11 +2968,11 @@ var AdmissaoWidget = SuperWidget.extend({
 
             // MOCK DE ASSINATURA (PROTÓTIPO)
             btn.html('<i class="flaticon flaticon-refresh icon-spin"></i> Simulando assinatura (Protótipo)...');
-            setTimeout(function() {
+            setTimeout(function () {
                 var idDocMock = "MOCK_LGPD_" + new Date().getTime();
                 $("#tae_lgpd_iddoc_" + that.instanceId).val(idDocMock);
                 $("#tae_lgpd_status_" + that.instanceId).val("assinado");
-                
+
                 if ($("#termo_lgpd_assinada_base64_" + that.instanceId).length === 0) {
                     $("#formCandidato_" + that.instanceId).append('<input type="hidden" id="termo_lgpd_assinada_base64_' + that.instanceId + '"><input type="hidden" id="termo_lgpd_assinada_nome_' + that.instanceId + '" value="Termo_LGPD_Assinado.pdf">');
                 }
@@ -2880,6 +3036,12 @@ var AdmissaoWidget = SuperWidget.extend({
 
                             // Mostra a tela do Iframe
                             that.restaurarUIAssinaturas();
+
+                            that.uploadAnexoIndividual(base64Clean, "Documento_Assinado.pdf", "Documento Assinado", function () {
+                                FLUIGC.toast({ title: 'Sucesso', message: 'Assinatura anexada ao processo!', type: 'success' });
+                            }, function (err) {
+                                console.error("Erro no upload:", err);
+                            });
 
                         }, function (errDoc) {
                             FLUIGC.toast({ title: 'Erro', message: 'Assinado, mas falhou ao transferir o PDF final.', type: 'danger' });
@@ -3217,17 +3379,37 @@ var AdmissaoWidget = SuperWidget.extend({
         var that = this;
         var $div = $("#AdmissaoWidget_" + this.instanceId);
 
-        // 1. Desbloqueia todos os campos primeiro (garante que ficam livres por padrão)
-        $div.find("#cand_mae_nome_" + that.instanceId).prop("readonly", false);
-        $div.find("#cand_mae_est_civil_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" });
-        $div.find("#cand_mae_sexo_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" });
+        var isEstagio = (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio");
 
-        $div.find("#cand_pai_nome_" + that.instanceId).prop("readonly", false);
-        $div.find("#cand_pai_est_civil_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" });
-        $div.find("#cand_pai_sexo_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" });
+        if (!isEstagio) {
+            // 1. Bloqueia e limpa os campos por padrão (serão preenchidos apenas se existirem dependentes)
+            $div.find("#cand_mae_nome_" + that.instanceId).val("").prop("readonly", true);
+            $div.find("#cand_mae_est_civil_" + that.instanceId).val("").css({ "pointer-events": "none", "background-color": "#eee" }).prop("disabled", true);
+            $div.find("#cand_mae_sexo_" + that.instanceId).val("Feminino").css({ "pointer-events": "none", "background-color": "#eee" }).prop("disabled", true);
+            $div.find("#cand_mae_cpf_" + that.instanceId).val("").prop("readonly", true);
+            $div.find("#cand_mae_nasc_" + that.instanceId).val("").prop("readonly", true);
 
-        // Se for Estágio, não existe aba de dependentes, portanto a filiação fica 100% livre!
-        if (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio") {
+            $div.find("#cand_pai_nome_" + that.instanceId).val("").prop("readonly", true);
+            $div.find("#cand_pai_est_civil_" + that.instanceId).val("").css({ "pointer-events": "none", "background-color": "#eee" }).prop("disabled", true);
+            $div.find("#cand_pai_sexo_" + that.instanceId).val("Masculino").css({ "pointer-events": "none", "background-color": "#eee" }).prop("disabled", true);
+            $div.find("#cand_pai_cpf_" + that.instanceId).val("").prop("readonly", true);
+            $div.find("#cand_pai_nasc_" + that.instanceId).val("").prop("readonly", true);
+
+            $div.find("#alerta_filiacao_" + that.instanceId).html('<i class="flaticon flaticon-info"></i> Os dados de filiação são exibidos automaticamente com base nos dependentes cadastrados na etapa anterior.');
+        } else {
+            // Se for Estágio, não existe aba de dependentes, portanto a filiação fica 100% livre!
+            $div.find("#cand_mae_nome_" + that.instanceId).prop("readonly", false);
+            $div.find("#cand_mae_est_civil_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" }).prop("disabled", false);
+            $div.find("#cand_mae_sexo_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" }).prop("disabled", false);
+            $div.find("#cand_mae_cpf_" + that.instanceId).prop("readonly", false);
+            $div.find("#cand_mae_nasc_" + that.instanceId).prop("readonly", false);
+
+            $div.find("#cand_pai_nome_" + that.instanceId).prop("readonly", false);
+            $div.find("#cand_pai_est_civil_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" }).prop("disabled", false);
+            $div.find("#cand_pai_sexo_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" }).prop("disabled", false);
+            $div.find("#cand_pai_cpf_" + that.instanceId).prop("readonly", false);
+            $div.find("#cand_pai_nasc_" + that.instanceId).prop("readonly", false);
+            $div.find("#alerta_filiacao_" + that.instanceId).html('<i class="flaticon flaticon-info"></i> Preencha os dados de seus pais abaixo.');
             return;
         }
 
@@ -3243,9 +3425,9 @@ var AdmissaoWidget = SuperWidget.extend({
             if (parentesco === "Mae") {
                 // Só espelha e bloqueia na Filiação se o candidato realmente tiver digitado o NOME nos dependentes
                 if (nome && nome.trim() !== "") {
-                    $div.find("#cand_mae_nome_" + that.instanceId).val(nome).prop("readonly", true);
-                    if (estCivil) $div.find("#cand_mae_est_civil_" + that.instanceId).val(estCivil).css({ "pointer-events": "none", "background-color": "#eee" });
-                    if (sexo) $div.find("#cand_mae_sexo_" + that.instanceId).val(sexo).css({ "pointer-events": "none", "background-color": "#eee" });
+                    $div.find("#cand_mae_nome_" + that.instanceId).val(nome);
+                    if (estCivil) $div.find("#cand_mae_est_civil_" + that.instanceId).val(estCivil);
+                    if (sexo) $div.find("#cand_mae_sexo_" + that.instanceId).val(sexo);
                     if (cpf) $div.find("#cand_mae_cpf_" + that.instanceId).val(cpf);
                     if (nasc) $div.find("#cand_mae_nasc_" + that.instanceId).val(nasc);
                 }
@@ -3254,9 +3436,9 @@ var AdmissaoWidget = SuperWidget.extend({
             if (parentesco === "Pai") {
                 // Só espelha e bloqueia na Filiação se o candidato realmente tiver digitado o NOME nos dependentes
                 if (nome && nome.trim() !== "") {
-                    $div.find("#cand_pai_nome_" + that.instanceId).val(nome).prop("readonly", true);
-                    if (estCivil) $div.find("#cand_pai_est_civil_" + that.instanceId).val(estCivil).css({ "pointer-events": "none", "background-color": "#eee" });
-                    if (sexo) $div.find("#cand_pai_sexo_" + that.instanceId).val(sexo).css({ "pointer-events": "none", "background-color": "#eee" });
+                    $div.find("#cand_pai_nome_" + that.instanceId).val(nome);
+                    if (estCivil) $div.find("#cand_pai_est_civil_" + that.instanceId).val(estCivil);
+                    if (sexo) $div.find("#cand_pai_sexo_" + that.instanceId).val(sexo);
                     if (cpf) $div.find("#cand_pai_cpf_" + that.instanceId).val(cpf);
                     if (nasc) $div.find("#cand_pai_nasc_" + that.instanceId).val(nasc);
                 }
@@ -3268,7 +3450,11 @@ var AdmissaoWidget = SuperWidget.extend({
         var that = this;
         var $select = $("#cand_tipo_sanguineo_" + that.instanceId);
 
-        // Controle de Tentativas Invisíveis
+        // CANCELA REQUISIÇÕES ANTERIORES PARA EVITAR "RACE CONDITION"
+        if ($select.data('jqxhr')) {
+            $select.data('jqxhr').abort();
+        }
+
         var maxTentativas = 3;
         tentativas = tentativas || 0;
 
@@ -3284,7 +3470,7 @@ var AdmissaoWidget = SuperWidget.extend({
 
         var url = WCMAPI.getServerURL() + '/api/public/ecm/dataset/datasets';
 
-        $.ajax({
+        var ajaxCall = $.ajax({
             url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(dataProxy),
             headers: { "Authorization": that.getOAuthHeader(url, 'POST').Authorization },
             success: function (resProxy) {
@@ -3300,10 +3486,7 @@ var AdmissaoWidget = SuperWidget.extend({
                                 resData.records.forEach(function (item) {
                                     var valor = item.TIPOSANG;
                                     var texto = item.IDDESC_SANGUE || item.TIPOSANG;
-
-                                    if (valor) {
-                                        $select.append('<option value="' + valor + '">' + texto + '</option>');
-                                    }
+                                    if (valor) $select.append('<option value="' + valor + '">' + texto + '</option>');
                                 });
                                 carregouViaDataset = true;
                             }
@@ -3312,29 +3495,27 @@ var AdmissaoWidget = SuperWidget.extend({
                 }
 
                 if (!carregouViaDataset) {
-                    // RETENTATIVA
                     if (tentativas < maxTentativas) {
                         setTimeout(function () { that.carregarTiposSanguineos(tentativas + 1); }, 1500);
                         return;
                     }
-                    console.warn("[Admissão] Dataset Sangue falhou após 3 tentativas.");
                     $select.empty().append('<option value="">Falha ao carregar do RM</option>');
                 }
 
+                // VERIFICA SE EXISTE VALOR PENDENTE DA RESTAURAÇÃO
                 if ($select.attr('data-valor-pendente')) {
                     $select.val($select.attr('data-valor-pendente')).trigger('change');
                     $select.removeAttr('data-valor-pendente');
                 }
             },
-            error: function () {
-                // RETENTATIVA
-                if (tentativas < maxTentativas) {
-                    setTimeout(function () { that.carregarTiposSanguineos(tentativas + 1); }, 1500);
-                    return;
-                }
+            error: function (xhr) {
+                if (xhr.statusText === "abort") return; // Ignora erros de aborto intencional
+                if (tentativas < maxTentativas) { setTimeout(function () { that.carregarTiposSanguineos(tentativas + 1); }, 1500); return; }
                 $select.empty().append('<option value="">Erro de conexão</option>');
             }
         });
+
+        $select.data('jqxhr', ajaxCall);
     },
 
     carregarNacionalidades: function (tentativas) {
@@ -3423,25 +3604,29 @@ var AdmissaoWidget = SuperWidget.extend({
         var that = this;
         var $select = $("#" + idCampoSelect);
 
-        // Se o usuário limpou o estado
         if (!ufSelecionada || ufSelecionada === "") {
             $select.empty().append('<option value="">Selecione o Estado primeiro...</option>');
             return;
         }
 
-        // Se for a primeira tentativa, avisa o usuário que está carregando
         if (!tentativas || tentativas === 0) {
+            // SALVA O VALOR ATUAL ANTES DE LIMPAR (Proteção contra limpezas indevidas)
+            var valorAtual = $select.val();
+            if (valorAtual && valorAtual !== "" && valorAtual.indexOf("Carregando") === -1 && valorAtual.indexOf("Selecione") === -1) {
+                $select.attr('data-valor-pendente', valorAtual);
+            }
             $select.empty().append('<option value="">Carregando...</option>');
         }
 
-        // Controle de Tentativas Invisíveis
+        // CANCELA REQUISIÇÕES ANTERIORES PARA EVITAR "RACE CONDITION"
+        if ($select.data('jqxhr')) {
+            $select.data('jqxhr').abort();
+        }
+
         var maxTentativas = 3;
         tentativas = tentativas || 0;
 
-        var constraints = [
-            { _field: "CODETDMUNICIPIO", _initialValue: ufSelecionada, _finalValue: ufSelecionada, _type: 1, _likeSearch: false }
-        ];
-
+        var constraints = [{ _field: "CODETDMUNICIPIO", _initialValue: ufSelecionada, _finalValue: ufSelecionada, _type: 1, _likeSearch: false }];
         var payloadObj = { name: "ds_irho_municipios", constraints: constraints };
         var dataProxy = {
             name: "ds_irho_api_proxy",
@@ -3453,7 +3638,7 @@ var AdmissaoWidget = SuperWidget.extend({
 
         var url = WCMAPI.getServerURL() + '/api/public/ecm/dataset/datasets';
 
-        $.ajax({
+        var ajaxCall = $.ajax({
             url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(dataProxy),
             headers: { "Authorization": that.getOAuthHeader(url, 'POST').Authorization },
             success: function (resProxy) {
@@ -3468,9 +3653,7 @@ var AdmissaoWidget = SuperWidget.extend({
 
                                 resData.records.forEach(function (item) {
                                     var nomeMunicipio = item.NOMEMUNICIPIO;
-                                    if (nomeMunicipio) {
-                                        $select.append('<option value="' + nomeMunicipio + '">' + nomeMunicipio + '</option>');
-                                    }
+                                    if (nomeMunicipio) $select.append('<option value="' + nomeMunicipio + '">' + nomeMunicipio + '</option>');
                                 });
                                 carregou = true;
                             }
@@ -3479,29 +3662,37 @@ var AdmissaoWidget = SuperWidget.extend({
                 }
 
                 if (!carregou) {
-                    // RETENTATIVA
-                    if (tentativas < maxTentativas) {
-                        setTimeout(function () { that.carregarMunicipios(ufSelecionada, idCampoSelect, tentativas + 1); }, 1500);
-                        return;
-                    }
+                    if (tentativas < maxTentativas) { setTimeout(function () { that.carregarMunicipios(ufSelecionada, idCampoSelect, tentativas + 1); }, 1500); return; }
                     $select.empty().append('<option value="">Nenhuma cidade encontrada</option>');
                 }
 
+                // >>> DEVOLVE O VALOR SALVO (BUSCA INTELIGENTE) <<<
                 var valorPendente = $select.attr('data-valor-pendente');
                 if (valorPendente) {
-                    $select.val(valorPendente.toUpperCase()).trigger('change');
+                    var opcaoEncontrada = false;
+                    $select.find("option").each(function () {
+                        if ($(this).text().toUpperCase() === valorPendente.toUpperCase()) {
+                            $select.val($(this).val()).trigger('change');
+                            opcaoEncontrada = true;
+                        }
+                    });
+
+                    // Se não encontrou, injeta como segurança
+                    if (!opcaoEncontrada) {
+                        $select.append('<option value="' + valorPendente + '" selected>' + valorPendente + '</option>');
+                    }
                     $select.removeAttr('data-valor-pendente');
                 }
             },
-            error: function () {
-                // RETENTATIVA
-                if (tentativas < maxTentativas) {
-                    setTimeout(function () { that.carregarMunicipios(ufSelecionada, idCampoSelect, tentativas + 1); }, 1500);
-                    return;
-                }
+            error: function (xhr) {
+                if (xhr.statusText === "abort") return; // Ignora erros de aborto intencional
+                if (tentativas < maxTentativas) { setTimeout(function () { that.carregarMunicipios(ufSelecionada, idCampoSelect, tentativas + 1); }, 1500); return; }
                 $select.empty().append('<option value="">Erro de conexão</option>');
             }
         });
+
+        // Associa a chamada AJAX ao campo para controlo futuro
+        $select.data('jqxhr', ajaxCall);
     },
 
     aplicarRegrasVisuaisPorJornada: function () {

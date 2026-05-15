@@ -4,10 +4,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-div[id^="AdmissaoWidget_"] {
-    font-family: 'Inter', sans-serif !important;
-}
-
 :root {
     /* Cores extraídas do Painel de Admissão */
     --color-primary: #8e7dd6; 
@@ -22,9 +18,84 @@ div[id^="AdmissaoWidget_"] {
     /* Sombras e Bordas SaaS do Painel */
     --sombra-header: 0 10px 25px -5px rgba(117, 65, 154, 0.3);
     --radius-lg: 16px;
+
+    /* Variáveis do estilo_moderno.css */
+    --bg-pagina: #f7f7f7;
+    --bg-painel: #ffffff;
+    --bg-input: #FAFCFC;
+    --bg-bloqueado: #F0F2F2;
+    --texto-padrao: #2f2f2f;
+    --texto-label: #4f575f;
+    --texto-bloqueado: #889391;
+    --borda-padrao: #E0E6E5;
+    --borda-painel: #E8ECEB;
+    --borda-painel-hover: #D1D8D6;
+    --borda-bloqueado: #E6EAEA;
+    --sombra-painel: rgba(0, 0, 0, 0.06);
+    --sombra-painel-hover: rgba(0, 0, 0, 0.12);
+
+    /* Cores Semânticas (Prompt 2) */
+    --color-success: #10b981;
+    --color-info: #3b82f6;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+
+    /* Tints (10-15% de opacidade para fundos) */
+    --color-primary-tint: rgba(131, 113, 208, 0.12);
+    --color-success-tint: rgba(16, 185, 129, 0.1);
+    --color-info-tint: rgba(59, 130, 246, 0.1);
+    --color-warning-tint: rgba(245, 158, 11, 0.1);
+    --color-danger-tint: rgba(239, 68, 68, 0.1);
 }
 
-/* Aplicação da Identidade no Cabeçalho */
+/* ==========================================================================
+   1. FUNDO DA PÁGINA E PAINÉIS (CARDS DO FORMULÁRIO)
+   ========================================================================== */
+div[id^="AdmissaoWidget_"] {
+    font-family: 'Inter', sans-serif !important;
+    background-color: var(--bg-pagina) !important;
+    color: var(--texto-padrao);
+}
+
+.fluig-style-guide .panel-default {
+    border: 1px solid var(--borda-painel) !important;
+    border-radius: 12px !important;
+    background-color: var(--bg-painel) !important;
+    box-shadow: 0 4px 20px var(--sombra-painel) !important;
+    margin-bottom: 25px !important;
+    transition: all 0.3s ease !important;
+    overflow: visible !important;
+}
+
+.fluig-style-guide .panel-default:hover {
+    border-color: var(--borda-painel-hover) !important;
+    box-shadow: 0 8px 25px var(--sombra-painel-hover) !important;
+}
+
+.fluig-style-guide .panel-heading {
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--borda-padrao) !important;
+    padding: 15px 25px !important;
+    color: #111111 !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fluig-style-guide .panel-heading i {
+    color: var(--color-primary) !important;
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+.fluig-style-guide .panel-body {
+    padding: 20px 25px !important;
+}
+
+/* ==========================================================================
+   2. HEADER SUPERIOR (PAINEL ADMISSÃO)
+   ========================================================================== */
 .custom-page-header {
     background: linear-gradient(135deg, var(--header-grad-inicio) 0%, var(--header-grad-fim) 100%) !important;
     padding: 20px 32px !important;
@@ -32,30 +103,10 @@ div[id^="AdmissaoWidget_"] {
     border-radius: var(--radius-lg);
     max-width: 1000px;
     margin: 24px auto 0 auto;
-}
-
-/* Ajuste do Glassmorphism para os botões do cabeçalho */
-.header-glass-card {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    backdrop-filter: blur(8px); /* Efeito de vidro idêntico ao painel */
-    border-radius: 12px;
-}
-
-/* ==========================================================================
-   HEADER SUPERIOR (PAINEL ADMISSÃO)
-   ========================================================================== */
-.custom-page-header {
-    background: linear-gradient(135deg, var(--sidebar-grad-inicio) 0%, var(--sidebar-grad-fim) 100%);
-    padding: 20px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     color: #fff;
-    border-radius: 16px;
-    max-width: 1000px;
-    margin: 24px auto 0 auto; /* Mantém o padrão de margem do Painel */
 }
 
 .header-title {
@@ -64,18 +115,22 @@ div[id^="AdmissaoWidget_"] {
     gap: 15px;
 }
 
-/* ==========================================
-   CAIXA DE VIDRO E LOGO
-   ========================================== */
+/* Ajuste do Glassmorphism para os botões do cabeçalho */
+.header-glass-card {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+}
+
+/* Caixa de Vidro e Logo */
 .header-logo-wrapper {
     background: rgba(255, 255, 255, 0.1) !important;
-    /* Um ligeiro ajuste no padding para garantir que a imagem tem o mesmo respiro de todos os lados */
     padding: 8px 12px !important; 
     border-radius: 12px !important;
     margin-right: 16px !important; 
     backdrop-filter: blur(4px) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    /* Força o alinhamento central absoluto */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -83,22 +138,20 @@ div[id^="AdmissaoWidget_"] {
 }
 
 .header-logo {
-    max-height: 30px !important; /* Logo reduzida (antes estava 45px) */
+    max-height: 30px !important;
     width: auto !important;
-    margin: 0 !important; /* Remove qualquer margem nativa que estivesse a empurrar a logo para a direita */
+    margin: 0 !important;
     display: block !important;
     object-fit: contain;
     filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.185)) !important;
 }
 
-/* ==========================================
-   ALINHAMENTO E ESPAÇAMENTO DOS TEXTOS
-   ========================================== */
+/* Alinhamento dos Textos do Header */
 .header-text-group {
     display: flex !important;
-    flex-direction: column !important; /* Empilha o Título e o Subtítulo */
+    flex-direction: column !important;
     justify-content: center !important;
-    gap: 2px !important; /* Define exatamente 2px de distância entre eles */
+    gap: 2px !important;
 }
 
 .header-text-group h2 {
@@ -106,7 +159,6 @@ div[id^="AdmissaoWidget_"] {
     font-weight: 700 !important;
     color: #ffffff !important;
     margin: 0 !important;
-    /* Reduz a altura invisível da linha que afastava os textos */
     line-height: 1.1 !important; 
     letter-spacing: 1px;
     text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.089) !important;
@@ -119,17 +171,79 @@ div[id^="AdmissaoWidget_"] {
     font-weight: 500;
     letter-spacing: 2px;
     margin: 0 !important;
-    /* Garante que a legenda não tem margens invisíveis a atrapalhar */
     line-height: 1 !important; 
 }
 
 /* ==========================================================================
-   STEPPER HORIZONTAL MODERNO
+   CARD MESTRE DE CONTEÚDO (FLUTUANTE)
+   ========================================================================== */
+.main-content-card {
+    max-width: 1000px; /* Acompanha o tamanho do cabeçalho */
+    margin: 12px auto 40px auto; /* "Rente" ao cabeçalho (12px de distância) */
+    background-color: var(--bg-painel) !important;
+    border: 1px solid var(--borda-painel) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px var(--sombra-painel) !important;
+    overflow: hidden; /* Garante que o conteúdo respeite as bordas arredondadas */
+    transition: all 0.3s ease;
+}
+
+.main-content-card:hover {
+    box-shadow: 0 8px 25px var(--sombra-painel-hover) !important;
+}
+
+/* Ajuste no Stepper para integrar ao topo do Card */
+.modern-stepper-wrapper {
+    background: transparent !important; /* Remove o fundo próprio para usar o do card */
+    padding: 24px 0 10px 0 !important;
+    border-bottom: 1px solid var(--borda-padrao) !important;
+}
+
+.stepper-container {
+    max-width: 100%; /* Ocupa a largura total do card interno */
+    padding: 0 30px;
+}
+
+/* Removemos sombras individuais dos painéis internos para não sobrecarregar o visual, 
+   já que o card mestre já possui sombra */
+.main-content-card .panel-default {
+    box-shadow: none !important;
+    border: 1px solid var(--borda-padrao) !important;
+}
+
+.section-title {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: var(--texto-padrao) !important;
+    padding: 12px 20px !important;
+    background: linear-gradient(to right, var(--color-primary-light), transparent);
+    border-left: 5px solid var(--color-primary);
+    border-bottom: none !important;
+    border-radius: 4px 12px 12px 4px;
+    margin: 30px 0 25px 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.section-title i {
+    background: #fff;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* ==========================================================================
+   3. STEPPER HORIZONTAL MODERNO
    ========================================================================== */
 .modern-stepper-wrapper {
-    background: var(--color-surface);
+    background: var(--bg-pagina);
     padding: 24px 0;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--borda-padrao);
     box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 
@@ -149,7 +263,6 @@ div[id^="AdmissaoWidget_"] {
     width: 100%;
 }
 
-/* Linha Cinza de Fundo */
 .stepper-list::before {
     content: '';
     position: absolute;
@@ -171,7 +284,6 @@ div[id^="AdmissaoWidget_"] {
     align-items: center;
 }
 
-/* Linha Roxa Conectando Steps Completos */
 .step-item::after {
     content: '';
     position: absolute;
@@ -186,24 +298,22 @@ div[id^="AdmissaoWidget_"] {
     transition: transform 0.4s ease;
 }
 
-.step-item.completed::after {
-    transform: scaleX(1);
-}
-
-.step-item:last-child::after {
-    display: none;
-}
+.step-item.completed::after { transform: scaleX(1); }
+.step-item:last-child::after { display: none; }
 
 .step-indicator {
-    display: flex;
-    justify-content: center;
-    position: relative;
-    z-index: 3;
-    background: var(--color-surface);
-    padding: 0 8px;
+    /* Força o fundo a ser exatamente o branco do card, eliminando o quadrado cinza */
+    background-color: var(--bg-painel, #ffffff) !important; 
+    padding: 0 8px !important; /* Mantém o respiro para "cortar" a linha cinza com elegância */
+    display: flex !important;
+    justify-content: center !important;
+    position: relative !important;
+    z-index: 3 !important;
+    color: var(--header-grad-inicio) !important; /* Cor do número do passo */
 }
 
 .step-icon {
+    background-color: #ffffff !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -248,249 +358,309 @@ div[id^="AdmissaoWidget_"] {
     color: #334155;
 }
 
-@media (max-width: 768px) {
-    .step-label {
-        font-size: 10px;
-    }
-    .custom-page-header {
-        flex-direction: column;
-        gap: 15px;
-        padding: 15px;
-    }
-}
-
 /* ==========================================================================
-   INPUTS TRADICIONAIS (LABELS NO TOPO) - CONFORME REFERÊNCIA
+   4. INPUTS E LABELS (ESTILO SOFT UI)
    ========================================================================== */
-
-.form-group {
-    margin-bottom: var(--spacing-md);
-    position: relative;
-}
-
-.form-group label {
-    display: block;
-    font-size: 13px !important;
+.fluig-style-guide label {
+    font-size: 12px !important;
     font-weight: 600 !important;
-    color: var(--color-text) !important;
+    color: var(--texto-label) !important;
     margin-bottom: 6px !important;
-    position: static !important;
-    pointer-events: auto !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
 }
 
-.form-group input.form-control,
-.form-group select.form-control {
-    width: 100%;
-    height: 44px; /* Altura menor, mais elegante */
-    padding: 10px 14px;
-    border: var(--border-width) solid var(--color-border) !important;
-    border-radius: var(--radius-sm) !important;
-    background-color: var(--color-surface) !important;
-    color: var(--color-text) !important;
-    font-size: 14px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important; /* Sombra bem leve igual prints */
-    transition: all 0.2s ease;
+.fluig-style-guide .form-control {
+    border-radius: 6px !important;
+    border: 1px solid var(--borda-padrao) !important;
+    background-color: var(--bg-input) !important;
+    padding: 8px 12px !important;
+    height: auto !important;
+    font-size: 13px !important;
+    color: var(--texto-padrao) !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease !important;
 }
 
-.form-group select.form-control {
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') !important;
-    background-repeat: no-repeat !important;
-    background-position: right 14px top 50% !important;
-    background-size: 10px auto !important;
-}
-
-.form-group input:focus,
-.form-group select:focus {
+.fluig-style-guide .form-control:focus {
     border-color: var(--color-primary) !important;
-    box-shadow: 0 0 0 3px rgba(131, 113, 208, 0.15) !important;
-    outline: none;
+    background-color: var(--bg-painel) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent) !important;
 }
 
-.form-group input:disabled,
-.form-group input[readonly],
-.form-group select:disabled,
-.form-group select[readonly] {
-    background-color: var(--color-bg) !important;
-    color: var(--color-text-muted) !important;
+.fluig-style-guide .form-control[readonly],
+.fluig-style-guide .form-control[disabled] {
+    background-color: var(--bg-bloqueado) !important;
+    border-color: var(--borda-bloqueado) !important;
+    color: var(--texto-bloqueado) !important;
     cursor: not-allowed;
-    border-color: #f3f4f6 !important;
+}
+
+/* Estilo para a lista de dependentes dentro dos benefícios */
+.dep-selection-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid var(--borda-padrao);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    transition: all 0.2s;
+}
+
+.dep-selection-item:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-light);
+}
+
+.dep-selection-item input[type="checkbox"] {
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
 }
 
 /* ==========================================================================
-   BOTÕES E TABS (REFINADOS)
+   ALERTAS E AVISOS (NOVO DESIGN - CENTRO VERTICAL E FONT-AWESOME)
    ========================================================================== */
 
-.btn {
-    font-family: inherit;
-    font-weight: 600 !important;
-    border-radius: var(--radius-sm) !important;
-    padding: 10px 24px !important;
-    transition: all 0.2s ease !important;
+/* Container Principal do Alerta */
+.fluig-style-guide .alert {
+    display: block !important; /* Mantém o texto como um parágrafo natural, sem quebrar o negrito */
+    position: relative !important;
+    color: var(--texto-padrao, #1f2937) !important;
+    /* Padding igual em cima e embaixo (16px) garante que o texto fique centralizado */
+    padding: 16px 40px 16px 64px !important; 
+    border-radius: 12px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02) !important;
+    text-shadow: none !important;
+    line-height: 1.5 !important;
+    text-align: left !important;
+    min-height: auto !important; /* Removemos a altura fixa para o card abraçar o texto */
+}
+
+/* Remove qualquer resquício da barra lateral antiga */
+.fluig-style-guide .alert::before {
+    display: none !important;
+}
+
+/* O Ícone - Círculo Sólido flutuando no CENTRO VERTICAL EXATO */
+.fluig-style-guide .alert i {
+    position: absolute !important;
+    left: 16px !important;
+    top: 50% !important; /* Empurra para o meio do card */
+    transform: translateY(-50%) !important; /* Corrige a matemática para ser o centro perfeito */
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    color: #ffffff !important; /* Ícone sempre branco */
     font-size: 14px !important;
+    margin: 0 !important;
+    z-index: 2 !important;
+}
+
+/* Ajustes para o texto fluir naturalmente na linha */
+.fluig-style-guide .alert strong {
+    font-size: 14px !important;
+    color: var(--texto-padrao, #111827) !important;
+    display: inline !important; 
+    margin-right: 4px !important;
+}
+
+.fluig-style-guide .alert p {
+    margin: 0 !important;
+    display: inline !important;
+}
+
+/* Botão Fechar (×) nativo do Fluig/Bootstrap */
+.fluig-style-guide .alert .close {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important; /* Centraliza o 'x' verticalmente também */
+    right: 16px !important;
+    color: var(--texto-padrao) !important;
+    opacity: 0.4 !important;
+    text-shadow: none !important;
+    font-size: 20px !important;
+    font-weight: normal !important;
+}
+
+.fluig-style-guide .alert .close:hover {
+    opacity: 1 !important;
+}
+
+/* ==========================================
+   VARIANTES SEMÂNTICAS (Fundo Sólido Claro + Círculo Sólido)
+   ========================================== */
+
+/* INFORMAÇÃO (Azul) */
+.fluig-style-guide .alert-info { 
+    background-color: #eff6ff !important; 
+    border: 1px solid #bfdbfe !important; 
+}
+.fluig-style-guide .alert-info i { 
+    background-color: var(--color-info, #3b82f6) !important; 
+}
+
+/* SUCESSO (Verde) */
+.fluig-style-guide .alert-success { 
+    background-color: #ecfdf5 !important; 
+    border: 1px solid #a7f3d0 !important; 
+}
+.fluig-style-guide .alert-success i { 
+    background-color: var(--color-success, #10b981) !important; 
+}
+
+/* AVISO (Amarelo/Laranja) */
+.fluig-style-guide .alert-warning { 
+    background-color: #fffbeb !important; 
+    border: 1px solid #fde68a !important; 
+}
+.fluig-style-guide .alert-warning i { 
+    background-color: var(--color-warning, #f59e0b) !important; 
+}
+
+/* ERRO (Vermelho) */
+.fluig-style-guide .alert-danger { 
+    background-color: #fef2f2 !important; 
+    border: 1px solid #fecaca !important; 
+}
+.fluig-style-guide .alert-danger i { 
+    background-color: var(--color-danger, #ef4444) !important; 
+}
+
+/* ==========================================================================
+   5. BOTÕES
+   ========================================================================== */
+.fluig-style-guide .btn {
+    border-radius: 6px !important;
+    padding: 8px 20px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    transition: all 0.2s ease !important;
     border: none !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
 }
 
-.btn-primary {
-    background-color: var(--color-text) !important; /* Como "Save Task" escuro da imagem */
-    color: #FFF !important;
-}
-
-.btn-primary:hover {
-    background-color: #374151 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-.btn-info, .btn-secondary {
+.fluig-style-guide .btn-primary,
+.fluig-style-guide .btn-info,
+.fluig-style-guide .btn-accept {
     background-color: var(--color-primary) !important;
-    color: #ffffff !important;
+    color: #FFFFFF !important;
 }
 
-.btn-info:hover, .btn-secondary:hover {
-    background-color: var(--color-primary-hover) !important;
-    box-shadow: 0 4px 12px rgba(131, 113, 208, 0.2) !important;
+.fluig-style-guide .btn-primary:hover,
+.fluig-style-guide .btn-info:hover,
+.fluig-style-guide .btn-accept:hover {
+    filter: brightness(0.9);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
 }
 
-.btn-accept, .btn-success {
-    background-color: var(--color-text) !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: var(--radius-sm) !important;
-    padding: 10px 24px !important;
-}
-
-.btn-accept:hover, .btn-success:hover {
-    background-color: #374151 !important;
-}
-
-.btn-decline, .btn-danger {
-    background-color: var(--color-surface) !important;
-    color: var(--color-danger) !important;
-    border: 1px solid var(--color-danger) !important;
-    border-radius: var(--radius-sm) !important;
-    padding: 10px 24px !important;
-}
-
-.btn-decline:hover, .btn-danger:hover {
-    background-color: var(--color-danger-bg) !important;
-}
-
+/* ==========================================================================
+   6. NAVEGAÇÃO DE ABAS (TABS NO PASSO 3)
+   ========================================================================== */
 .nav-tabs {
-    border: none !important;
-    background-color: transparent !important;
-    display: inline-flex;
-    margin-bottom: var(--spacing-lg);
-    gap: 8px;
+    display: flex !important;
+    width: 100% !important;
+    justify-content: space-between !important; /* Distribui na largura total */
+    background: var(--bg-input) !important;
+    padding: 6px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--borda-padrao) !important;
+    gap: 4px !important;
 }
 
 .nav-tabs > li {
-    margin: 0 !important;
+    flex: 1 !important; /* Faz cada aba ter o mesmo tamanho */
+    text-align: center !important;
 }
 
 .nav-tabs > li > a {
-    border: 1px solid var(--color-border) !important;
-    color: var(--color-text-muted) !important;
-    border-radius: var(--radius-sm) !important;
-    padding: 8px 16px !important;
-    font-weight: 500;
-    margin: 0 !important;
-    background: var(--color-surface);
-}
-
-.nav-tabs > li > a:hover {
-    background-color: var(--color-bg) !important;
-    color: var(--color-text) !important;
-    border-color: #d1d5db !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    border: none !important;
+    background: transparent !important;
+    color: var(--texto-label) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 10px 15px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
 }
 
 .nav-tabs > li.active > a {
-    background-color: var(--color-surface) !important;
+    background: #fff !important; /* Fundo branco para destacar */
     color: var(--color-primary) !important;
-    border-color: var(--color-primary) !important;
-    box-shadow: 0 2px 8px rgba(131, 113, 208, 0.1) !important;
-    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
 }
 
-.tab-content.shadow-panel {
-    border: none;
-    padding: 0;
-    box-shadow: none;
-    background: transparent;
+/* Efeito Pill suave na tab ativa (Prompt 1) */
+.nav-tabs > li.active > a::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--color-primary-tint);
+    border-radius: 8px;
+    z-index: -1;
 }
 
-.section-title {
-    color: var(--color-text);
-    font-weight: 600;
-    font-size: 18px;
-    margin-bottom: var(--spacing-lg);
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: var(--spacing-sm);
+/* ==========================================================================
+   7. CAIXAS DE UPLOAD E ANIMAÇÕES
+   ========================================================================== */
+.upload-box {
+    position: relative;
     display: flex;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    gap: 8px;
+    border: 1.5px dashed #cbd5e1 !important;
+    border-radius: 10px !important;
+    background: #f8fafc !important;
+    padding: 20px 14px !important;
+    transition: all 0.2s !important;
+    cursor: pointer;
+    text-align: center;
+    height: 140px;
 }
 
-.section-title i {
-    color: var(--color-primary);
+.upload-box:hover {
+    border-color: #3b82f6 !important;
+    background: #f0f9ff !important;
 }
 
-/* Animação das steps */
+.upload-box i {
+    color: var(--color-primary) !important;
+    margin-bottom: 8px;
+}
+
+.upload-box h5 {
+    font-weight: 600;
+    color: var(--texto-padrao);
+    margin: 0 0 5px 0;
+    font-size: 13px;
+}
+
 .step-content {
     display: none;
     animation: fadeIn 0.3s ease;
 }
-.step-content.active {
-    display: block;
-}
+.step-content.active { display: block; }
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Upload box */
-.upload-box {
-    border: 1.5px dashed #cbd5e1;
-    background: var(--color-surface);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    text-align: center;
-    transition: all 0.2s;
-    height: 180px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-.upload-box:hover {
-    border-color: var(--color-primary);
-    background: var(--color-primary-light);
-}
-.upload-box.uploaded {
-    border-color: var(--color-success);
-    background: var(--color-success-bg);
-}
-
-.panel-default {
-    border: 1px solid var(--color-border) !important;
-    border-radius: var(--radius-md) !important;
-    background-color: var(--color-surface) !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
-    margin-bottom: var(--spacing-lg) !important;
-}
-
-.panel-heading {
-    background-color: transparent !important;
-    border-bottom: 1px solid var(--color-border) !important;
-    color: var(--color-text) !important;
-    font-weight: 600 !important;
-    padding: 16px 20px !important;
-}
-
-.panel-body {
-    padding: 20px !important;
+/* Comportamento Mobile */
+@media (max-width: 768px) {
+    .step-label { font-size: 10px; }
+    .custom-page-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px !important;
+    }
 }

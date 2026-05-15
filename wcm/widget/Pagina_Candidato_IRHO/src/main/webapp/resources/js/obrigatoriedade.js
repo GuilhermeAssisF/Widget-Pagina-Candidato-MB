@@ -60,6 +60,7 @@ var AdmissaoObrigatoriedade = {
             "cand_tamanho_calca": function () { return exigeMedidas; },
 
             // Bancários
+            "cand_possui_conta_itau": function () { return true; },
             "cand_banco": function () { return true; },
             "cand_agencia": function () { return true; },
             "cand_conta_corrente": function () { return true; },
@@ -107,14 +108,6 @@ var AdmissaoObrigatoriedade = {
             "cand_instituicao_cnpj": function () { return isEstagio; },
             "cand_coordenador_nome": function () { return isEstagio; },
             "cand_coordenador_nacionalidade": function () { return isEstagio; },
-
-            // --- Passo 6: Filiação ---
-            "cand_mae_nome": function () { return true; },
-            "cand_mae_sexo": function () { return true; },
-            "cand_mae_est_civil": function () { return true; },
-            "cand_pai_nome": function () { return true; },
-            "cand_pai_sexo": function () { return true; },
-            "cand_pai_est_civil": function () { return true; },
 
             // --- Passo 7: Benefícios ---
             "cand_vt_opcao": function () { return true; },
