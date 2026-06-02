@@ -17,7 +17,7 @@ var AdmissaoObrigatoriedade = {
         var val = function (id) { return $("#" + id + "_" + widget.instanceId).val(); };
 
         return {
-            // --- Passo 3: Dados Pessoais ---
+            // --- Passo 2: Dados Pessoais ---
             "cand_cpf": function () { return true; },
             "cand_nascimento": function () { return true; },
             "cand_estado_natal": function () { return true; },
@@ -99,7 +99,7 @@ var AdmissaoObrigatoriedade = {
             "cand_reservista_data_emissao": function () { return isMasculino && val("cand_reservista_possuo") === "Sim"; },
             "cand_reservista_situacao": function () { return isMasculino && val("cand_reservista_possuo") === "Sim"; },
 
-            // --- Passo 4: Formação ---
+            // --- Passo 3: Formação ---
             "cand_grau_instrucao": function () { return true; },
             "cand_ano_conclusao": function () { return isEstagio; },
             "cand_curso": function () { return isEstagio; },
@@ -109,7 +109,7 @@ var AdmissaoObrigatoriedade = {
             "cand_coordenador_nome": function () { return isEstagio; },
             "cand_coordenador_nacionalidade": function () { return isEstagio; },
 
-            // --- Passo 7: Benefícios ---
+            // --- Passo 6: Benefícios ---
             "cand_vt_opcao": function () { return true; },
 
             "cand_ps_opcao": function () { return isCLT; },
@@ -137,7 +137,7 @@ var AdmissaoObrigatoriedade = {
             }
         });
 
-        // O Passo 5 (Dependentes) tem classes genéricas em vez de IDs, tratamos a parte:
+        // O Passo 4 (Dependentes) tem classes genéricas em vez de IDs, tratamos a parte:
         var isCLT = (widget.jornadaAdmissao !== "Estagio" && widget.jornadaAdmissao !== "Estágio");
         if (isCLT) {
             $div.find(".dependente-card").each(function () {
@@ -181,7 +181,7 @@ var AdmissaoObrigatoriedade = {
         $target.find(".upload-box").css("border", "").removeClass("shake");
 
         // 1. VALIDAÇÃO DE CAMPOS MAPEADOS (Passos 3, 4, 6, 7)
-        if (!passo || [3, 4, 6, 7].indexOf(passo) > -1) {
+        if (!passo || [2, 3, 5, 6].indexOf(passo) > -1) {
             var keys = Object.keys(regras);
             for (var i = 0; i < keys.length; i++) {
                 var id = keys[i];
@@ -203,8 +203,8 @@ var AdmissaoObrigatoriedade = {
             }
         }
 
-        // 2. VALIDAÇÃO DOS DEPENDENTES (Passo 5)
-        if (valid && (passo == 5 || (!passo && $target.find(".dependente-card").length > 0))) {
+        // 2. VALIDAÇÃO DOS DEPENDENTES (Passo 4)
+        if (valid && (passo == 4 || (!passo && $target.find(".dependente-card").length > 0))) {
             var isCLT = (widget.jornadaAdmissao !== "Estagio" && widget.jornadaAdmissao !== "Estágio");
             var $cards = $target.find(".dependente-card");
 
@@ -247,8 +247,8 @@ var AdmissaoObrigatoriedade = {
             }
         }
 
-        // 3. VALIDAÇÃO DE ROTAS DE VALE TRANSPORTE (Passo 7)
-        if (valid && (passo == 7 || (!passo && $target.find(".vt-card").length > 0))) {
+        // 3. VALIDAÇÃO DE ROTAS DE VALE TRANSPORTE (Passo 6)
+        if (valid && (passo == 6 || (!passo && $target.find(".vt-card").length > 0))) {
             var $selectOpcaoVT = $d.find("#cand_vt_opcao_" + widget.instanceId);
             var optoVT = ($selectOpcaoVT.val() === "Opto");
 
@@ -280,8 +280,8 @@ var AdmissaoObrigatoriedade = {
             }
         }
 
-        // 4. VALIDAÇÃO DE DOCUMENTOS (Passo 8)
-        if (valid && passo == 8) {
+        // 4. VALIDAÇÃO DE DOCUMENTOS (Passo 7)
+        if (valid && passo == 7) {
             // Documentos Dinâmicos (Dataset)
             for (var j = 0; j < widget.configDocs.length; j++) {
                 var doc = widget.configDocs[j];

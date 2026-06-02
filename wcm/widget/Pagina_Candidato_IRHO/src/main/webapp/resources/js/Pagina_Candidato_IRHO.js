@@ -1,6 +1,6 @@
-var AdmissaoWidget = SuperWidget.extend({
+﻿var AdmissaoWidget = SuperWidget.extend({
     passoAtual: 1,
-    totalPassos: 9,
+    totalPassos: 8,
     configDocs: [],
     abasVisitadas: {},
     usuarioIntegracao: "",
@@ -11,6 +11,13 @@ var AdmissaoWidget = SuperWidget.extend({
     nomeFilial: "",
     idPdfProposta: null,
     idPdfLGPD: null,
+    previewDocsPrimeiroLink: {
+        proposta: "",
+        lgpd: "",
+        manifesto: ""
+    },
+    manifestoPdfDataUri: "",
+    currentPrimeiroLinkBlobUrl: "",
 
     // =========================================================================
     // 1. INICIALIZAÇÃO E CARGA
@@ -61,13 +68,17 @@ var AdmissaoWidget = SuperWidget.extend({
             }, 300);
         }
 
-        // Ouvinte do botão de Gerar e Assinar Proposta
-        $div.on('click', '#btn_gerar_assinar_' + this.instanceId, function () {
-            that.gerarEAssinarProposta($(this));
+        // Ouvinte do botão único do Primeiro Link
+        $div.on('click', '#btn_gerar_assinar_primeiro_link_' + this.instanceId, function () {
+            that.gerarEAssinarPrimeiroLink($(this));
         });
 
-        $div.on('click', '#btn_gerar_assinar_lgpd_' + this.instanceId, function () {
-            that.gerarEAssinarLGPD($(this));
+        $div.on('click', '.primeiro-link-card', function () {
+            that.abrirDocumentoPrimeiroLink($(this).attr('data-doc-type'));
+        });
+
+        $div.on('click', '#btnCloseCustomModal_' + this.instanceId, function () {
+            that.fecharVisualizadorPrimeiroLink();
         });
 
         window.preencherTudo = function () {
@@ -77,7 +88,7 @@ var AdmissaoWidget = SuperWidget.extend({
         window.ignorarValidacao = false; // Começa sempre bloqueado por padrão
         window.removerObrigatoriedade = function () {
             window.ignorarValidacao = true;
-            console.log("⚠️ MODO DEUS ATIVADO: Todas as regras de obrigatoriedade foram desligadas!");
+            console.log("MODO DEUS ATIVADO: Todas as regras de obrigatoriedade foram desligadas!");
             FLUIGC.toast({ title: 'Atenção', message: 'Validações desativadas. Você pode avançar sem preencher nada.', type: 'warning' });
         };
 
@@ -91,7 +102,7 @@ var AdmissaoWidget = SuperWidget.extend({
         var id = this.instanceId;
         var $d = $("#AdmissaoWidget_" + id);
 
-        console.log("🚀 Iniciando preenchimento automático (Mock)...");
+        console.log(" Iniciando preenchimento automático (Mock)...");
 
         // Função auxiliar que preenche o valor e avisa o HTML que o campo mudou
         function setVal(campo, valor) {
@@ -168,7 +179,7 @@ var AdmissaoWidget = SuperWidget.extend({
         setVal("cand_vt_opcao", "Não Opto");
         setVal("cand_ps_opcao", "Não Opto");
 
-        console.log("✅ Mock aplicado com sucesso! Todos os campos obrigatórios foram preenchidos.");
+        console.log(" Mock aplicado com sucesso! Todos os campos obrigatórios foram preenchidos.");
         FLUIGC.toast({ title: 'Mock Carregado', message: 'Dados de teste preenchidos com sucesso via Console.', type: 'success' });
     },
 
@@ -354,21 +365,28 @@ var AdmissaoWidget = SuperWidget.extend({
                             if (that.idPdfProposta) {
                                 that.obterBase64GED(that.idPdfProposta, function (base64) {
                                     var srcPdf = "data:application/pdf;base64," + base64;
+                                    that.previewDocsPrimeiroLink.proposta = base64;
+                                    that.atualizarCartoesPrimeiroLink();
                                     $("#pdf_viewer_proposta_" + that.instanceId).attr("src", srcPdf).show();
                                     $("#msg_carregando_proposta_" + that.instanceId).hide();
-                                    $("#btn_gerar_assinar_" + that.instanceId).fadeIn();
                                 });
                             } else {
                                 $("#msg_carregando_proposta_" + that.instanceId).html("<p class='text-danger'>Documento da proposta não encontrado.</p>");
                             }
 
-                            // TERMO LGPD - LOGS ADICIONADOS
-                            console.log("[DEBUG LGPD] 1. Carregando dados iniciais. idPdfLGPD =", that.idPdfLGPD);
-
                             if (!that.idPdfLGPD) {
                                 $("#msg_carregando_lgpd_" + that.instanceId).html("<p class='text-danger'>Termo LGPD não encontrado.</p>");
                             } else {
-                                console.log("[DEBUG LGPD] 2. idPdfLGPD encontrado. Aguardando o candidato ir para o Passo 2.");
+                                that.obterBase64GED(that.idPdfLGPD, function (base64) {
+                                    var srcPdfLgpd = "data:application/pdf;base64," + base64;
+                                    that.previewDocsPrimeiroLink.lgpd = base64;
+                                    that.atualizarCartoesPrimeiroLink();
+                                    $("#pdf_viewer_lgpd_" + that.instanceId).attr("src", srcPdfLgpd).show();
+                                    $("#msg_carregando_lgpd_" + that.instanceId).hide();
+                                });
+                            }
+                            if (that.idPdfProposta && that.idPdfLGPD) {
+                                $("#btn_gerar_assinar_primeiro_link_" + that.instanceId).fadeIn();
                             }
                             // =========================================================
 
@@ -671,6 +689,17 @@ var AdmissaoWidget = SuperWidget.extend({
 
                                 if (passoSalvoFluig) {
                                     var pInt = parseInt(passoSalvoFluig, 10);
+                                    var statusPropSalvo = $("#tae_proposta_status_" + that.instanceId).val();
+                                    var statusLgpdSalvo = $("#tae_lgpd_status_" + that.instanceId).val();
+
+                                    if (!isNaN(pInt)) {
+                                        if (pInt > 2) {
+                                            pInt = pInt - 1;
+                                        } else if (pInt === 2 && (statusPropSalvo !== "assinado" || statusLgpdSalvo !== "assinado")) {
+                                            pInt = 1;
+                                        }
+                                    }
+
                                     if (!isNaN(pInt) && pInt > 1 && pInt <= that.totalPassos) {
                                         setTimeout(function () {
                                             that.irParaPasso(pInt);
@@ -743,11 +772,11 @@ var AdmissaoWidget = SuperWidget.extend({
 
                                 // Se a regra do documento não for "ambos" e for DIFERENTE do candidato, ignora
                                 if (jCandidato !== "" && docJornada !== "ambos" && docJornada !== jCandidato) {
-                                    console.log("[WIDGET DOCS] 🚫 Ocultado (Filtro): " + doc.doc_titulo + " (" + docJornada + ")");
+                                    console.log("[WIDGET DOCS]  Ocultado (Filtro): " + doc.doc_titulo + " (" + docJornada + ")");
                                     continue;
                                 }
 
-                                console.log("[WIDGET DOCS] ✅ Aprovado: " + doc.doc_titulo);
+                                console.log("[WIDGET DOCS]  Aprovado: " + doc.doc_titulo);
                                 that.configDocs.push(doc);
                             }
 
@@ -766,7 +795,7 @@ var AdmissaoWidget = SuperWidget.extend({
                 console.log("======================================================");
             },
             error: function (err) {
-                console.error("[WIDGET DOCS] ❌ Erro de comunicação (AJAX): ", err);
+                console.error("[WIDGET DOCS] Erro de comunicação (AJAX): ", err);
                 that.mostrarLoading(false);
             }
         });
@@ -1028,7 +1057,7 @@ var AdmissaoWidget = SuperWidget.extend({
                 
                 // Desativa a trava de proteção
                 that.bloqueioRestauracaoAtivo = false;
-                console.log("[DEBUG_DEP] 🟢 Restauração completa. Auto-save reativado.");
+                console.log("[DEBUG_DEP]  Restauração completa. Auto-save reativado.");
             }, 2000);
         }
     },
@@ -2135,7 +2164,7 @@ var AdmissaoWidget = SuperWidget.extend({
 
         var dadosCandidato = this.getDadosFormulario();
 
-        // 🟢 NOVO: Gera a ficha em PDF antes de começar as chamadas de API
+        //  NOVO: Gera a ficha em PDF antes de começar as chamadas de API
         that.gerarFichaCadastralPDF(dadosCandidato, function (pdfBase64) {
             var base64Clean = pdfBase64.split(',')[1];
 
@@ -2216,8 +2245,8 @@ var AdmissaoWidget = SuperWidget.extend({
 
             // LÓGICA DE PULAR ETAPA PARA ESTÁGIO
             var proximo = that.passoAtual + 1;
-            if (proximo === 5 && (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio")) {
-                proximo = 6; // Pula a aba de dependentes e vai direto para Filiação
+            if (proximo === 4 && (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio")) {
+                proximo = 5; // Pula a aba de dependentes e vai direto para Filiação
             }
 
             dados["cpPassoAtualCandidato"] = proximo;
@@ -2240,8 +2269,8 @@ var AdmissaoWidget = SuperWidget.extend({
             var anterior = this.passoAtual - 1;
 
             // LÓGICA DE PULAR ETAPA AO VOLTAR PARA ESTÁGIO
-            if (anterior === 5 && (this.jornadaAdmissao === "Estagio" || this.jornadaAdmissao === "Estágio")) {
-                anterior = 4; // Pula a aba de dependentes e volta direto para formação
+            if (anterior === 4 && (this.jornadaAdmissao === "Estagio" || this.jornadaAdmissao === "Estágio")) {
+                anterior = 3; // Pula a aba de dependentes e volta direto para formação
             }
 
             this.irParaPasso(anterior);
@@ -2262,8 +2291,20 @@ var AdmissaoWidget = SuperWidget.extend({
         $d.find('.step-content').removeClass('active');
         $d.find('.step-content[data-step-content="' + p + '"]').addClass('active');
 
-        // ====== CARREGAMENTO SOB DEMANDA DO LGPD (PASSO 2) ======
-        if (p === 2 || p === "2") {
+        // ====== CARREGAMENTO SOB DEMANDA DO PRIMEIRO LINK (PASSO 1) ======
+        if (p === 1 || p === "1") {
+            var $iframeProp = $d.find("#pdf_viewer_proposta_" + that.instanceId);
+            var srcPropAtual = $iframeProp.attr("src");
+
+            if (that.idPdfProposta && !srcPropAtual) {
+                that.obterBase64GED(that.idPdfProposta, function (base64) {
+                    if (base64) {
+                        $iframeProp.attr("src", that.base64ToBlobUrl(base64, 'application/pdf')).show();
+                        $d.find("#msg_carregando_proposta_" + that.instanceId).hide();
+                    }
+                });
+            }
+
             var $iframeLgpd = $d.find("#pdf_viewer_lgpd_" + that.instanceId);
             var srcAtual = $iframeLgpd.attr("src");
 
@@ -2296,7 +2337,6 @@ var AdmissaoWidget = SuperWidget.extend({
                         $iframeLgpd.attr("src", blobUrl).show();
 
                         $d.find("#msg_carregando_lgpd_" + that.instanceId).hide();
-                        $d.find("#btn_gerar_assinar_lgpd_" + that.instanceId).fadeIn();
 
                     } else {
                         console.error("[DEBUG LGPD] ERRO: Base64 veio vazio do servidor!");
@@ -2306,9 +2346,9 @@ var AdmissaoWidget = SuperWidget.extend({
         }
         // ========================================================
 
-        if (p === 6) this.preencherFiliacaoViaDependentes();
-        if (p === 7) this.atualizarOpcoesPlanoSaude();
-        if (p === 9) this.gerarResumoFinal();
+        if (p === 5) this.preencherFiliacaoViaDependentes();
+        if (p === 6) this.atualizarOpcoesPlanoSaude();
+        if (p === 8) this.gerarResumoFinal();
 
         this.passoAtual = p;
         this.atualizarBotoes();
@@ -2318,6 +2358,22 @@ var AdmissaoWidget = SuperWidget.extend({
     atualizarBotoes: function () { var $d = $("#AdmissaoWidget_" + this.instanceId); $d.find("[data-nav-back]").prop("disabled", this.passoAtual === 1); if (this.passoAtual === this.totalPassos) { $d.find("[data-nav-next]").hide(); $d.find("[data-finish]").show(); } else { $d.find("[data-nav-next]").show(); $d.find("[data-finish]").hide(); } },
 
     validarPasso: function (p) {
+        if (p === 1 || p === "1") {
+            var statusProp = $("#tae_proposta_status_" + this.instanceId).val();
+            var statusLgpd = $("#tae_lgpd_status_" + this.instanceId).val();
+            var b64Prop = $("#carta_assinada_base64_" + this.instanceId).val();
+            var b64Lgpd = $("#termo_lgpd_assinada_base64_" + this.instanceId).val();
+
+            if (statusProp !== "assinado" || statusLgpd !== "assinado" || !b64Prop || !b64Lgpd) {
+                FLUIGC.toast({
+                    title: 'Atenção',
+                    message: 'Assine a Carta Proposta e o Termo LGPD antes de avançar.',
+                    type: 'warning'
+                });
+                return false;
+            }
+            return true;
+        }
         return AdmissaoObrigatoriedade.validarPasso(p, this);
     },
 
@@ -2749,8 +2805,165 @@ var AdmissaoWidget = SuperWidget.extend({
             $("#container_gerar_lgpd_" + that.instanceId).hide();
             $("#container_assinatura_tae_lgpd_" + that.instanceId).html('<div class="alert alert-info text-center" style="padding:20px;"><i class="flaticon flaticon-refresh icon-spin icon-lg"></i><br>Recuperando PDF assinado do LGPD...</div>').show();
         }
+
+        var assinaturaCompleta = (statusProp === "assinado" && statusLgpd === "assinado" && b64Prop && b64Lgpd);
+        $("#btn_gerar_assinar_primeiro_link_" + that.instanceId).toggle(!assinaturaCompleta);
+        $("#btn_gerar_assinar_" + that.instanceId).hide();
+        $("#btn_gerar_assinar_lgpd_" + that.instanceId).hide();
+        that.atualizarCartoesPrimeiroLink();
     },
 
+    atualizarCartoesPrimeiroLink: function () {
+        var $d = $("#AdmissaoWidget_" + this.instanceId);
+        var statusProp = $("#tae_proposta_status_" + this.instanceId).val();
+        var statusLgpd = $("#tae_lgpd_status_" + this.instanceId).val();
+        var b64Prop = $("#carta_assinada_base64_" + this.instanceId).val();
+        var b64Lgpd = $("#termo_lgpd_assinada_base64_" + this.instanceId).val();
+        var previewProp = this.previewDocsPrimeiroLink.proposta;
+        var previewLgpd = this.previewDocsPrimeiroLink.lgpd;
+
+        var propostaOk = (statusProp === "assinado" || !!b64Prop || !!previewProp || !!this.idPdfProposta);
+        var lgpdOk = (statusLgpd === "assinado" || !!b64Lgpd || !!previewLgpd || !!this.idPdfLGPD);
+        var manifestoOk = propostaOk && lgpdOk;
+
+        $("#card_status_proposta_" + this.instanceId).text(propostaOk ? "Ver arquivo" : "Carregando...");
+        $("#card_status_lgpd_" + this.instanceId).text(lgpdOk ? "Ver arquivo" : "Carregando...");
+        $("#card_status_manifesto_" + this.instanceId).text(manifestoOk ? "Ver manifesto" : "Aguardando assinatura");
+
+        $d.find(".primeiro-link-card.manifesto-card").toggleClass("locked", !manifestoOk);
+        $d.find(".primeiro-link-card.manifesto-card").toggleClass("assinado", manifestoOk);
+    },
+
+    abrirDocumentoPrimeiroLink: function (tipoDoc) {
+        var that = this;
+        var titulo = "";
+        var src = "";
+
+        if (tipoDoc === "proposta") {
+            titulo = "Carta Proposta";
+            var base64Prop = $("#carta_assinada_base64_" + that.instanceId).val();
+            if (that.previewDocsPrimeiroLink.proposta) {
+                src = that.base64ToBlobUrl(that.previewDocsPrimeiroLink.proposta, "application/pdf");
+            } else if (base64Prop) {
+                src = that.base64ToBlobUrl(base64Prop, "application/pdf");
+                that.previewDocsPrimeiroLink.proposta = base64Prop;
+            } else if (that.idPdfProposta) {
+                that.obterBase64GED(that.idPdfProposta, function (base64) {
+                    if (!base64) {
+                        FLUIGC.toast({ title: "Atenção", message: "Não foi possível carregar a Carta Proposta.", type: "warning" });
+                        return;
+                    }
+                    var blobUrl = that.base64ToBlobUrl(base64, "application/pdf");
+                    that.previewDocsPrimeiroLink.proposta = base64;
+                    that.exibirVisualizadorPrimeiroLink(titulo, blobUrl);
+                });
+                return;
+            }
+        } else if (tipoDoc === "lgpd") {
+            titulo = "Termo LGPD";
+            var base64Lgpd = $("#termo_lgpd_assinada_base64_" + that.instanceId).val();
+            if (that.previewDocsPrimeiroLink.lgpd) {
+                src = that.base64ToBlobUrl(that.previewDocsPrimeiroLink.lgpd, "application/pdf");
+            } else if (base64Lgpd) {
+                src = that.base64ToBlobUrl(base64Lgpd, "application/pdf");
+                that.previewDocsPrimeiroLink.lgpd = base64Lgpd;
+            } else if (that.idPdfLGPD) {
+                that.obterBase64GED(that.idPdfLGPD, function (base64) {
+                    if (!base64) {
+                        FLUIGC.toast({ title: "Atenção", message: "Não foi possível carregar o Termo LGPD.", type: "warning" });
+                        return;
+                    }
+                    var blobUrl = that.base64ToBlobUrl(base64, "application/pdf");
+                    that.previewDocsPrimeiroLink.lgpd = base64;
+                    that.exibirVisualizadorPrimeiroLink(titulo, blobUrl);
+                });
+                return;
+            }
+        } else if (tipoDoc === "manifesto") {
+            var statusProp = $("#tae_proposta_status_" + that.instanceId).val();
+            var statusLgpd = $("#tae_lgpd_status_" + that.instanceId).val();
+            if (statusProp !== "assinado" || statusLgpd !== "assinado") {
+                FLUIGC.toast({ title: "Atenção", message: "O manifesto fica disponível após assinar a Carta Proposta e o LGPD.", type: "warning" });
+                return;
+            }
+            titulo = "Manifesto de Assinatura";
+            if (that.manifestoPdfDataUri) {
+                that.exibirVisualizadorPrimeiroLink(titulo, that.manifestoPdfDataUri);
+                return;
+            }
+            that.gerarManifestoPrimeiroLinkPdf(function (dataUri) {
+                if (!dataUri) {
+                    FLUIGC.toast({ title: "Erro", message: "Não foi possível gerar o manifesto.", type: "danger" });
+                    return;
+                }
+                that.manifestoPdfDataUri = dataUri;
+                that.exibirVisualizadorPrimeiroLink(titulo, dataUri);
+            });
+            return;
+        }
+
+        if (!src) {
+            FLUIGC.toast({ title: "Atenção", message: "Documento ainda não disponível.", type: "warning" });
+            return;
+        }
+
+        that.exibirVisualizadorPrimeiroLink(titulo, src);
+    },
+
+    exibirVisualizadorPrimeiroLink: function (titulo, src) {
+        var nome = $("#cand_nomeCompleto_" + this.instanceId).val() || "Candidato";
+        var cpf = $("#cand_cpf_" + this.instanceId).val() || "";
+        var tipo = titulo || "Documento";
+        var status = "Disponível";
+        var srcAnterior = this.currentPrimeiroLinkBlobUrl;
+
+        if (srcAnterior && srcAnterior !== src) {
+            URL.revokeObjectURL(srcAnterior);
+        }
+
+        $("#modalDocTitle_" + this.instanceId).text(tipo);
+        $("#modalDocNome_" + this.instanceId).text(nome);
+        $("#modalDocCpf_" + this.instanceId).text(cpf);
+        $("#modalDocTipo_" + this.instanceId).text(tipo);
+        $("#modalDocStatus_" + this.instanceId).text(status);
+        $("#iframe_visualizador_primeiro_link_" + this.instanceId).attr("src", src);
+        $("#customModalDocumento_" + this.instanceId).css("display", "flex");
+        this.currentPrimeiroLinkBlobUrl = (String(src || "").indexOf("blob:") === 0) ? src : "";
+    },
+
+    fecharVisualizadorPrimeiroLink: function () {
+        $("#customModalDocumento_" + this.instanceId).hide();
+        $("#iframe_visualizador_primeiro_link_" + this.instanceId).attr("src", "");
+        this.currentPrimeiroLinkBlobUrl = "";
+    },
+
+    gerarManifestoPrimeiroLinkPdf: function (callback) {
+        var statusProp = $("#tae_proposta_status_" + this.instanceId).val();
+        var statusLgpd = $("#tae_lgpd_status_" + this.instanceId).val();
+        if (statusProp !== "assinado" || statusLgpd !== "assinado") {
+            callback("");
+            return;
+        }
+
+        $("#manifesto_nome_" + this.instanceId).text($("#cand_nomeCompleto_" + this.instanceId).val() || "Candidato");
+        $("#manifesto_cpf_" + this.instanceId).text($("#cand_cpf_" + this.instanceId).val() || "");
+
+        var $temp = $("#container_manifesto_tmpl_" + this.instanceId);
+        var opt = {
+            margin: 10,
+            filename: "Manifesto_Assinatura.pdf",
+            image: { type: "jpeg", quality: 0.98 },
+            html2canvas: { scale: 2, logging: false, useCORS: true },
+            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+        };
+
+        html2pdf().set(opt).from($temp[0]).outputPdf("datauristring").then(function (pdfDataUri) {
+            callback(pdfDataUri);
+        }).catch(function (err) {
+            console.error("Erro ao gerar manifesto:", err);
+            callback("");
+        });
+    },
     // Converte Base64 gigante para um arquivo virtual (Blob) ultrarrápido
     base64ToBlobUrl: function (base64, contentType) {
         var b64Data = base64.replace(/\s/g, ''); // Garante que não há espaços
@@ -2838,7 +3051,7 @@ var AdmissaoWidget = SuperWidget.extend({
             baixarProximo(0);
         }, function (errLogin) {
             // AGORA VAI MOSTRAR O MOTIVO REAL NO CONSOLE
-            console.error("❌ Falha no login TAE:", errLogin);
+            console.error("Falha no login TAE:", errLogin);
             FLUIGC.toast({ title: 'Erro de Autenticação', message: 'Não foi possível recuperar os PDFs assinados automaticamente.', type: 'danger' });
         });
     },
@@ -2846,6 +3059,85 @@ var AdmissaoWidget = SuperWidget.extend({
     /**
      * Orquestra a geração do PDF e envio para o TAE
      */
+    gerarEAssinarPrimeiroLink: function (btn) {
+        if (window.ignorarValidacao === true) {
+            FLUIGC.toast({ title: 'Teste', message: 'Pulando...', type: 'info' });
+            this.passoAtual = 2;
+            this.proximoPasso();
+            return;
+        }
+
+        var that = this;
+        var btnTexto = btn.html();
+        btn.prop("disabled", true).html('<i class="flaticon flaticon-refresh icon-spin"></i> Buscando documentos...');
+
+        var emailCandidato = $("#cand_email_" + that.instanceId).val();
+        var cpfCandidato = $("#cand_cpf_" + that.instanceId).val();
+
+        if (!cpfCandidato || !emailCandidato) {
+            FLUIGC.toast({ title: 'Atenção', message: 'CPF e E-mail obrigatórios.', type: 'warning' });
+            btn.prop("disabled", false).html(btnTexto);
+            return;
+        }
+
+        if (!that.idPdfProposta || !that.idPdfLGPD) {
+            FLUIGC.toast({ title: 'Erro', message: 'Não foi possível localizar os documentos do Primeiro Link.', type: 'danger' });
+            btn.prop("disabled", false).html(btnTexto);
+            return;
+        }
+
+        that.obterBase64GED(that.idPdfProposta, function (base64Proposta) {
+            if (!base64Proposta) {
+                FLUIGC.toast({ title: 'Erro', message: 'Falha ao ler a Carta Proposta no GED.', type: 'danger' });
+                btn.prop("disabled", false).html(btnTexto);
+                return;
+            }
+
+            that.obterBase64GED(that.idPdfLGPD, function (base64Lgpd) {
+                if (!base64Lgpd) {
+                    FLUIGC.toast({ title: 'Erro', message: 'Falha ao ler o Termo LGPD no GED.', type: 'danger' });
+                    btn.prop("disabled", false).html(btnTexto);
+                    return;
+                }
+
+                btn.html('<i class="flaticon flaticon-refresh icon-spin"></i> Registrando assinatura...');
+                setTimeout(function () {
+                    var timestamp = new Date().getTime();
+                    var idDocProp = "MOCK_PRIMEIRO_LINK_PROP_" + timestamp;
+                    var idDocLgpd = "MOCK_PRIMEIRO_LINK_LGPD_" + timestamp;
+
+                    $("#tae_proposta_iddoc_" + that.instanceId).val(idDocProp);
+                    $("#tae_proposta_status_" + that.instanceId).val("assinado");
+                    $("#tae_lgpd_iddoc_" + that.instanceId).val(idDocLgpd);
+                    $("#tae_lgpd_status_" + that.instanceId).val("assinado");
+                    that.manifestoPdfDataUri = "";
+
+                    if ($("#carta_assinada_base64_" + that.instanceId).length === 0) {
+                        $("#formCandidato_" + that.instanceId).append('<input type="hidden" id="carta_assinada_base64_' + that.instanceId + '"><input type="hidden" id="carta_assinada_nome_' + that.instanceId + '" value="Carta_Proposta_Assinada.pdf">');
+                    }
+                    if ($("#termo_lgpd_assinada_base64_" + that.instanceId).length === 0) {
+                        $("#formCandidato_" + that.instanceId).append('<input type="hidden" id="termo_lgpd_assinada_base64_' + that.instanceId + '"><input type="hidden" id="termo_lgpd_assinada_nome_' + that.instanceId + '" value="Termo_LGPD_Assinado.pdf">');
+                    }
+
+                    $("#carta_assinada_base64_" + that.instanceId).val(base64Proposta);
+                    $("#termo_lgpd_assinada_base64_" + that.instanceId).val(base64Lgpd);
+
+                    that.salvarRascunhoLocal();
+                    that.atualizarCofrePrimeiroLinkJSON("kit_proposta_admissao", { idDocTae: idDocProp, status: "assinado", linkAssinaturaTae: "" });
+                    that.atualizarCofrePrimeiroLinkJSON("kit_lgpd_admissao", { idDocTae: idDocLgpd, status: "assinado", linkAssinaturaTae: "" });
+
+                    that.uploadAnexoIndividual(base64Proposta, "Carta_Proposta_Assinada.pdf", "Carta Proposta Assinada", function () { }, function (err) { console.error("Erro no upload da proposta:", err); });
+                    that.uploadAnexoIndividual(base64Lgpd, "Termo_LGPD_Assinado.pdf", "Termo LGPD Assinado", function () { }, function (err) { console.error("Erro no upload do LGPD:", err); });
+
+                    that.restaurarUIAssinaturas();
+                    that.irParaPasso(2);
+                    FLUIGC.toast({ title: 'Sucesso', message: 'Carta Proposta e LGPD assinadas com sucesso!', type: 'success' });
+                    btn.prop("disabled", false).html(btnTexto);
+                }, 800);
+            });
+        });
+    },
+
     gerarEAssinarProposta: function (btn) {
         if (window.ignorarValidacao === true) { FLUIGC.toast({ title: 'Teste', message: 'Pulando...', type: 'info' }); this.passoAtual = 2; this.proximoPasso(); return; }
         var that = this; var btnTexto = btn.html(); btn.prop("disabled", true).html('<i class="flaticon flaticon-refresh icon-spin"></i> Buscando documento...');
@@ -2953,7 +3245,7 @@ var AdmissaoWidget = SuperWidget.extend({
     },
 
     gerarEAssinarLGPD: function (btn) {
-        if (window.ignorarValidacao === true) { FLUIGC.toast({ title: 'Teste', message: 'Pulando...', type: 'info' }); this.irParaPasso(3); return; }
+        if (window.ignorarValidacao === true) { FLUIGC.toast({ title: 'Teste', message: 'Pulando...', type: 'info' }); this.irParaPasso(2); return; }
         var that = this; var btnTexto = btn.html(); btn.prop("disabled", true).html('<i class="flaticon flaticon-refresh icon-spin"></i> Buscando documento...');
 
         var nomeCandidato = $("#cand_nomeCompleto_" + that.instanceId).val() || "Candidato";
@@ -3706,7 +3998,7 @@ var AdmissaoWidget = SuperWidget.extend({
         var $painelPlanoSaude = $div.find("#cand_ps_opcao_" + that.instanceId).closest(".panel");
 
         // ABA DE DEPENDENTES INTEIRA (Passo 5) no topo da tela
-        var $abaDependentes = $div.find('.step-item[data-step="5"]');
+        var $abaDependentes = $div.find('.step-item[data-step="4"]');
 
         // 2. Mapeia TODOS os campos exclusivos de Estágio na aba de Formação
         var $camposEstagio = $div.find(
@@ -3877,3 +4169,8 @@ var AdmissaoWidget = SuperWidget.extend({
     },
 
 });
+
+
+
+
+

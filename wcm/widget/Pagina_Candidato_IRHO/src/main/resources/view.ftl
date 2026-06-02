@@ -1,4 +1,4 @@
-<div id="AdmissaoWidget_${instanceId}" class="super-widget wcm-widget-class fluig-style-guide admissao-container" data-params="AdmissaoWidget.instance()">
+﻿<div id="AdmissaoWidget_${instanceId}" class="super-widget wcm-widget-class fluig-style-guide admissao-container" data-params="AdmissaoWidget.instance()">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -30,53 +30,47 @@
                     <div class="step-indicator">
                         <span class="step-icon">1</span>
                     </div>
-                    <div class="step-label">Carta Proposta</div>
+                    <div class="step-label">LGPD, Proposta e Manifesto</div>
                 </li>
                 <li class="step-item" data-step="2">
                     <div class="step-indicator">
                         <span class="step-icon">2</span>
                     </div>
-                    <div class="step-label">LGPD</div>
+                    <div class="step-label">Dados Pessoais</div>
                 </li>
                 <li class="step-item" data-step="3">
                     <div class="step-indicator">
                         <span class="step-icon">3</span>
                     </div>
-                    <div class="step-label">Dados Pessoais</div>
+                    <div class="step-label">Formação</div>
                 </li>
                 <li class="step-item" data-step="4">
                     <div class="step-indicator">
                         <span class="step-icon">4</span>
                     </div>
-                    <div class="step-label">Formação</div>
+                    <div class="step-label">Dependentes</div>
                 </li>
                 <li class="step-item" data-step="5">
                     <div class="step-indicator">
                         <span class="step-icon">5</span>
                     </div>
-                    <div class="step-label">Dependentes</div>
+                    <div class="step-label">Filiação</div>
                 </li>
                 <li class="step-item" data-step="6">
                     <div class="step-indicator">
                         <span class="step-icon">6</span>
                     </div>
-                    <div class="step-label">Filiação</div>
+                    <div class="step-label">Benefícios</div>
                 </li>
                 <li class="step-item" data-step="7">
                     <div class="step-indicator">
                         <span class="step-icon">7</span>
                     </div>
-                    <div class="step-label">Benefícios</div>
+                    <div class="step-label">Documentos</div>
                 </li>
                 <li class="step-item" data-step="8">
                     <div class="step-indicator">
                         <span class="step-icon">8</span>
-                    </div>
-                    <div class="step-label">Documentos</div>
-                </li>
-                <li class="step-item" data-step="9">
-                    <div class="step-indicator">
-                        <span class="step-icon">9</span>
                     </div>
                     <div class="step-label">Final</div>
                 </li>
@@ -91,56 +85,54 @@
 
 
                     <div data-step-content="1" class="step-content active">
-                        <h3 class="section-title"><i class="fa-solid fa-file-contract" style="color: rgb(177, 151, 252);"></i> Carta Proposta</h3>
-                        
-                        <div id="container_assinatura_tae_${instanceId}" style="display: none;">
-                            <div class="alert alert-info text-center">
-                                <i class="flaticon flaticon-info icon-md"></i> Assine o documento abaixo para liberar o preenchimento da sua admissão.
+                        <h3 class="section-title"><i class="fa-solid fa-file-contract" style="color: rgb(177, 151, 252);"></i> LGPD, Carta Proposta e Manifesto de Assinatura</h3>
+
+                        <div class="document-grid primeiro-link-grid" id="primeiro_link_cards_${instanceId}">
+                            <div class="grid-card primeiro-link-card" data-doc-type="proposta">
+                                <div class="icon-wrapper"><i class="flaticon flaticon-document-check"></i></div>
+                                <div class="doc-name">Carta Proposta</div>
+                                <div class="doc-status-badge" id="card_status_proposta_${instanceId}">Ver arquivo</div>
                             </div>
-                            <iframe id="iframe_tae_${instanceId}" src="" style="width: 100%; height: 600px; border: 1px solid #ccc; border-radius: 8px;"></iframe>
+
+                            <div class="grid-card primeiro-link-card" data-doc-type="lgpd">
+                                <div class="icon-wrapper"><i class="flaticon flaticon-document-check"></i></div>
+                                <div class="doc-name">Termo LGPD</div>
+                                <div class="doc-status-badge" id="card_status_lgpd_${instanceId}">Ver arquivo</div>
+                            </div>
+
+                            <div class="grid-card primeiro-link-card manifesto-card" data-doc-type="manifesto">
+                                <div class="icon-wrapper"><i class="flaticon flaticon-document-check"></i></div>
+                                <div class="doc-name">Manifesto de Assinatura</div>
+                                <div class="doc-status-badge" id="card_status_manifesto_${instanceId}">Aguardando assinatura</div>
+                            </div>
                         </div>
 
-                        <div id="container_gerar_proposta_${instanceId}">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <iframe id="pdf_viewer_proposta_${instanceId}" src="" style="width: 100%; height: 600px; border: 1px solid #ccc; border-radius: 4px; display: none;"></iframe>
-                                    
-                                    <div id="msg_carregando_proposta_${instanceId}" class="text-center" style="padding: 50px;">
-                                        <i class="flaticon flaticon-refresh icon-spin icon-lg"></i><br>
-                                        <p class="text-muted">Carregando Carta Proposta...</p>
-                                    </div>
+                        <div class="alert alert-info primeiro-link-alert">
+                            <i class="flaticon flaticon-info icon-md"></i>
+                            Clique em cada caixa para abrir o arquivo. A assinatura da Carta Proposta e do LGPD continua sendo feita uma única vez, e o manifesto é liberado depois da confirmação.
+                        </div>
+
+                        <div class="text-center mt-20">
+                            <button type="button" class="btn btn-success btn-lg" id="btn_gerar_assinar_primeiro_link_${instanceId}" style="display: none;">
+                                <i class="flaticon flaticon-check-circle-on icon-sm"></i> Li e Aceito - Assinar Carta Proposta e LGPD
+                            </button>
+                        </div>
+
+                        <div id="container_manifesto_tmpl_${instanceId}" style="position:absolute; left:-9999px; top:-9999px; width:800px; background:#fff; padding:32px;">
+                            <div style="border:1px solid #e5e7eb; border-radius:12px; padding:28px;">
+                                <h2 style="margin-top:0; color:#2f2f2f;">Manifesto de Assinatura</h2>
+                                <p style="margin-bottom:8px;"><strong>Candidato:</strong> <span id="manifesto_nome_${instanceId}"></span></p>
+                                <p style="margin-bottom:8px;"><strong>CPF:</strong> <span id="manifesto_cpf_${instanceId}"></span></p>
+                                <p style="margin-bottom:8px;"><strong>Documentos:</strong> Carta Proposta, LGPD</p>
+                                <p style="margin-bottom:8px;"><strong>Status:</strong> Assinados e liberados para continuidade do fluxo.</p>
+                                <div style="margin-top:28px; border-top:1px dashed #d1d5db; padding-top:16px; color:#6b7280; font-size:12px;">
+                                    Documento gerado automaticamente pelo Portal do Candidato.
                                 </div>
-                            </div>
-                            <div class="text-center mt-20">
-                                <button type="button" class="btn btn-primary " id="btn_gerar_assinar_${instanceId}" style="display: none;">
-                                    <i class="flaticon flaticon-document-check"></i> Li e Aceito - Assinar Proposta
-                                </button>
                             </div>
                         </div>
                     </div>
 
                     <div data-step-content="2" class="step-content">
-                        <h3 class="section-title"><i class="fa-solid fa-file-contract" style="color: rgb(177, 151, 252);"></i> Termo de Consentimento LGPD</h3>
-                        
-                        <div id="container_gerar_lgpd_${instanceId}">
-                            <div id="msg_carregando_lgpd_${instanceId}" class="text-center" style="padding: 30px;">
-                                <i class="flaticon flaticon-refresh icon-spin icon-xl text-info"></i>
-                                <p class="text-info" style="margin-top: 10px;">Buscando Termo LGPD seguro no GED...</p>
-                            </div>
-
-                            <iframe id="pdf_viewer_lgpd_${instanceId}" style="width: 100%; height: 600px; display: none; border: 1px solid #ccc; border-radius: 4px;" frameborder="0"></iframe>
-
-                            <div class="text-center" style="margin-top: 20px;">
-                                <button type="button" class="btn btn-accept " id="btn_gerar_assinar_lgpd_${instanceId}" style="display: none;" data-gerar-assinar-lgpd>
-                                    <i class="flaticon flaticon-document-check icon-sm"></i> Li e Aceito - Assinar LGPD
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="container_assinatura_tae_lgpd_${instanceId}" style="display: none;"></div>
-                    </div>
-
-                    <div data-step-content="3" class="step-content">
                         <h3 class="section-title"><i class="fa-solid fa-user" style="color: rgb(177, 151, 252);"></i> Dados da Admissão</h3>
                     
                         <ul class="nav nav-tabs" role="tablist" id="tabMenuDados_${instanceId}">
@@ -926,7 +918,50 @@
                         </div>
                     </div>
 
-                    <div data-step-content="4" class="step-content">
+                    <div id="customModalDocumento_${instanceId}" class="custom-modal-overlay" style="display:none;">
+                        <div class="custom-modal-dialog">
+                            <div class="custom-modal-content">
+                                <div class="custom-modal-header">
+                                    <h4 class="custom-modal-title" id="modalDocTitle_${instanceId}">Documento</h4>
+                                    <button type="button" class="btn-close-custom" id="btnCloseCustomModal_${instanceId}">
+                                        <i class="flaticon flaticon-close icon-sm"></i>
+                                    </button>
+                                </div>
+                                <div class="custom-modal-body" style="display:flex; flex-direction:row; align-items:stretch; overflow:hidden; background:#fff; min-height:78vh;">
+                                    <div class="viewer-sidebar" style="width:320px; min-width:320px; background:#273444; color:#e5eef7; display:flex; flex-direction:column;">
+                                        <div class="sidebar-header" style="padding:16px 18px; border-bottom:1px solid rgba(255,255,255,0.08); background:#1f2b39; font-weight:700;">
+                                            <i class="flaticon flaticon-folder-open icon-sm"></i> Contexto do Arquivo
+                                        </div>
+                                        <div class="sidebar-content" style="padding:18px;">
+                                            <div class="sidebar-section-title" style="text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#9fb2c7; margin:0 0 10px 0; font-weight:700;">Candidato</div>
+                                            <div class="candidato-info-block" style="margin-bottom:18px; background:rgba(255,255,255,0.06); border-radius:8px; padding:14px;">
+                                                <p><strong>Nome:</strong> <span id="modalDocNome_${instanceId}">...</span></p>
+                                                <p><strong>CPF:</strong> <span id="modalDocCpf_${instanceId}">...</span></p>
+                                            </div>
+
+                                            <div class="sidebar-section-title" style="text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#9fb2c7; margin:0 0 10px 0; font-weight:700;">Documento</div>
+                                            <div class="candidato-info-block" style="margin-bottom:18px; background:rgba(255,255,255,0.06); border-radius:8px; padding:14px;">
+                                                <p><strong>Tipo:</strong> <span id="modalDocTipo_${instanceId}">...</span></p>
+                                                <p><strong>Status:</strong> <span id="modalDocStatus_${instanceId}">...</span></p>
+                                            </div>
+
+                                            <div class="sidebar-section-title" style="text-transform:uppercase; font-size:11px; letter-spacing:1px; color:#9fb2c7; margin:0 0 10px 0; font-weight:700;">Orientação</div>
+                                            <div class="candidato-info-block" style="margin-bottom:18px; background:rgba(255,255,255,0.06); border-radius:8px; padding:14px;">
+                                                <p>Use o painel principal para ler o PDF. Feche e reabra quantas vezes precisar.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="viewer-main-content" style="flex:1; min-width:0; background:#fff;">
+                                        <div class="document-paper-shadow" style="height:100%; background:#fff;">
+                                            <iframe id="iframe_visualizador_primeiro_link_${instanceId}" src="" style="width:100%; height:100%; min-height:78vh; border:0;"></iframe>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div data-step-content="3" class="step-content">
                         <h3 class="section-title"><i class="fa-solid fa-school" style="color: rgb(177, 151, 252);"></i> Formação Acadêmica</h3>
                         <div class="alert alert-warning" style="background-color: #fcf8e3; color: #8a6d3b;">
                             Informe sua escolaridade principal.
@@ -994,7 +1029,7 @@
                         </div>
                     </div>
 
-                    <div data-step-content="5" class="step-content">
+                    <div data-step-content="4" class="step-content">
                         <h3 class="section-title"><i class="fa-solid fa-users" style="color: rgb(177, 151, 252);"></i> Dependentes</h3>
                         
                         <div class="alert alert-info">
@@ -1091,7 +1126,7 @@
                         </div>
                     </div>
 
-                    <div data-step-content="6" class="step-content">
+                    <div data-step-content="5" class="step-content">
                         <h3 class="section-title"><i class="fa-solid fa-person-breastfeeding" style="color: rgb(177, 151, 252);"></i> Filiação</h3>
 
                         <input type="hidden" id="cand_mae_cpf_${instanceId}">
@@ -1157,7 +1192,7 @@
                         </div>
                     </div>
 
-                    <div data-step-content="7" class="step-content">
+                    <div data-step-content="6" class="step-content">
                         <h3 class="section-title"><i class="fa-solid fa-address-card" style="color: rgb(177, 151, 252);"></i> Benefícios</h3>
                         
                         <div class="panel panel-default">
@@ -1223,7 +1258,7 @@
                                             <option value="2">SulAmérica Executivo R1</option>
                                             <option value="4">Unimed Curitiba</option>
                                             <option value="5">Unimed Porto Alegre</option>
-                                            <option value="7">Unimed Porto Alegre – Unipart</option>
+                                            <option value="7">Unimed Porto Alegre - Unipart</option>
                                             <option value="8">SulAmerica Classico</option>
                                             <option value="9">Sulamérica - Exato</option>
                                         </select>
@@ -1298,7 +1333,7 @@
                         </div>
                     </div>
 
-                    <div data-step-content="8" class="step-content">
+                    <div data-step-content="7" class="step-content">
                         <h3 class="section-title"><i class="fa-solid fa-file-lines" style="color: rgb(177, 151, 252);"></i> Envio de Documentos</h3>
                         
                         <div style="background-color: #d9edf7; border: 1px solid #bce8f1; color: #31708f; padding: 15px; border-radius: 4px; display: flex; align-items: center; margin-bottom: 25px;">
@@ -1320,7 +1355,7 @@
                         <div id="hidden_inputs_container_${instanceId}"></div>
                     </div>
 
-                    <div data-step-content="9" class="step-content">
+                    <div data-step-content="8" class="step-content">
                         <h3 class="section-title"><i class="fa-solid fa-flag" style="color: rgb(177, 151, 252);"></i> Revisão e Envio</h3>
 
                         <div id="resumo_container_${instanceId}" style="margin-bottom: 30px;">
@@ -1596,3 +1631,4 @@
 <script type="text/javascript" src="/Pagina_Candidato_IRHO/resources/js/obrigatoriedade.js"></script>
 <script type="text/javascript" src="/Pagina_Candidato_IRHO/resources/js/Pagina_Candidato_IRHO.js?v=${instanceId}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
