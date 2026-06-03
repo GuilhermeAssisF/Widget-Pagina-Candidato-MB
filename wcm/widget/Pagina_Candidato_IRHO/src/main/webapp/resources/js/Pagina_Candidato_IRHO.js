@@ -881,6 +881,15 @@
             var depsSelecionadosPS = [];
             $div.find(".check-plano-saude:checked").each(function () { depsSelecionadosPS.push($(this).data("nome-dep")); });
 
+            // SALVA DEPENDENTES SELECIONADOS NO PLANO ODONTOLÓGICO
+            var depsSelecionadosPO = [];
+            $div.find(".check-plano-odonto:checked").each(function () {
+                depsSelecionadosPO.push({
+                    nome: $(this).data("nome-dep") || "",
+                    parentesco: $(this).data("parentesco-dep") || ""
+                });
+            });
+
             var dadosDependentes = [];
             $div.find(".dependente-card").each(function () {
                 var $card = $(this); var objDep = {};
@@ -904,7 +913,7 @@
 
             var estado = {
                 passo: this.passoAtual, campos: dadosCampos, dependentes: dadosDependentes,
-                rotasVT: dadosRotasVT, depsPS: depsSelecionadosPS, timestamp: new Date().getTime()
+                rotasVT: dadosRotasVT, depsPS: depsSelecionadosPS, depsPO: depsSelecionadosPO, timestamp: new Date().getTime()
             };
             localStorage.setItem(this.getKeyStorage(), JSON.stringify(estado));
         } catch (e) { console.warn("Erro ao salvar local:", e); }
@@ -1034,13 +1043,18 @@
                     if (estado.campos["cand_ps_opcao"]) {
                         $div.find('#cand_ps_opcao_' + that.instanceId).val(estado.campos["cand_ps_opcao"]).trigger('change');
                     }
-                    if (estado.campos["cand_odonto_opcao"]) {
-                        $div.find('#cand_odonto_opcao_' + that.instanceId).val(estado.campos["cand_odonto_opcao"]).trigger('change');
+                    if (estado.campos["cand_po_opcao"]) {
+                        $div.find('#cand_po_opcao_' + that.instanceId).val(estado.campos["cand_po_opcao"]).trigger('change');
+                    } else if (estado.campos["cand_odonto_opcao"]) {
+                        $div.find('#cand_po_opcao_' + that.instanceId).val(estado.campos["cand_odonto_opcao"]).trigger('change');
                     }
                 }
                 that.atualizarOpcoesPlanoSaude();
                 if (typeof that.atualizarDependentesOdonto === "function") {
                     that.atualizarDependentesOdonto();
+                }
+                if (typeof that.restaurarSelecaoPlanoOdonto === "function") {
+                    that.restaurarSelecaoPlanoOdonto(estado.depsPO || []);
                 }
             }, 1000);
 
@@ -1063,6 +1077,33 @@
     },
 
     limparRascunhoLocal: function () { localStorage.removeItem(this.getKeyStorage()); },
+
+    restaurarSelecaoPlanoOdonto: function (listaSelecionados) {
+        var that = this;
+        if (!listaSelecionados || !listaSelecionados.length) return;
+
+        var mapa = {};
+        listaSelecionados.forEach(function (item) {
+            var nome = "";
+            var parentesco = "";
+            if (typeof item === "string") {
+                nome = item;
+            } else if (item) {
+                nome = item.nome || "";
+                parentesco = item.parentesco || "";
+            }
+            var chave = (nome + "||" + parentesco).toLowerCase();
+            if (chave !== "||") mapa[chave] = true;
+        });
+
+        $("#container_dependentes_odonto_" + that.instanceId).find(".check-plano-odonto").each(function () {
+            var $ck = $(this);
+            var chave = String($ck.data("nome-dep") || "") + "||" + String($ck.data("parentesco-dep") || "");
+            if (mapa[chave.toLowerCase()]) {
+                $ck.prop("checked", true);
+            }
+        });
+    },
 
     // =========================================================================
     // 3. LISTENERS E REGRAS
@@ -1208,39 +1249,50 @@
         //     }
         // });
 
-        // ATUALIZAR REGRAS DO DEPENDENTE AO MUDAR PARENTESCO OU NASCIMENTO
-        $div.off("change", ".dep-parentesco, .dep-nasc").on("change", ".dep-parentesco, .dep-nasc", function () {
-            var $card = $(this).closest(".dependente-card");
-            var parentesco = $card.find(".dep-parentesco").val() || "";
+        function normalizarParentesco(valor) {
+            return String(valor || "")
+                .trim()
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+        }
+
+        function atualizarVisibilidadeDocsDependente($card) {
+            var parentesco = normalizarParentesco($card.find(".dep-parentesco").val());
             var dataNasc = $card.find(".dep-nasc").val();
             var $divDocs = $card.find(".div-docs-dependente");
             var isCLT = (that.jornadaAdmissao !== "Estagio" && that.jornadaAdmissao !== "Estágio");
 
-            // Oculta tudo por padrão
             $divDocs.hide();
-            $card.find(".doc-conjuge, .doc-filho").hide();
+            $card.find(".doc-conjuge, .doc-filho, .doc-vacina").hide();
 
-            if (isCLT) {
-                var isConjuge = (parentesco === "Conjuge" || parentesco === "Esposo" || parentesco === "Esposa" || parentesco === "Companheiro");
-                var isFilho = (parentesco === "Filho" || parentesco === "Filha" || parentesco === "Enteado" || parentesco === "Enteada");
+            if (!isCLT) return;
 
-                if (isConjuge) {
-                    $divDocs.slideDown();
-                    $card.find(".doc-conjuge").show(); // Mostra CPF, RG F, RG V
-                }
-                else if (isFilho && dataNasc) {
-                    var idade = that.calcularIdadeDependente(dataNasc);
-                    if (idade < 14) {
-                        $divDocs.slideDown();
-                        $card.find(".doc-filho.doc-cert-nasc").show();
-                        $card.find(".doc-conjuge").show(); // Filhos < 14 também pedem CPF e RG
+            var isConjuge = (parentesco === "conjuge" || parentesco === "companheiro");
+            var isFilho = (parentesco === "filho" || parentesco === "enteado");
 
-                        if (idade <= 5) {
-                            $card.find(".doc-vacina").show(); // Caderneta < 5 anos
-                        }
+            if (isConjuge) {
+                $divDocs.show();
+                $card.find(".doc-conjuge").show();
+                return;
+            }
+
+            if (isFilho && dataNasc) {
+                var idade = that.calcularIdadeDependente(dataNasc);
+                if (idade < 14) {
+                    $divDocs.show();
+                    $card.find(".doc-filho.doc-cert-nasc, .doc-conjuge").show();
+                    if (idade <= 5) {
+                        $card.find(".doc-vacina").show();
                     }
                 }
             }
+        }
+
+        // ATUALIZAR REGRAS DO DEPENDENTE AO MUDAR PARENTESCO OU NASCIMENTO
+        $div.off("change", ".dep-parentesco, .dep-nasc").on("change", ".dep-parentesco, .dep-nasc", function () {
+            var $card = $(this).closest(".dependente-card");
+            atualizarVisibilidadeDocsDependente($card);
         });
 
 
@@ -1271,20 +1323,21 @@
 
                 that.comprimirImagemBase64(file, function (base64Otimizado) {
                     var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
-                    that.uploadAnexoIndividual(base64Clean, fileName, descricaoFluig,
-                        function (sucesso) {
-                            $hidden.val("[ENVIADO_PROCESSO]"); $hidden.attr("data-filename", fileName);
-                            $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
-                            $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-success flaticon-check-circle");
-                            $box.find("h5").addClass("text-success");
-                            $status.html('<strong style="color:#3c763d;">Salvo: </strong>' + fileName).removeClass("text-muted").addClass("text-success");
-                            $btn.text("Alterar").removeClass("btn-warning").addClass("btn-success").prop("disabled", false);
-                            that.salvarRascunhoLocal();
-                        },
-                        function (erro) {
-                            FLUIGC.toast({ title: 'Falha', message: erro, type: 'danger' });
-                            $box.css({ "border": "2px dashed #d9534f", "background-color": "#f2dede", "opacity": "1" });
-                            $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-danger flaticon-close");
+            that.uploadAnexoIndividual(base64Clean, fileName, descricaoFluig,
+                function (sucesso) {
+                    $hidden.val("[ENVIADO_PROCESSO]"); $hidden.attr("data-filename", fileName);
+                    $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
+                    $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-success flaticon-check-circle");
+                    $box.find("h5").addClass("text-success");
+                    $status.html('<strong style="color:#3c763d;">Salvo: </strong>' + fileName).removeClass("text-muted").addClass("text-success");
+                    $btn.text("Alterar").removeClass("btn-warning").addClass("btn-success").prop("disabled", false);
+                    that.salvarRascunhoLocal();
+                    that.persistirFormularioNoFluig();
+                },
+                function (erro) {
+                    FLUIGC.toast({ title: 'Falha', message: erro, type: 'danger' });
+                    $box.css({ "border": "2px dashed #d9534f", "background-color": "#f2dede", "opacity": "1" });
+                    $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-danger flaticon-close");
                             $btn.text("Tentar Novamente").removeClass("btn-warning").addClass("btn-danger").prop("disabled", false);
                             $status.html("Erro. Tente de novo."); $(input).val("");
                         }
@@ -1343,12 +1396,25 @@
             if (this.files && this.files[0]) {
                 var file = this.files[0];
 
-                // NOVA LÓGICA DE COMPRESSÃO APLICADA À FOTO
+                // A foto passa a seguir o mesmo padrão dos demais anexos: sobe ao GED
+                // e só então atualiza o estado visual e a persistência do formulário.
                 that.comprimirImagemBase64(file, function (base64Otimizado) {
-                    $("#preview_foto_" + that.instanceId).css('background-image', 'url(' + base64Otimizado + ')').css('background-size', 'cover').html('');
-                    $("#cand_foto_base64_" + that.instanceId).val(base64Otimizado);
-                    $("#cand_foto_nome_" + that.instanceId).val(file.name);
-                    that.salvarRascunhoLocal();
+                    var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
+
+                    FLUIGC.toast({ message: 'Enviando foto...', type: 'info' });
+                    that.uploadAnexoIndividual(base64Clean, file.name, "Foto do Candidato",
+                        function (sucesso) {
+                            $("#preview_foto_" + that.instanceId).css('background-image', 'url(' + base64Otimizado + ')').css('background-size', 'cover').html('');
+                            $("#cand_foto_base64_" + that.instanceId).val("[ENVIADO_PROCESSO]");
+                            $("#cand_foto_nome_" + that.instanceId).val(file.name);
+                            that.salvarRascunhoLocal();
+                            that.persistirFormularioNoFluig();
+                            FLUIGC.toast({ message: 'Foto salva com sucesso!', type: 'success' });
+                        },
+                        function (erro) {
+                            FLUIGC.toast({ title: 'Erro', message: 'Falha ao salvar a foto: ' + erro, type: 'danger' });
+                        }
+                    );
                 });
             }
         });
@@ -1468,6 +1534,7 @@
                     $("#cand_foto_base64_" + that.instanceId).val("[ENVIADO_PROCESSO]");
                     $("#cand_foto_nome_" + that.instanceId).val(fileName);
                     that.salvarRascunhoLocal();
+                    that.persistirFormularioNoFluig();
                     FLUIGC.toast({ message: 'Foto salva com sucesso!', type: 'success' });
                 },
                 function (erro) { FLUIGC.toast({ title: 'Erro', message: 'Falha ao salvar a foto: ' + erro, type: 'danger' }); }
@@ -1892,7 +1959,14 @@
             "txtEstCivilDepen3": $div.find("#cand_pai_est_civil_" + that.instanceId).val(),
             "txtSexoDepen3": ($div.find("#cand_pai_sexo_" + that.instanceId).val() === "Feminino") ? "F" : "M",
             "txtDtNascDepen3": formatarDataBR($div.find("#cand_pai_nasc_" + that.instanceId).val()),
-            "TxtCPFDep3": $div.find("#cand_pai_cpf_" + that.instanceId).val()
+            "TxtCPFDep3": $div.find("#cand_pai_cpf_" + that.instanceId).val(),
+
+            "cand_foto_nome": $div.find("#cand_foto_nome_" + that.instanceId).val() || "",
+            "cand_foto_base64": $div.find("#cand_foto_base64_" + that.instanceId).val() || "",
+            "carta_assinada_nome": $div.find("#carta_assinada_nome_" + that.instanceId).val() || "",
+            "carta_assinada_base64": $div.find("#carta_assinada_base64_" + that.instanceId).val() || "",
+            "termo_lgpd_assinada_nome": $div.find("#termo_lgpd_assinada_nome_" + that.instanceId).val() || "",
+            "termo_lgpd_assinada_base64": $div.find("#termo_lgpd_assinada_base64_" + that.instanceId).val() || ""
         };
 
         // Substitua os campos estáticos de VT antigos por isso:
@@ -2035,6 +2109,59 @@
                 }
             },
             error: function (xhr, status, error) { callbackErro("Erro na requisição Update via Proxy: " + error); }
+        });
+    },
+
+    obterDadosParaPersistencia: function (opcoes) {
+        var dados = this.getDadosFormulario();
+
+        // Remove payloads pesados e preserva apenas marcadores leves de upload.
+        Object.keys(dados).forEach(function (k) {
+            if (k.indexOf("_base64") > -1) {
+                var valor = dados[k];
+                if (valor === "[ENVIADO_PROCESSO]" || valor === "[ANEXO DO PROCESSO]") return;
+                delete dados[k];
+            }
+        });
+
+        dados["cpPassoAtualCandidato"] = (opcoes && opcoes.passoAtual) ? opcoes.passoAtual : this.passoAtual;
+        return dados;
+    },
+
+    persistirFormularioNoFluig: function (opcoes, callbackSucesso, callbackErro) {
+        var that = this;
+
+        if (typeof opcoes === "function") {
+            callbackErro = callbackSucesso;
+            callbackSucesso = opcoes;
+            opcoes = {};
+        }
+
+        if (!that.documentIdFicha) {
+            if (typeof callbackErro === "function") callbackErro("ID da ficha não carregado.");
+            return;
+        }
+
+        var dadosPersistencia = that.obterDadosParaPersistencia(opcoes || {});
+        dadosPersistencia["cand_foto_nome"] = $("#cand_foto_nome_" + that.instanceId).val() || "";
+        dadosPersistencia["carta_assinada_nome"] = $("#carta_assinada_nome_" + that.instanceId).val() || "";
+        dadosPersistencia["termo_lgpd_assinada_nome"] = $("#termo_lgpd_assinada_nome_" + that.instanceId).val() || "";
+
+        var fotoBase64 = $("#cand_foto_base64_" + that.instanceId).val() || "";
+        if (fotoBase64 === "[ENVIADO_PROCESSO]" || fotoBase64 === "[ANEXO DO PROCESSO]") {
+            dadosPersistencia["cand_foto_base64"] = fotoBase64;
+        } else {
+            delete dadosPersistencia["cand_foto_base64"];
+        }
+
+        delete dadosPersistencia["carta_assinada_base64"];
+        delete dadosPersistencia["termo_lgpd_assinada_base64"];
+
+        that.soapUpdateCardData(that.documentIdFicha, dadosPersistencia, function (resposta) {
+            if (typeof callbackSucesso === "function") callbackSucesso(resposta);
+        }, function (erro) {
+            console.error("Erro ao persistir formulário no Fluig:", erro);
+            if (typeof callbackErro === "function") callbackErro(erro);
         });
     },
 
@@ -2238,10 +2365,6 @@
         if (this.validarPasso(this.passoAtual) && this.passoAtual < this.totalPassos) {
             this.mostrarLoading(true);
             this.salvarRascunhoLocal();
-            var dados = this.getDadosFormulario();
-            this.configDocs.forEach(function (doc) { var campo = doc.doc_campo_interno ? doc.doc_campo_interno.trim() : ""; if (campo) delete dados[campo + "_base64"]; });
-            delete dados["cand_foto_base64"];
-            Object.keys(dados).forEach(function (k) { if (k.indexOf("_base64") > -1) delete dados[k]; });
 
             // LÓGICA DE PULAR ETAPA PARA ESTÁGIO
             var proximo = that.passoAtual + 1;
@@ -2249,9 +2372,7 @@
                 proximo = 5; // Pula a aba de dependentes e vai direto para Filiação
             }
 
-            dados["cpPassoAtualCandidato"] = proximo;
-
-            this.soapUpdateCardData(this.documentIdFicha, dados, function (sucesso) {
+            this.persistirFormularioNoFluig({ passoAtual: proximo }, function (sucesso) {
                 that.mostrarLoading(false);
                 that.irParaPasso(proximo);
                 that.salvarRascunhoLocal();
@@ -2552,6 +2673,12 @@
         var $div = $("#AdmissaoWidget_" + this.instanceId);
         var $container = $div.find("#container_dependentes_odonto_" + this.instanceId);
         var $msgAlerta = $div.find("#msg_elegibilidade_odonto_" + this.instanceId);
+        var selecionadosAtuais = {};
+
+        $container.find(".check-plano-odonto:checked").each(function () {
+            var chaveAtual = String($(this).data("nome-dep") || "") + "||" + String($(this).data("parentesco-dep") || "");
+            selecionadosAtuais[chaveAtual.toLowerCase()] = true;
+        });
 
         $container.empty();
         var encontrouElegivel = false;
@@ -2582,6 +2709,10 @@
                     '</label>';
 
                 $container.append(htmlCheckbox);
+                var chaveItem = (nome + "||" + descParentesco).toLowerCase();
+                if (selecionadosAtuais[chaveItem]) {
+                    $container.find(".check-plano-odonto").last().prop("checked", true);
+                }
             }
         });
 
