@@ -1051,24 +1051,31 @@
                                     <div class="panel-body">
                                         <div class="row">
                                             <div class="form-group col-md-3">
-            <label>Grau de Parentesco</label>
-            <select class="form-control dep-parentesco" style="pointer-events: none; background-color: #eee;" tabindex="-1" readonly>
+                                                <label>Grau de Parentesco</label>
+                                                <select class="form-control dep-parentesco" style="pointer-events: none; background-color: #eee;" tabindex="-1" readonly>
                                                     <option value="Mae" selected>Mãe</option>
                                                 </select>
                                             </div>
-                                            <div class="form-group col-md-5">
-            <label>Nome Completo</label>
-            <input type="text" class="form-control dep-nome" placeholder="Nome da mãe">
+                                            <div class="form-group col-md-3">
+                                                <label>CPF</label>
+                                                <input type="text" class="form-control dep-cpf" mask="000.000.000-00">
                                             </div>
-                                            <div class="form-group col-md-2">
-            <label>Sexo</label>
-            <select class="form-control dep-sexo" style="pointer-events: none; background-color: #eee;" tabindex="-1" readonly>
+                                            <div class="form-group col-md-6">
+                                                <label>Nome Completo</label>
+                                                <input type="text" class="form-control dep-nome" placeholder="Nome da mãe">
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="form-group col-md-3">
+                                                <label>Sexo</label>
+                                                <select class="form-control dep-sexo" style="pointer-events: none; background-color: #eee;" tabindex="-1" readonly>
                                                     <option value="Feminino" selected>Feminino</option>
                                                 </select>
                                             </div>
-                                            <div class="form-group col-md-2">
-            <label>Estado Civil</label>
-            <select class="form-control dep-est-civil">
+                                            <div class="form-group col-md-3">
+                                                <label>Estado Civil</label>
+                                                <select class="form-control dep-est-civil">
                                                     <option value="Solteiro">Solteira</option>
                                                     <option value="Casado">Casada</option>
                                                     <option value="Divorciado">Divorciada</option>
@@ -1076,32 +1083,28 @@
                                                     <option value="Uniao Estavel">União Estável</option>
                                                 </select>
                                             </div>
-                                        </div>
-
-                                        <div class="row">
                                             <div class="form-group col-md-3">
-            <label>CPF</label>
-            <input type="text" class="form-control dep-cpf" mask="000.000.000-00">
+                                                <label>Data Nascimento</label>
+                                                <input type="text" class="form-control fluig-calendar dep-nasc" placeholder="DD/MM/AAAA">
                                             </div>
                                             <div class="form-group col-md-3">
-            <label>RG</label>
-            <input type="text" class="form-control dep-rg" placeholder="Número do RG">
-                                            </div>
-                                            <div class="form-group col-md-3">
-            <label>Cartão SUS</label>
-            <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
-                                            </div>
-                                            <div class="form-group col-md-3">
-            <label>Data Nascimento</label>
-            <input type="text" class="form-control fluig-calendar dep-nasc" placeholder="DD/MM/AAAA">
+                                                <label>RG</label>
+                                                <input type="text" class="form-control dep-rg" placeholder="Número do RG">
                                             </div>
                                         </div>
 
                                         <div class="row">
-                                            <div class="form-group col-md-9">
-            <label>Observação</label>
-            <input type="text" class="form-control dep-obs" placeholder="Alguma observação?">
+                                            <div class="form-group col-md-4">
+                                                <label>Cartão SUS</label>
+                                                <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
                                             </div>
+                                            <div class="form-group col-md-8">
+                                                <label>Observação</label>
+                                                <input type="text" class="form-control dep-obs" placeholder="Alguma observação?">
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
                                             <div class="col-md-3 form-group div-salario-familia" style="display: none;">
                                                 <label>Salário Família?</label>
                                                 <select class="form-control dep-sf">
@@ -1445,8 +1448,8 @@
                     <div class="panel-body">
                         <div class="row">
                             <div class="form-group col-md-3">
-            <label>Grau de Parentesco</label>
-            <select class="form-control dep-parentesco">
+                                <label>Grau de Parentesco</label>
+                                <select class="form-control dep-parentesco">
                                     <option value="">Selecione...</option>
                                     <option value="Filho">Filho(a)</option>
                                     <option value="Conjuge">Cônjuge</option>
@@ -1458,21 +1461,28 @@
                                     <option value="Outros">Outros</option>
                                 </select>
                             </div>
-                            <div class="form-group col-md-5">
-            <label>Nome Completo</label>
-            <input type="text" class="form-control dep-nome" placeholder="Nome do dependente">
+                            <div class="form-group col-md-3">
+                                <label>CPF</label>
+                                <input type="text" class="form-control dep-cpf" mask="000.000.000-00">
                             </div>
-                            <div class="form-group col-md-2">
-            <label>Sexo</label>
-            <select class="form-control dep-sexo">
+                            <div class="form-group col-md-6">
+                                <label>Nome Completo</label>
+                                <input type="text" class="form-control dep-nome" placeholder="Nome do dependente">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="form-group col-md-3">
+                                <label>Sexo</label>
+                                <select class="form-control dep-sexo">
                                     <option value="">Selecione...</option>
                                     <option value="Feminino">Feminino</option>
                                     <option value="Masculino">Masculino</option>
                                 </select>
                             </div>
-                            <div class="form-group col-md-2">
-            <label>Estado Civil</label>
-            <select class="form-control dep-est-civil">
+                            <div class="form-group col-md-3">
+                                <label>Estado Civil</label>
+                                <select class="form-control dep-est-civil">
                                     <option value="Solteiro">Solteiro</option>
                                     <option value="Casado">Casado</option>
                                     <option value="Divorciado">Divorciado</option>
@@ -1480,32 +1490,28 @@
                                     <option value="Uniao Estavel">União Estável</option>
                                 </select>
                             </div>
-                        </div>
-
-                        <div class="row">
                             <div class="form-group col-md-3">
-            <label>CPF</label>
-            <input type="text" class="form-control dep-cpf" mask="000.000.000-00">
+                                <label>Data Nascimento</label>
+                                <input type="text" class="form-control fluig-calendar dep-nasc" placeholder="DD/MM/AAAA">
                             </div>
                             <div class="form-group col-md-3">
-            <label>RG</label>
-            <input type="text" class="form-control dep-rg" placeholder="Número do RG">
-                            </div>
-                            <div class="form-group col-md-3">
-            <label>Cartão SUS</label>
-            <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
-                            </div>
-                            <div class="form-group col-md-3">
-            <label>Data Nascimento</label>
-            <input type="text" class="form-control fluig-calendar dep-nasc" placeholder="DD/MM/AAAA">
+                                <label>RG</label>
+                                <input type="text" class="form-control dep-rg" placeholder="Número do RG">
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="form-group col-md-9">
+                            <div class="form-group col-md-4">
+                                <label>Cartão SUS</label>
+                                <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
+                            </div>
+                            <div class="form-group col-md-8">
                                 <label>Observação</label>
                                 <input type="text" class="form-control dep-obs" placeholder="Alguma observação sobre este dependente?">
                             </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-3 form-group div-salario-familia" style="display: none;">
                                 <label>Salário Família?</label>
                                 <select class="form-control dep-sf">
