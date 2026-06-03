@@ -100,10 +100,10 @@
                                 <div class="doc-status-badge" id="card_status_lgpd_${instanceId}">Ver arquivo</div>
                             </div>
 
-                            <div class="grid-card primeiro-link-card manifesto-card" data-doc-type="manifesto">
+                            <div class="grid-card primeiro-link-card manifesto-card locked" data-doc-type="manifesto">
                                 <div class="icon-wrapper"><i class="flaticon flaticon-document-check"></i></div>
                                 <div class="doc-name">Manifesto de Assinatura</div>
-                                <div class="doc-status-badge" id="card_status_manifesto_${instanceId}">Aguardando assinatura</div>
+                                <div class="doc-status-badge" id="card_status_manifesto_${instanceId}">Esperando assinatura</div>
                             </div>
                         </div>
 
@@ -116,6 +116,9 @@
                             <button type="button" class="btn btn-success btn-lg" id="btn_gerar_assinar_primeiro_link_${instanceId}" style="display: none;">
                                 <i class="flaticon flaticon-check-circle-on icon-sm"></i> Li e Aceito - Assinar Carta Proposta e LGPD
                             </button>
+                            <div id="status_assinatura_verificada_${instanceId}" class="assinatura-verificada-badge" style="display:none;">
+                                <i class="flaticon flaticon-check-circle-on icon-sm"></i> Assinatura Verificada
+                            </div>
                         </div>
 
                         <div id="container_manifesto_tmpl_${instanceId}" style="position:absolute; left:-9999px; top:-9999px; width:800px; background:#fff; padding:32px;">
@@ -539,13 +542,13 @@
                                     </div>
                                 </div>
 
-                                <div id="div_alerta_abertura_conta_${instanceId}" style="display:none;" class="alert alert-warning small">
+                                <div id="div_alerta_abertura_conta_${instanceId}" style="display:none;" class="alert alert-warning small alerta-abertura-conta">
                                     <i class="flaticon flaticon-info icon-sm"></i> 
                                     <strong>Importante:</strong> É necessário providenciar a abertura de conta no Itaú. <br>
-                                    <a href="#" target="_blank" class="alert-link" style="text-decoration: underline;">
+                                    <a href="#" target="_blank" class="alert-link abertura-conta-link">
                                         Clique aqui para baixar as instruções de abertura de conta.
                                     </a><br><br>
-                                    Enquanto providencia a abertura, você pode informar os dados bancários de outra instituição abaixo provisoriamente.
+                                    <span class="texto-provisorio-abertura-conta">Enquanto providencia a abertura, você pode informar os dados bancários de outra instituição abaixo provisoriamente.</span>
                                 </div>
                                 
                                 <div id="div_campos_bancarios_${instanceId}" style="display:none;">
@@ -628,7 +631,7 @@
                             <div role="tabpanel" class="tab-pane" id="tab_outros_docs_${instanceId}">
         
                                 <div class="panel panel-default">
-                                    <div class="panel-heading"><i class="flaticon flaticon-card-id"></i> Carteira Nacional de Habilitação (CNH)</div>
+                                    <div class="panel-heading"><i class="fa-solid fa-id-card"></i> Carteira Nacional de Habilitação (CNH)</div>
                                     <div class="panel-body">
                                         <div class="row">
                                             <div class="form-group col-md-3">
@@ -818,7 +821,7 @@
                                 </div>
 
                                 <div class="panel panel-default">
-                                    <div class="panel-heading"><i class="flaticon flaticon-medical"></i> Cartão SUS</div>
+                                    <div class="panel-heading"><i class="fa-solid fa-heart-pulse"></i> Cartão SUS</div>
                                     <div class="panel-body">
                                         <div class="row">
                                             <div class="form-group col-md-4">
@@ -830,7 +833,7 @@
                                 </div>
 
                                 <div class="panel panel-default">
-                                    <div class="panel-heading"><i class="flaticon flaticon-card-id"></i> Registro Profissional (Opcional)</div>
+                                    <div class="panel-heading"><i class="fa-solid fa-id-badge"></i> Registro Profissional (Opcional)</div>
                                     <div class="panel-body">
                                         <div class="row">
                                             <div class="form-group col-md-3">
@@ -857,7 +860,7 @@
                                 </div>
 
                                 <div class="panel panel-default">
-                                    <div class="panel-heading"><i class="flaticon flaticon-world"></i> Passaporte (Opcional)</div>
+                                    <div class="panel-heading"><i class="fa-solid fa-passport"></i> Passaporte (Opcional)</div>
                                     <div class="panel-body">
                                         <div class="row">
                                             <div class="form-group col-md-4">
@@ -884,33 +887,82 @@
                             </div>
 
                             <div role="tabpanel" class="tab-pane" id="tab_foto_${instanceId}">
-                                <div class="text-center">
-                                    <div id="preview_foto_${instanceId}" style="width: 150px; height: 150px; border: 2px dashed #ccc; margin: 10px auto; border-radius: 50%; background: #f9f9f9; background-size: cover; background-position: center;"></div>
-                                    
-                                    <div style="margin-top: 15px;">
-                                        <button class="btn btn-primary " type="button" data-trigger-upload="file_cand_foto_${instanceId}">
-                                            <i class="flaticon flaticon-upload icon-sm"></i> Carregar Arquivo
+                                <div class="foto-step-shell">
+                                    <div class="foto-step-hero text-center">
+                                        <div class="foto-step-title">Adicione uma foto para continuar</div>
+                                        <div class="foto-step-subtitle">Escolha entre tirar agora ou enviar uma imagem salva no seu dispositivo.</div>
+                                        <div id="preview_foto_${instanceId}" class="foto-preview-circle"></div>
+                                    </div>
+
+                                    <div class="foto-step-actions">
+                                        <button type="button" class="foto-action-card" id="btn_abrir_camera_${instanceId}">
+                                            <span class="foto-action-icon"><i class="flaticon flaticon-camera"></i></span>
+                                            <span class="foto-action-title">Tirar foto</span>
+                                            <span class="foto-action-desc">Abra a câmera e capture a imagem na hora.</span>
                                         </button>
-                                        <button class="btn btn-info " type="button" id="btn_abrir_camera_${instanceId}">
-                                            <i class="flaticon flaticon-camera icon-sm"></i> Tirar Foto
+
+                                        <button type="button" class="foto-action-card" data-trigger-upload="file_cand_foto_${instanceId}">
+                                            <span class="foto-action-icon"><i class="flaticon flaticon-upload"></i></span>
+                                            <span class="foto-action-title">Enviar foto</span>
+                                            <span class="foto-action-desc">Selecione uma foto já salva no aparelho.</span>
                                         </button>
+                                    </div>
+
+                                    <div class="foto-step-footer text-center">
+                                        <span class="text-muted">A foto fica registrada no cadastro assim que for confirmada.</span>
                                     </div>
 
                                     <input type="file" id="file_cand_foto_${instanceId}" class="hidden" data-process-file="cand_foto" accept="image/*">
                                     <input type="hidden" id="cand_foto_base64_${instanceId}">
                                     <input type="hidden" id="cand_foto_nome_${instanceId}">
-                                    
-                                    <div id="area_camera_${instanceId}" style="display: none; margin-top: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: #fff; max-width: 400px; margin-left: auto; margin-right: auto;">
-                                        <video id="video_camera_${instanceId}" autoplay playsinline style="width: 100%; border-radius: 4px; background: #000;"></video>
-                                        <canvas id="canvas_camera_${instanceId}" style="display:none;"></canvas>
-                                        
-                                        <div style="margin-top: 15px;">
-                                            <button type="button" class="btn btn-accept " id="btn_capturar_foto_${instanceId}">
-                                                <i class="flaticon flaticon-check-circle icon-sm"></i> Capturar
-                                            </button>
-                                            <button type="button" class="btn btn-decline " id="btn_fechar_camera_${instanceId}">
-                                                Cancelar
-                                            </button>
+
+                                    <div id="customModalCamera_${instanceId}" class="custom-modal-overlay foto-camera-overlay" style="display:none;">
+                                        <div class="custom-modal-dialog foto-camera-dialog">
+                                            <div class="custom-modal-content foto-camera-content">
+                                                <div class="custom-modal-header">
+                                                    <h4 class="custom-modal-title" id="modalFotoTitle_${instanceId}">Tirar foto</h4>
+                                                    <button type="button" class="btn-close-custom" id="btnCloseCameraModal_${instanceId}">
+                                                        <i class="flaticon flaticon-close icon-sm"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="foto-camera-body">
+                                                    <div class="foto-camera-stage foto-camera-live-stage" id="foto_camera_stage_live_${instanceId}">
+                                                        <div class="foto-camera-preview-wrap">
+                                                            <video id="video_camera_${instanceId}" autoplay playsinline muted></video>
+                                                            <canvas id="canvas_camera_${instanceId}" style="display:none;"></canvas>
+                                                        </div>
+                                                        <div class="foto-camera-hint">Posicione o rosto no centro e toque em Capturar foto.</div>
+                                                    </div>
+
+                                                    <div class="foto-camera-stage foto-camera-preview-stage" id="foto_camera_stage_preview_${instanceId}" style="display:none;">
+                                                        <div class="foto-camera-preview-wrap foto-camera-preview-final">
+                                                            <img id="foto_capturada_preview_${instanceId}" alt="Pré-visualização da foto capturada">
+                                                        </div>
+                                                        <div class="foto-camera-hint">Confira a imagem antes de confirmar o envio.</div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="foto-camera-footer">
+                                                    <div class="foto-camera-actions foto-camera-live-actions" id="foto_camera_actions_live_${instanceId}">
+                                                        <button type="button" class="btn btn-accept" id="btn_capturar_foto_${instanceId}">
+                                                            <i class="flaticon flaticon-check-circle icon-sm"></i> Capturar foto
+                                                        </button>
+                                                        <button type="button" class="btn btn-decline" id="btn_fechar_camera_${instanceId}">
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+
+                                                    <div class="foto-camera-actions foto-camera-preview-actions" id="foto_camera_actions_preview_${instanceId}" style="display:none;">
+                                                        <button type="button" class="btn btn-default" id="btn_tirar_novamente_${instanceId}">
+                                                            <i class="flaticon flaticon-refresh icon-sm"></i> Tirar novamente
+                                                        </button>
+                                                        <button type="button" class="btn btn-success" id="btn_confirmar_foto_${instanceId}">
+                                                            <i class="flaticon flaticon-check-circle-on icon-sm"></i> Confirmar foto
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -964,6 +1016,7 @@
                     <div data-step-content="3" class="step-content">
                         <h3 class="section-title"><i class="fa-solid fa-school" style="color: rgb(177, 151, 252);"></i> Formação Acadêmica</h3>
                         <div class="alert alert-warning" style="background-color: #fcf8e3; color: #8a6d3b;">
+                            <i class="flaticon flaticon-info icon-md" style="margin-right: 8px; color: #8a6d3b; vertical-align: middle;"></i>
                             Informe sua escolaridade principal.
                         </div>
                         

@@ -16,6 +16,10 @@
         lgpd: "",
         manifesto: ""
     },
+    cameraFotoStream: null,
+    fotoCapturadaDataUrl: "",
+    fotoCapturadaBase64: "",
+    fotoCapturadaNome: "",
     manifestoPdfDataUri: "",
     currentPrimeiroLinkBlobUrl: "",
 
@@ -428,9 +432,12 @@
                             };
 
                             var passoSalvoFluig = getVal("cppassoatualcandidato");
+                            that.passoSalvoFluig = passoSalvoFluig;
 
                             setTimeout(function () {
-                                that.restaurarRascunhoLocal();
+                                if (!passoSalvoFluig) {
+                                    that.restaurarRascunhoLocal();
+                                }
                                 that.aplicarRegrasVisuaisPorJornada();
 
                                 var filialUpper = that.nomeFilial.toUpperCase();
@@ -1067,7 +1074,6 @@
         } finally {
             setTimeout(function () {
                 that.restaurarUIAssinaturas();
-                that.recuperarBase64Assinados();
                 
                 // Desativa a trava de proteção
                 that.bloqueioRestauracaoAtivo = false;
@@ -1126,8 +1132,16 @@
         });
 
         $div.on("change input", "input, select, textarea", function () {
+            if (that.bloqueioRestauracaoAtivo) return;
             clearTimeout(that.saveTimeout);
-            that.saveTimeout = setTimeout(function () { that.salvarRascunhoLocal(); }, 500);
+            clearTimeout(that.saveTimeoutFluig);
+            that.saveTimeout = setTimeout(function () {
+                that.salvarRascunhoLocal();
+                that.saveTimeoutFluig = setTimeout(function () {
+                    if (!that.documentIdFicha || that.bloqueioRestauracaoAtivo) return;
+                    that.persistirFormularioNoFluig({ passoAtual: that.passoAtual }, function () { }, function () { });
+                }, 1200);
+            }, 500);
         });
 
         $div.on('change blur', '#cand_sexo_' + that.instanceId +
@@ -1395,26 +1409,19 @@
         $("#file_cand_foto_" + this.instanceId).on('change', function () {
             if (this.files && this.files[0]) {
                 var file = this.files[0];
+                var $input = $(this);
+                $input.val("");
 
-                // A foto passa a seguir o mesmo padrão dos demais anexos: sobe ao GED
-                // e só então atualiza o estado visual e a persistência do formulário.
+                if (!file.type || String(file.type).indexOf("image/") !== 0) {
+                    FLUIGC.toast({ title: 'Atenção', message: 'Selecione um arquivo de imagem válido.', type: 'warning' });
+                    return;
+                }
+
                 that.comprimirImagemBase64(file, function (base64Otimizado) {
                     var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
+                    var nomeFoto = that.gerarNomeFotoArquivo();
 
-                    FLUIGC.toast({ message: 'Enviando foto...', type: 'info' });
-                    that.uploadAnexoIndividual(base64Clean, file.name, "Foto do Candidato",
-                        function (sucesso) {
-                            $("#preview_foto_" + that.instanceId).css('background-image', 'url(' + base64Otimizado + ')').css('background-size', 'cover').html('');
-                            $("#cand_foto_base64_" + that.instanceId).val("[ENVIADO_PROCESSO]");
-                            $("#cand_foto_nome_" + that.instanceId).val(file.name);
-                            that.salvarRascunhoLocal();
-                            that.persistirFormularioNoFluig();
-                            FLUIGC.toast({ message: 'Foto salva com sucesso!', type: 'success' });
-                        },
-                        function (erro) {
-                            FLUIGC.toast({ title: 'Erro', message: 'Falha ao salvar a foto: ' + erro, type: 'danger' });
-                        }
-                    );
+                    that.enviarFotoParaGED(base64Clean, base64Otimizado, nomeFoto);
                 });
             }
         });
@@ -1488,69 +1495,35 @@
             that.carregarMunicipios($(this).val(), 'cand_cidade_' + that.instanceId);
         });
 
-        // =========================================================================
-        // LÓGICA DA CÂMERA (WEBRTC) PARA ABA FOTO
-        // =========================================================================
-        var videoStream = null;
-
         $div.on('click', '#btn_abrir_camera_' + that.instanceId, function () {
-            var $areaCamera = $div.find('#area_camera_' + that.instanceId);
-            var video = $div.find('#video_camera_' + that.instanceId)[0];
-
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                // facingMode: "user" força a câmera frontal no celular
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-                    .then(function (stream) {
-                        videoStream = stream;
-                        video.srcObject = stream;
-                        video.play();
-                        $areaCamera.slideDown();
-                    })
-                    .catch(function (err) {
-                        console.error("Erro ao acessar a câmera: ", err);
-                        FLUIGC.toast({ title: 'Atenção', message: 'Permissão negada ou câmera indisponível.', type: 'warning' });
-                    });
-            } else {
-                FLUIGC.toast({ title: 'Erro', message: 'Seu navegador não suporta captura de câmera nativa.', type: 'danger' });
-            }
+            that.abrirModalFoto();
         });
 
         $div.on('click', '#btn_capturar_foto_' + that.instanceId, function () {
-            var video = $div.find('#video_camera_' + that.instanceId)[0]; var canvas = $div.find('#canvas_camera_' + that.instanceId)[0];
-            var $areaCamera = $div.find('#area_camera_' + that.instanceId);
-
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            var context = canvas.getContext('2d'); context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            var base64Otimizado = canvas.toDataURL('image/jpeg', 0.7);
-
-            var fileName = "Foto_Camera_" + new Date().getTime() + ".jpg";
-            var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
-
-            FLUIGC.toast({ message: 'Enviando foto...', type: 'info' });
-
-            that.uploadAnexoIndividual(base64Clean, fileName, "Foto do Candidato",
-                function (sucesso) {
-                    $("#preview_foto_" + that.instanceId).css('background-image', 'url(' + base64Otimizado + ')').css('background-size', 'cover').html('');
-                    $("#cand_foto_base64_" + that.instanceId).val("[ENVIADO_PROCESSO]");
-                    $("#cand_foto_nome_" + that.instanceId).val(fileName);
-                    that.salvarRascunhoLocal();
-                    that.persistirFormularioNoFluig();
-                    FLUIGC.toast({ message: 'Foto salva com sucesso!', type: 'success' });
-                },
-                function (erro) { FLUIGC.toast({ title: 'Erro', message: 'Falha ao salvar a foto: ' + erro, type: 'danger' }); }
-            );
-
-            if (videoStream) videoStream.getTracks().forEach(function (track) { track.stop(); });
-            $areaCamera.slideUp();
+            that.capturarFotoModal();
         });
 
-        $div.on('click', '#btn_fechar_camera_' + that.instanceId, function () {
-            var $areaCamera = $div.find('#area_camera_' + that.instanceId);
-            // Se o usuário cancelar, garante que o hardware da câmera é desligado
-            if (videoStream) {
-                videoStream.getTracks().forEach(function (track) { track.stop(); });
+        $div.on('click', '#btn_tirar_novamente_' + that.instanceId, function () {
+            that.abrirModalFoto();
+        });
+
+        $div.on('click', '#btn_confirmar_foto_' + that.instanceId, function () {
+            if (!that.fotoCapturadaBase64 || !that.fotoCapturadaDataUrl) {
+                FLUIGC.toast({ title: 'Atenção', message: 'Capture a foto antes de confirmar.', type: 'warning' });
+                return;
             }
-            $areaCamera.slideUp();
+
+            var base64Clean = that.fotoCapturadaBase64;
+            var dataUrl = that.fotoCapturadaDataUrl;
+            var nomeFoto = that.fotoCapturadaNome || that.gerarNomeFotoArquivo();
+
+            that.enviarFotoParaGED(base64Clean, dataUrl, nomeFoto, function () {
+                that.resetarModalFoto();
+            });
+        });
+
+        $div.on('click', '#btn_fechar_camera_' + that.instanceId + ', #btnCloseCameraModal_' + that.instanceId, function () {
+            that.resetarModalFoto();
         });
 
         // Aplica máscara de moeda no valor da tarifa do VT (delegação de evento por ser dinâmico)
@@ -2378,9 +2351,12 @@
                 that.salvarRascunhoLocal();
             }, function (erro) {
                 that.mostrarLoading(false);
-                console.error("Erro Fluig (Ignorado pois salvou local): ", erro);
-                that.irParaPasso(proximo);
-                that.salvarRascunhoLocal();
+                console.error("Erro ao persistir no Fluig. Avanço cancelado: ", erro);
+                FLUIGC.toast({
+                    title: 'Erro',
+                    message: 'Não foi possível salvar seu progresso no Fluig. Tente novamente.',
+                    type: 'danger'
+                });
             });
         }
     },
@@ -2394,9 +2370,17 @@
                 anterior = 3; // Pula a aba de dependentes e volta direto para formação
             }
 
-            this.irParaPasso(anterior);
-
-            this.soapUpdateCardData(this.documentIdFicha, { "cpPassoAtualCandidato": anterior }, function () { }, function () { });
+            var that = this;
+            this.persistirFormularioNoFluig({ passoAtual: anterior }, function () {
+                that.irParaPasso(anterior);
+            }, function (erro) {
+                console.error("Erro ao persistir passo anterior no Fluig: ", erro);
+                FLUIGC.toast({
+                    title: 'Erro',
+                    message: 'Não foi possível salvar o passo anterior no Fluig.',
+                    type: 'danger'
+                });
+            });
         }
     },
 
@@ -2633,12 +2617,28 @@
 
     uploadAnexoIndividual: function (base64Clean, fileName, description, callbackSucesso, callbackErro) {
         var that = this;
+        var opcoes = arguments[5] || {};
         var idSolicitacao = $("#idSolicitacaoRH_" + that.instanceId).val();
         var url = WCMAPI.getServerURL() + '/api/public/ecm/dataset/datasets';
 
         if (!idSolicitacao) { callbackErro("ID da solicitação não encontrado."); return; }
+        if (!fileName || !base64Clean) { callbackErro("Arquivo inválido para upload."); return; }
 
-        var payloadObj = { processInstanceId: parseInt(idSolicitacao, 10), fileName: fileName, description: description, base64: base64Clean };
+        var processInstanceId = parseInt(idSolicitacao, 10);
+        if (isNaN(processInstanceId) || processInstanceId <= 0) {
+            callbackErro("ID da solicitação inválido.");
+            return;
+        }
+
+        var payloadObj = {
+            processInstanceId: processInstanceId,
+            fileName: fileName,
+            description: description,
+            base64: base64Clean
+        };
+
+        if (opcoes.contentType) payloadObj.contentType = opcoes.contentType;
+        if (opcoes.mimeType) payloadObj.mimeType = opcoes.mimeType;
 
         var dataProxy = {
             name: "ds_irho_api_proxy",
@@ -2657,11 +2657,14 @@
                     if (rProxy.status == "success") {
                         var respStr = String(rProxy.response);
                         if (respStr.indexOf("ERROR:") > -1 || respStr.indexOf("could not execute statement") > -1 || respStr.indexOf("faultstring") > -1) {
-                            callbackErro("Falha no Fluig ao salvar este arquivo.");
+                            console.error("Falha no upload do Fluig:", respStr);
+                            callbackErro(respStr.replace(/^ERROR:\s*/i, "") || "Falha no Fluig ao salvar este arquivo.");
                         } else {
                             callbackSucesso(respStr);
                         }
-                    } else { callbackErro(rProxy.message); }
+                    } else {
+                        callbackErro(rProxy.message || rProxy.response || "Erro ao comunicar com o servidor.");
+                    }
                 } else { callbackErro("Erro ao comunicar com o servidor."); }
             },
             error: function (xhr, status, error) { callbackErro("Falha na requisição de upload: " + error); }
@@ -2761,6 +2764,136 @@
             img.src = e.target.result;
         };
         readerImg.readAsDataURL(file);
+    },
+
+    gerarNomeFotoArquivo: function () {
+        return "Foto_Candidato_" + new Date().getTime() + ".jpg";
+    },
+
+    pararCameraFoto: function () {
+        var video = $("#video_camera_" + this.instanceId)[0];
+        if (this.cameraFotoStream) {
+            this.cameraFotoStream.getTracks().forEach(function (track) { track.stop(); });
+            this.cameraFotoStream = null;
+        }
+        if (video) {
+            try { video.pause(); } catch (e) { }
+            video.srcObject = null;
+        }
+    },
+
+    resetarModalFoto: function () {
+        var that = this;
+        that.fotoCapturadaDataUrl = "";
+        that.fotoCapturadaBase64 = "";
+        that.fotoCapturadaNome = "";
+
+        $("#foto_camera_stage_preview_" + that.instanceId).hide();
+        $("#foto_camera_actions_preview_" + that.instanceId).hide();
+        $("#foto_camera_stage_live_" + that.instanceId).show();
+        $("#foto_camera_actions_live_" + that.instanceId).show();
+        $("#foto_capturada_preview_" + that.instanceId).attr("src", "");
+        $("#customModalCamera_" + that.instanceId).hide();
+        that.pararCameraFoto();
+    },
+
+    abrirModalFoto: function () {
+        var that = this;
+        var video = $("#video_camera_" + that.instanceId)[0];
+
+        that.fotoCapturadaDataUrl = "";
+        that.fotoCapturadaBase64 = "";
+        that.fotoCapturadaNome = "";
+        $("#foto_camera_stage_preview_" + that.instanceId).hide();
+        $("#foto_camera_actions_preview_" + that.instanceId).hide();
+        $("#foto_camera_stage_live_" + that.instanceId).show();
+        $("#foto_camera_actions_live_" + that.instanceId).show();
+        $("#foto_capturada_preview_" + that.instanceId).attr("src", "");
+        $("#customModalCamera_" + that.instanceId).css("display", "flex");
+
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+            FLUIGC.toast({ title: 'Erro', message: 'Seu navegador não suporta captura de câmera nativa.', type: 'danger' });
+            return;
+        }
+
+        that.pararCameraFoto();
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+            .then(function (stream) {
+                that.cameraFotoStream = stream;
+                video.srcObject = stream;
+                video.play();
+            })
+            .catch(function (err) {
+                console.error("Erro ao acessar a câmera: ", err);
+                that.resetarModalFoto();
+                FLUIGC.toast({ title: 'Atenção', message: 'Permissão negada ou câmera indisponível.', type: 'warning' });
+            });
+    },
+
+    capturarFotoModal: function () {
+        var that = this;
+        var video = $("#video_camera_" + that.instanceId)[0];
+        var canvas = $("#canvas_camera_" + that.instanceId)[0];
+
+        if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+            FLUIGC.toast({ title: 'Atenção', message: 'A câmera ainda não está pronta.', type: 'warning' });
+            return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        var context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        var dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        var base64Clean = dataUrl.indexOf(",") > -1 ? dataUrl.split(",")[1] : dataUrl;
+
+        that.pararCameraFoto();
+        that.fotoCapturadaDataUrl = dataUrl;
+        that.fotoCapturadaBase64 = base64Clean;
+        that.fotoCapturadaNome = that.gerarNomeFotoArquivo();
+
+        $("#foto_capturada_preview_" + that.instanceId).attr("src", dataUrl);
+        $("#foto_camera_stage_live_" + that.instanceId).hide();
+        $("#foto_camera_actions_live_" + that.instanceId).hide();
+        $("#foto_camera_stage_preview_" + that.instanceId).show();
+        $("#foto_camera_actions_preview_" + that.instanceId).show();
+    },
+
+    aplicarFotoNoPreviewPrincipal: function (dataUrl, fileName) {
+        $("#preview_foto_" + this.instanceId)
+            .css("background-image", "url(" + dataUrl + ")")
+            .css("background-size", "cover")
+            .css("background-position", "center")
+            .html("");
+
+        $("#cand_foto_base64_" + this.instanceId).val("[ENVIADO_PROCESSO]");
+        $("#cand_foto_nome_" + this.instanceId).val(fileName);
+    },
+
+    enviarFotoParaGED: function (base64Clean, dataUrl, fileName, onSuccess, onError) {
+        var that = this;
+        FLUIGC.toast({ message: 'Enviando foto...', type: 'info' });
+
+        that.uploadAnexoIndividual(
+            base64Clean,
+            fileName,
+            "Foto do Candidato",
+            function (sucesso) {
+                that.aplicarFotoNoPreviewPrincipal(dataUrl, fileName);
+                that.salvarRascunhoLocal();
+                that.persistirFormularioNoFluig();
+                FLUIGC.toast({ message: 'Foto salva com sucesso!', type: 'success' });
+                if (typeof onSuccess === "function") onSuccess(sucesso);
+            },
+            function (erro) {
+                if (typeof onError === "function") onError(erro);
+                FLUIGC.toast({ title: 'Erro', message: 'Falha ao salvar a foto: ' + erro, type: 'danger' });
+            },
+            { contentType: "image/jpeg", fileType: "image/jpeg" }
+        );
     },
 
     processarArquivo: function (el) {
@@ -2939,6 +3072,7 @@
 
         var assinaturaCompleta = (statusProp === "assinado" && statusLgpd === "assinado" && b64Prop && b64Lgpd);
         $("#btn_gerar_assinar_primeiro_link_" + that.instanceId).toggle(!assinaturaCompleta);
+        $("#status_assinatura_verificada_" + that.instanceId).toggle(assinaturaCompleta);
         $("#btn_gerar_assinar_" + that.instanceId).hide();
         $("#btn_gerar_assinar_lgpd_" + that.instanceId).hide();
         that.atualizarCartoesPrimeiroLink();
@@ -2955,7 +3089,7 @@
 
         var propostaOk = (statusProp === "assinado" || !!b64Prop || !!previewProp || !!this.idPdfProposta);
         var lgpdOk = (statusLgpd === "assinado" || !!b64Lgpd || !!previewLgpd || !!this.idPdfLGPD);
-        var manifestoOk = propostaOk && lgpdOk;
+        var manifestoOk = (statusProp === "assinado" && statusLgpd === "assinado" && !!b64Prop && !!b64Lgpd);
 
         $("#card_status_proposta_" + this.instanceId).text(propostaOk ? "Ver arquivo" : "Carregando...");
         $("#card_status_lgpd_" + this.instanceId).text(lgpdOk ? "Ver arquivo" : "Carregando...");
@@ -3013,7 +3147,9 @@
         } else if (tipoDoc === "manifesto") {
             var statusProp = $("#tae_proposta_status_" + that.instanceId).val();
             var statusLgpd = $("#tae_lgpd_status_" + that.instanceId).val();
-            if (statusProp !== "assinado" || statusLgpd !== "assinado") {
+            var b64Prop = $("#carta_assinada_base64_" + that.instanceId).val();
+            var b64Lgpd = $("#termo_lgpd_assinada_base64_" + that.instanceId).val();
+            if (statusProp !== "assinado" || statusLgpd !== "assinado" || !b64Prop || !b64Lgpd) {
                 FLUIGC.toast({ title: "Atenção", message: "O manifesto fica disponível após assinar a Carta Proposta e o LGPD.", type: "warning" });
                 return;
             }
@@ -3133,58 +3269,7 @@
     },
 
     recuperarBase64Assinados: function () {
-        var that = this;
-        var docsAssinados = [];
-
-        var statusProp = $("#tae_proposta_status_" + that.instanceId).val();
-        if (statusProp === "assinado" && !$("#carta_assinada_base64_" + that.instanceId).val()) {
-            docsAssinados.push({ idDocTae: $("#tae_proposta_iddoc_" + that.instanceId).val(), type: "proposta" });
-        }
-
-        var statusLgpd = $("#tae_lgpd_status_" + that.instanceId).val();
-        if (statusLgpd === "assinado" && !$("#termo_lgpd_assinada_base64_" + that.instanceId).val()) {
-            docsAssinados.push({ idDocTae: $("#tae_lgpd_iddoc_" + that.instanceId).val(), type: "lgpd" });
-        }
-
-        if (docsAssinados.length === 0) return;
-
-        that.chamarProxyTAE("/v3/auth/login", "POST", {}, null, function (resLogin) {
-            var token = resLogin.access_token || resLogin.token || (resLogin.data ? resLogin.data.token : null);
-            if (!token) return;
-
-            // Fila Procedural (Baixa um após o outro)
-            function baixarProximo(index) {
-                if (index >= docsAssinados.length) return;
-
-                var doc = docsAssinados[index];
-
-                that.chamarProxyTAE("/v1/publicacoes/" + doc.idDocTae + "/download?tipoDownload=2", "GET", null, token, function (resDoc) {
-                    var base64Assinado = (resDoc.data && resDoc.data.fileBytes) ? resDoc.data.fileBytes : (resDoc.base64 || resDoc.documentoBase64 || resDoc.data);
-                    var base64Clean = base64Assinado.indexOf(",") > -1 ? base64Assinado.split(",")[1] : base64Assinado;
-
-                    if (doc.type === "proposta") {
-                        if ($("#carta_assinada_base64_" + that.instanceId).length === 0) $("#formCandidato_" + that.instanceId).append('<input type="hidden" id="carta_assinada_base64_' + that.instanceId + '"><input type="hidden" id="carta_assinada_nome_' + that.instanceId + '" value="Carta_Proposta_Assinada.pdf">');
-                        $("#carta_assinada_base64_" + that.instanceId).val(base64Clean);
-                    } else if (doc.type === "lgpd") {
-                        if ($("#termo_lgpd_assinada_base64_" + that.instanceId).length === 0) $("#formCandidato_" + that.instanceId).append('<input type="hidden" id="termo_lgpd_assinada_base64_' + that.instanceId + '"><input type="hidden" id="termo_lgpd_assinada_nome_' + that.instanceId + '" value="Termo_LGPD_Assinado.pdf">');
-                        $("#termo_lgpd_assinada_base64_" + that.instanceId).val(base64Clean);
-                    }
-
-                    that.restaurarUIAssinaturas(); // Atualiza a tela instantaneamente
-
-                    baixarProximo(index + 1); // Chama o próximo
-                }, function (errDoc) {
-                    console.error("Erro ao recuperar PDF " + doc.type);
-                    baixarProximo(index + 1); // Em caso de erro tenta o próximo para não travar a fila
-                });
-            }
-
-            baixarProximo(0);
-        }, function (errLogin) {
-            // AGORA VAI MOSTRAR O MOTIVO REAL NO CONSOLE
-            console.error("Falha no login TAE:", errLogin);
-            FLUIGC.toast({ title: 'Erro de Autenticação', message: 'Não foi possível recuperar os PDFs assinados automaticamente.', type: 'danger' });
-        });
+        return;
     },
 
     /**
@@ -3261,7 +3346,6 @@
                     that.uploadAnexoIndividual(base64Lgpd, "Termo_LGPD_Assinado.pdf", "Termo LGPD Assinado", function () { }, function (err) { console.error("Erro no upload do LGPD:", err); });
 
                     that.restaurarUIAssinaturas();
-                    that.irParaPasso(2);
                     FLUIGC.toast({ title: 'Sucesso', message: 'Carta Proposta e LGPD assinadas com sucesso!', type: 'success' });
                     btn.prop("disabled", false).html(btnTexto);
                 }, 800);
