@@ -7,6 +7,8 @@
     idOrigem: null,
     documentIdFicha: null,
     saveTimeout: null,
+    saveTimeoutFluig: null,
+    bloqueioRestauracaoAtivo: false,
     jornadaAdmissao: "",
     nomeFilial: "",
     idPdfProposta: null,
@@ -340,6 +342,8 @@
                             var cofrePrimeiro = {};
                             try { cofrePrimeiro = JSON.parse(jsonPrimeiroLink); } catch (e) { }
 
+                            that.jsonPrimeiroLinkCarregado = jsonPrimeiroLink || "{}";
+
                             // 2. Extraímos os IDs de dentro do Cofre (ou do campo direto como fallback)
                             that.idPdfProposta = (cofrePrimeiro["kit_proposta_admissao"] && cofrePrimeiro["kit_proposta_admissao"].id) ? cofrePrimeiro["kit_proposta_admissao"].id : getVal("id_pdf_kit_proposta_admissao");
 
@@ -357,6 +361,41 @@
                                 $("#tae_lgpd_iddoc_" + that.instanceId).val(cofrePrimeiro["kit_lgpd_admissao"].idDocTae || "");
                                 $("#tae_lgpd_status_" + that.instanceId).val(cofrePrimeiro["kit_lgpd_admissao"].status || "");
                                 $("#tae_lgpd_link_" + that.instanceId).val(cofrePrimeiro["kit_lgpd_admissao"].linkAssinaturaTae || "");
+                            }
+
+                            // ========================================================
+                            // FALLBACK: RESTAURA ASSINATURAS PELOS CAMPOS NOVOS
+                            // Caso o cofre json_ids_primeiro_link tenha falhado no update
+                            // ========================================================
+                            var jsonAssCand = getVal("jsonAssCand") || "{}";
+                            var assCand = that.parseJsonSeguroCand(jsonAssCand, {});
+
+                            var statusPropAtual = $("#tae_proposta_status_" + that.instanceId).val();
+                            var statusLgpdAtual = $("#tae_lgpd_status_" + that.instanceId).val();
+
+                            if (!statusPropAtual && assCand.proposta && String(assCand.proposta.status || "").toLowerCase().indexOf("assinado") > -1) {
+                                $("#tae_proposta_status_" + that.instanceId).val("assinado");
+                                $("#tae_proposta_iddoc_" + that.instanceId).val(assCand.proposta.detalhe || "");
+                            }
+
+                            if (!statusLgpdAtual && assCand.lgpd && String(assCand.lgpd.status || "").toLowerCase().indexOf("assinado") > -1) {
+                                $("#tae_lgpd_status_" + that.instanceId).val("assinado");
+                                $("#tae_lgpd_iddoc_" + that.instanceId).val(assCand.lgpd.detalhe || "");
+                            }
+
+                            if (
+                                $("#tae_proposta_status_" + that.instanceId).val() === "assinado" &&
+                                $("#tae_lgpd_status_" + that.instanceId).val() === "assinado"
+                            ) {
+                                that.previewDocsPrimeiroLink.manifesto = "Manifesto_Assinatura.pdf";
+
+                                setTimeout(function () {
+                                    that.atualizarCartoesPrimeiroLink();
+
+                                    if (typeof that.restaurarUIAssinaturas === "function") {
+                                        that.restaurarUIAssinaturas();
+                                    }
+                                }, 300);
                             }
                             // ========================================================
 
@@ -432,12 +471,26 @@
                             };
 
                             var passoSalvoFluig = getVal("cppassoatualcandidato");
+
+                            var statusPropCarregado = $("#tae_proposta_status_" + that.instanceId).val();
+                            var statusLgpdCarregado = $("#tae_lgpd_status_" + that.instanceId).val();
+
+                            if (
+                                (!passoSalvoFluig || passoSalvoFluig === "1") &&
+                                statusPropCarregado === "assinado" &&
+                                statusLgpdCarregado === "assinado"
+                            ) {
+                                passoSalvoFluig = "2";
+                            }
+
                             that.passoSalvoFluig = passoSalvoFluig;
 
                             setTimeout(function () {
-                                if (!passoSalvoFluig) {
+                                // cpPassoAtualCandidato nasce como "1", então "1" não deve bloquear fallback.
+                                if (!passoSalvoFluig || passoSalvoFluig === "1") {
                                     that.restaurarRascunhoLocal();
                                 }
+
                                 that.aplicarRegrasVisuaisPorJornada();
 
                                 var filialUpper = that.nomeFilial.toUpperCase();
@@ -814,6 +867,421 @@
 
     getKeyStorage: function () { return "admissao_draft_" + (this.idOrigem || "novo"); },
 
+    parseJsonSeguroCand: function (valor, padrao) {
+        if (!valor || String(valor).trim() === "") {
+            return padrao;
+        }
+
+        try {
+            return JSON.parse(valor);
+        } catch (e) {
+            console.warn("[Persistência] JSON inválido:", e, valor);
+            return padrao;
+        }
+    },
+
+    salvarCofrePrimeiroLinkCompleto: function (dadosExtras, success, error) {
+        var that = this;
+
+        if (!that.documentIdFicha) {
+            if (error) error("documentIdFicha não encontrado");
+            return;
+        }
+
+        dadosExtras = dadosExtras || {};
+
+        var cofreAtual = {};
+
+        try {
+            var jsonLocal = that.jsonPrimeiroLinkCarregado || "{}";
+            cofreAtual = JSON.parse(jsonLocal || "{}");
+        } catch (e) {
+            cofreAtual = {};
+        }
+
+        cofreAtual["kit_proposta_admissao"] = $.extend(
+            true,
+            {},
+            cofreAtual["kit_proposta_admissao"] || {},
+            {
+                id: that.idPdfProposta || "",
+                idDocTae: $("#tae_proposta_iddoc_" + that.instanceId).val() || "",
+                status: $("#tae_proposta_status_" + that.instanceId).val() || "",
+                linkAssinaturaTae: $("#tae_proposta_link_" + that.instanceId).val() || ""
+            },
+            dadosExtras["kit_proposta_admissao"] || {}
+        );
+
+        cofreAtual["kit_lgpd_admissao"] = $.extend(
+            true,
+            {},
+            cofreAtual["kit_lgpd_admissao"] || {},
+            {
+                id: that.idPdfLGPD || "",
+                idDocTae: $("#tae_lgpd_iddoc_" + that.instanceId).val() || "",
+                status: $("#tae_lgpd_status_" + that.instanceId).val() || "",
+                linkAssinaturaTae: $("#tae_lgpd_link_" + that.instanceId).val() || ""
+            },
+            dadosExtras["kit_lgpd_admissao"] || {}
+        );
+
+        if (dadosExtras["manifesto_primeiro_link"]) {
+            cofreAtual["manifesto_primeiro_link"] = $.extend(
+                true,
+                {},
+                cofreAtual["manifesto_primeiro_link"] || {},
+                dadosExtras["manifesto_primeiro_link"]
+            );
+        }
+
+        that.jsonPrimeiroLinkCarregado = JSON.stringify(cofreAtual);
+
+        that.soapUpdateCardData(
+            that.documentIdFicha,
+            {
+                cpPassoAtualCandidato: "2",
+                cpStatusCand: "Em preenchimento",
+                cpUltAtualCand: new Date().toLocaleString("pt-BR"),
+
+                jsonAssCand: JSON.stringify({
+                    proposta: {
+                        nome: "Carta Proposta",
+                        status: "Assinado",
+                        detalhe: $("#tae_proposta_iddoc_" + that.instanceId).val() || ""
+                    },
+                    lgpd: {
+                        nome: "Termo LGPD",
+                        status: "Assinado",
+                        detalhe: $("#tae_lgpd_iddoc_" + that.instanceId).val() || ""
+                    },
+                    manifesto: {
+                        nome: "Manifesto de Assinatura",
+                        status: "Gerado/Anexado",
+                        detalhe: "Manifesto_Assinatura.pdf"
+                    }
+                })
+            },
+            function (res) {
+                console.log("[Persistência] Status da assinatura salvo via jsonAssCand.", res);
+                if (success) success(res);
+            },
+            function (err) {
+                console.warn("[Persistência] Falha ao salvar jsonAssCand:", err);
+                if (error) error(err);
+            }
+        );
+    },
+
+    // =========================================================================
+    // 2.1. ESTADO PERSISTENTE NO FLUIG
+    // Usado para alimentar o painel do RH e restaurar em outro navegador/dispositivo
+    // =========================================================================
+
+    getValorWidget: function (campoBase) {
+        var $el = $("#" + campoBase + "_" + this.instanceId);
+        return $el.length ? ($el.val() || "") : "";
+    },
+
+    limparIdWidget: function (idCompleto) {
+        return String(idCompleto || "").replace("_" + this.instanceId, "");
+    },
+
+    montarCamposWidgetJson: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var campos = {};
+
+        $div.find("input, select, textarea").each(function () {
+            var $el = $(this);
+            var id = $el.attr("id");
+            var type = String($el.attr("type") || "").toLowerCase();
+
+            if (!id || type === "file" || type === "button") return true;
+
+            var cleanId = that.limparIdWidget(id);
+
+            // Salva apenas campos reais do candidato.
+            // Evita gravar campos técnicos, OAuth, links TAE, viewers, controle interno etc.
+            var ehCampoCandidato =
+                cleanId.indexOf("cand_") === 0 ||
+                cleanId.indexOf("idSolicitacaoRH") === 0;
+
+            if (!ehCampoCandidato) {
+                return true;
+            }
+
+            // Não grava Base64 pesado no JSON.
+            if (cleanId.indexOf("_base64") > -1) {
+                var valorBase64 = $el.val();
+
+                if (valorBase64 === "[ENVIADO_PROCESSO]" || valorBase64 === "[ANEXO DO PROCESSO]") {
+                    campos[cleanId] = valorBase64;
+                }
+
+                return true;
+            }
+
+            if (type === "checkbox" || type === "radio") {
+                campos[cleanId] = $el.is(":checked") ? ($el.val() || "on") : "";
+            } else {
+                var valor = $el.val() || "";
+
+                // Proteção extra contra valores acidentalmente muito grandes.
+                if (String(valor).length > 1000) {
+                    valor = String(valor).substring(0, 1000);
+                }
+
+                campos[cleanId] = valor;
+            }
+        });
+
+        return campos;
+    },
+
+    montarDependentesWidgetJson: function () {
+        var dadosDependentes = [];
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+
+        $div.find(".dependente-card").each(function () {
+            var $card = $(this);
+            var objDep = {};
+
+            $card.find("input, select, textarea").each(function () {
+                var $el = $(this);
+                var className = $el.attr("class") || "";
+                var classes = className.split(/\s+/);
+
+                for (var i = 0; i < classes.length; i++) {
+                    if (classes[i].indexOf("dep-") === 0) {
+                        if ($el.attr("type") === "file") continue;
+
+                        if ($el.attr("type") === "checkbox") {
+                            objDep[classes[i]] = $el.prop("checked");
+                        } else {
+                            objDep[classes[i]] = $el.val() || "";
+                        }
+
+                        if (classes[i].indexOf("dep-base64-") === 0) {
+                            objDep[classes[i] + "-name"] = $el.attr("data-filename") || "";
+                        }
+                    }
+                }
+            });
+
+            dadosDependentes.push(objDep);
+        });
+
+        return dadosDependentes;
+    },
+
+    montarRotasVTWidgetJson: function () {
+        var rotasVT = [];
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+
+        $div.find(".vt-card").each(function () {
+            var $card = $(this);
+
+            rotasVT.push({
+                destino: $card.find(".vt-destino").val() || "",
+                tipo: $card.find(".vt-tipo").val() || "",
+                empresa: $card.find(".vt-empresa").val() || "",
+                linha: $card.find(".vt-linha").val() || "",
+                valor: $card.find(".vt-valor").val() || ""
+            });
+        });
+
+        return rotasVT;
+    },
+
+    montarSelecionadosPlanoSaudeJson: function () {
+        var lista = [];
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+
+        $div.find(".check-plano-saude:checked").each(function () {
+            lista.push({
+                nome: $(this).data("nome-dep") || "",
+                parentesco: $(this).data("parentesco-dep") || ""
+            });
+        });
+
+        return lista;
+    },
+
+    montarSelecionadosPlanoOdontoJson: function () {
+        var lista = [];
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+
+        $div.find(".check-plano-odonto:checked").each(function () {
+            lista.push({
+                nome: $(this).data("nome-dep") || "",
+                parentesco: $(this).data("parentesco-dep") || ""
+            });
+        });
+
+        return lista;
+    },
+
+    montarStatusDocumentosCand: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var statusDocs = {};
+
+        function formatarNomeCampo(nome) {
+            return String(nome || "")
+                .replace(/^cand_doc_/, "")
+                .replace(/^cand_/, "")
+                .replace(/_nome$/, "")
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, function (l) { return l.toUpperCase(); });
+        }
+
+        // Foto
+        var nomeFoto = that.getValorWidget("cand_foto_nome");
+        statusDocs["cand_foto"] = {
+            nome: "Foto do Candidato",
+            status: nomeFoto ? "Enviado" : "Pendente",
+            detalhe: nomeFoto
+        };
+
+        // Documentos gerais que possuem campo *_nome
+        $div.find("input[id$='_nome_" + that.instanceId + "']").each(function () {
+            var $el = $(this);
+            var idCompleto = $el.attr("id");
+            var cleanId = that.limparIdWidget(idCompleto);
+            var nomeArquivo = $el.val() || "";
+
+            if (
+                cleanId === "cand_foto_nome" ||
+                cleanId === "carta_assinada_nome" ||
+                cleanId === "termo_lgpd_assinada_nome"
+            ) {
+                return true;
+            }
+
+            var chave = cleanId.replace("_nome", "");
+
+            statusDocs[chave] = {
+                nome: formatarNomeCampo(cleanId),
+                status: nomeArquivo ? "Enviado" : "Pendente",
+                detalhe: nomeArquivo
+            };
+        });
+
+        return statusDocs;
+    },
+
+    montarStatusAssinaturasCand: function () {
+        var id = this.instanceId;
+
+        var statusProposta = $("#tae_proposta_status_" + id).val() || "Pendente";
+        var statusLgpd = $("#tae_lgpd_status_" + id).val() || "Pendente";
+
+        var propostaAssinada = statusProposta === "assinado";
+        var lgpdAssinado = statusLgpd === "assinado";
+
+        return {
+            proposta: {
+                nome: "Carta Proposta",
+                status: propostaAssinada ? "Assinado" : statusProposta,
+                detalhe: $("#tae_proposta_iddoc_" + id).val() || ""
+            },
+            lgpd: {
+                nome: "Termo LGPD",
+                status: lgpdAssinado ? "Assinado" : statusLgpd,
+                detalhe: $("#tae_lgpd_iddoc_" + id).val() || ""
+            },
+            manifesto: {
+                nome: "Manifesto de Assinatura",
+                status: propostaAssinada && lgpdAssinado ? "Gerado/Anexado" : "Aguardando assinaturas",
+                detalhe: propostaAssinada && lgpdAssinado ? "Manifesto_Assinatura.pdf" : ""
+            }
+        };
+    },
+
+    montarResumoPreenchimentoCand: function () {
+        return {
+            nome: this.getValorWidget("cand_nomeCompleto"),
+            cpf: this.getValorWidget("cand_cpf"),
+            email: this.getValorWidget("cand_email"),
+            celular: this.getValorWidget("cand_celular"),
+            passoAtual: this.passoAtual,
+            atualizadoEm: new Date().toLocaleString("pt-BR")
+        };
+    },
+
+    calcularPercentualCand: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var total = 0;
+        var preenchidos = 0;
+
+        $div.find("input, select, textarea").each(function () {
+            var $el = $(this);
+            var id = $el.attr("id") || "";
+            var type = String($el.attr("type") || "").toLowerCase();
+
+            if (!$el.is(":visible")) return true;
+            if (type === "file" || type === "hidden" || type === "button") return true;
+            if (id.indexOf("_base64_") > -1) return true;
+
+            total++;
+
+            if (type === "checkbox" || type === "radio") {
+                if ($el.is(":checked")) preenchidos++;
+            } else if (String($el.val() || "").trim() !== "") {
+                preenchidos++;
+            }
+        });
+
+        if (total === 0) return 0;
+
+        var pct = Math.round((preenchidos / total) * 100);
+        if (pct < 0) pct = 0;
+        if (pct > 100) pct = 100;
+
+        return pct;
+    },
+
+    montarEstadoPersistenciaFluig: function (opcoes) {
+        opcoes = opcoes || {};
+
+        var passo = opcoes.passoAtual || this.passoAtual || 1;
+        var percentual = this.calcularPercentualCand();
+
+        var statusGeral = "Em preenchimento";
+
+        if (percentual <= 0) {
+            statusGeral = "Não iniciado";
+        } else if (passo >= this.totalPassos) {
+            statusGeral = "Em revisão final";
+        }
+
+        var estadoWidget = {
+            versao: 1,
+            passo: passo,
+            campos: this.montarCamposWidgetJson(),
+            dependentes: this.montarDependentesWidgetJson(),
+            rotasVT: this.montarRotasVTWidgetJson(),
+            depsPS: this.montarSelecionadosPlanoSaudeJson(),
+            depsPO: this.montarSelecionadosPlanoOdontoJson(),
+            timestamp: new Date().getTime()
+        };
+
+        return {
+            cpPassoAtualCandidato: String(passo),
+            cpStatusCand: statusGeral,
+            cpPctCand: String(percentual),
+            cpUltAtualCand: new Date().toLocaleString("pt-BR"),
+            cpOrigemAtualCand: "Widget Página Candidato",
+            cpDispCand: navigator.userAgent ? navigator.userAgent.substring(0, 80) : "Navegador",
+
+            jsonPersistCand: JSON.stringify(estadoWidget),
+            jsonDocsCand: JSON.stringify(this.montarStatusDocumentosCand()),
+            jsonAssCand: JSON.stringify(this.montarStatusAssinaturasCand()),
+            jsonResumoCand: JSON.stringify(this.montarResumoPreenchimentoCand())
+        };
+    },
+
     // =========================================================================
     // FUNÇÕES VISUAIS: Pintam as caixas de verde ao recarregar a página (F5)
     // =========================================================================
@@ -929,7 +1397,7 @@
     restaurarRascunhoLocal: function () {
         var that = this;
         var $div = $("#AdmissaoWidget_" + this.instanceId);
-        
+
         // ATIVA A TRAVA DE SEGURANÇA CONTRA CONFLITOS DE RECARGA (F5)
         that.bloqueioRestauracaoAtivo = true;
 
@@ -954,8 +1422,8 @@
                             var prefixoDoc = key.replace("_nome", "");
                             var flagEnviado = estado.campos[prefixoDoc + "_base64"];
                             if (flagEnviado === "[ENVIADO_PROCESSO]") {
-                                (function(pref, nomeArq) {
-                                    setTimeout(function() { that.atualizarVisualDocumentoSucesso(pref, nomeArq); }, 800);
+                                (function (pref, nomeArq) {
+                                    setTimeout(function () { that.atualizarVisualDocumentoSucesso(pref, nomeArq); }, 800);
                                 })(prefixoDoc, valor);
                             }
                         }
@@ -972,7 +1440,7 @@
                                 $el.append('<option value="' + valor + '" selected>' + valor + '</option>');
                             }
                         }
-                        $el.trigger('change'); 
+                        $el.trigger('change');
                     }
                 }
             }
@@ -1001,8 +1469,8 @@
                         if (classKey.indexOf("-name") > -1) continue;
                         var $campo = $ultimoCard.find("." + classKey);
                         if ($campo.length) {
-                            if ($campo.attr("type") === "file") continue; 
-                            
+                            if ($campo.attr("type") === "file") continue;
+
                             if ($campo.attr("type") === "checkbox") {
                                 $campo.prop("checked", depData[classKey]);
                             } else {
@@ -1023,7 +1491,7 @@
                     $ultimoCard.find(".dep-parentesco").trigger('change');
                     $ultimoCard.find(".dep-nasc").trigger("change");
 
-                    setTimeout(function() {
+                    setTimeout(function () {
                         for (var ckDoc in depData) {
                             if (ckDoc.indexOf("dep-base64-") === 0 && depData[ckDoc] === "[ENVIADO_PROCESSO]") {
                                 var $cH = $ultimoCard.find("." + ckDoc);
@@ -1069,12 +1537,12 @@
                 setTimeout(function () { that.irParaPasso(estado.passo); }, 500);
             }
 
-        } catch (e) { 
-            console.warn("Erro ao restaurar rascunho local:", e); 
+        } catch (e) {
+            console.warn("Erro ao restaurar rascunho local:", e);
         } finally {
             setTimeout(function () {
                 that.restaurarUIAssinaturas();
-                
+
                 // Desativa a trava de proteção
                 that.bloqueioRestauracaoAtivo = false;
                 console.log("[DEBUG_DEP]  Restauração completa. Auto-save reativado.");
@@ -1131,7 +1599,7 @@
             pickTime: false
         });
 
-        $div.on("change input", "input, select, textarea", function () {
+        $div.on("change input", "input:not([type='file']), select, textarea", function () {
             if (that.bloqueioRestauracaoAtivo) return;
             clearTimeout(that.saveTimeout);
             clearTimeout(that.saveTimeoutFluig);
@@ -1337,21 +1805,21 @@
 
                 that.comprimirImagemBase64(file, function (base64Otimizado) {
                     var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
-            that.uploadAnexoIndividual(base64Clean, fileName, descricaoFluig,
-                function (sucesso) {
-                    $hidden.val("[ENVIADO_PROCESSO]"); $hidden.attr("data-filename", fileName);
-                    $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
-                    $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-success flaticon-check-circle");
-                    $box.find("h5").addClass("text-success");
-                    $status.html('<strong style="color:#3c763d;">Salvo: </strong>' + fileName).removeClass("text-muted").addClass("text-success");
-                    $btn.text("Alterar").removeClass("btn-warning").addClass("btn-success").prop("disabled", false);
-                    that.salvarRascunhoLocal();
-                    that.persistirFormularioNoFluig();
-                },
-                function (erro) {
-                    FLUIGC.toast({ title: 'Falha', message: erro, type: 'danger' });
-                    $box.css({ "border": "2px dashed #d9534f", "background-color": "#f2dede", "opacity": "1" });
-                    $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-danger flaticon-close");
+                    that.uploadAnexoIndividual(base64Clean, fileName, descricaoFluig,
+                        function (sucesso) {
+                            $hidden.val("[ENVIADO_PROCESSO]"); $hidden.attr("data-filename", fileName);
+                            $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
+                            $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-success flaticon-check-circle");
+                            $box.find("h5").addClass("text-success");
+                            $status.html('<strong style="color:#3c763d;">Salvo: </strong>' + fileName).removeClass("text-muted").addClass("text-success");
+                            $btn.text("Alterar").removeClass("btn-warning").addClass("btn-success").prop("disabled", false);
+                            that.salvarRascunhoLocal();
+                            that.persistirFormularioNoFluig();
+                        },
+                        function (erro) {
+                            FLUIGC.toast({ title: 'Falha', message: erro, type: 'danger' });
+                            $box.css({ "border": "2px dashed #d9534f", "background-color": "#f2dede", "opacity": "1" });
+                            $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-danger flaticon-close");
                             $btn.text("Tentar Novamente").removeClass("btn-warning").addClass("btn-danger").prop("disabled", false);
                             $status.html("Erro. Tente de novo."); $(input).val("");
                         }
@@ -2050,35 +2518,36 @@
             url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(dataProxy),
             headers: { "Authorization": that.getOAuthHeader(url, 'POST').Authorization },
             success: function (resProxy) {
-                if (resProxy.content && resProxy.content.values && resProxy.content.values.length > 0) {
-                    var rProxy = resProxy.content.values[0];
-                    if (rProxy.status == "success") {
-
-                        // CORREÇÃO: LEITURA SEGURA DO RETORNO (Evita crash do jQuery)
-                        var respStr = rProxy.response;
-                        try {
-                            var jsonResp = JSON.parse(respStr);
-                            if (jsonResp.response) respStr = jsonResp.response;
-                        } catch (e) { }
-
-                        if (respStr.indexOf("faultstring") > -1) {
-                            try {
-                                var parser = new DOMParser();
-                                var xmlDoc = parser.parseFromString(respStr, "text/xml");
-                                var faultText = xmlDoc.getElementsByTagName("faultstring")[0].textContent;
-                                callbackErro(faultText);
-                            } catch (e) {
-                                callbackErro("Erro no Fluig: " + respStr);
-                            }
-                        } else {
-                            callbackSucesso(respStr);
-                        }
-
-                    } else {
-                        callbackErro(rProxy.message + " - " + rProxy.response);
+                try {
+                    if (!resProxy.content || !resProxy.content.values || !resProxy.content.values.length) {
+                        if (error) error("Proxy não retornou conteúdo.");
+                        return;
                     }
-                } else {
-                    callbackErro("Retorno vazio do proxy ao tentar updateCardData.");
+
+                    var row = resProxy.content.values[0];
+
+                    if (row.status !== "success") {
+                        if (error) error(row.message || "Erro retornado pelo proxy.");
+                        return;
+                    }
+
+                    var resposta = {};
+                    try {
+                        resposta = JSON.parse(row.response || "{}");
+                    } catch (e) {
+                        resposta = {};
+                    }
+
+                    if (resposta.success === false || Number(resposta.status || 200) >= 400) {
+                        console.warn("[UPDATE_CARD_DATA] Falha detalhada:", resposta);
+                        if (error) error(resposta.message || resposta.response || "Erro no updateCardData.");
+                        return;
+                    }
+
+                    if (success) success(resposta);
+
+                } catch (e) {
+                    if (error) error(e.message || e);
                 }
             },
             error: function (xhr, status, error) { callbackErro("Erro na requisição Update via Proxy: " + error); }
@@ -2086,18 +2555,34 @@
     },
 
     obterDadosParaPersistencia: function (opcoes) {
+        opcoes = opcoes || {};
+
         var dados = this.getDadosFormulario();
 
         // Remove payloads pesados e preserva apenas marcadores leves de upload.
         Object.keys(dados).forEach(function (k) {
             if (k.indexOf("_base64") > -1) {
                 var valor = dados[k];
-                if (valor === "[ENVIADO_PROCESSO]" || valor === "[ANEXO DO PROCESSO]") return;
+
+                if (valor === "[ENVIADO_PROCESSO]" || valor === "[ANEXO DO PROCESSO]") {
+                    return;
+                }
+
                 delete dados[k];
             }
         });
 
-        dados["cpPassoAtualCandidato"] = (opcoes && opcoes.passoAtual) ? opcoes.passoAtual : this.passoAtual;
+        dados["cpPassoAtualCandidato"] = opcoes.passoAtual ? String(opcoes.passoAtual) : String(this.passoAtual);
+
+        // Novos campos curtos usados pelo painel do RH e pela futura restauração via Fluig.
+        var estadoFluig = this.montarEstadoPersistenciaFluig(opcoes);
+
+        for (var campo in estadoFluig) {
+            if (estadoFluig.hasOwnProperty(campo)) {
+                dados[campo] = estadoFluig[campo];
+            }
+        }
+
         return dados;
     },
 
@@ -2367,20 +2852,27 @@
 
             // LÓGICA DE PULAR ETAPA AO VOLTAR PARA ESTÁGIO
             if (anterior === 4 && (this.jornadaAdmissao === "Estagio" || this.jornadaAdmissao === "Estágio")) {
-                anterior = 3; // Pula a aba de dependentes e volta direto para formação
+                anterior = 3;
             }
 
             var that = this;
-            this.persistirFormularioNoFluig({ passoAtual: anterior }, function () {
-                that.irParaPasso(anterior);
-            }, function (erro) {
-                console.error("Erro ao persistir passo anterior no Fluig: ", erro);
-                FLUIGC.toast({
-                    title: 'Erro',
-                    message: 'Não foi possível salvar o passo anterior no Fluig.',
-                    type: 'danger'
-                });
-            });
+
+            // Navega primeiro. O botão Voltar não pode depender do salvamento no Fluig.
+            that.irParaPasso(anterior);
+            that.salvarRascunhoLocal();
+
+            // Tenta salvar no Fluig em segundo plano, sem bloquear a navegação.
+            if (that.documentIdFicha) {
+                that.persistirFormularioNoFluig(
+                    { passoAtual: anterior, motivo: "voltar_passo" },
+                    function () {
+                        console.log("[Persistência Fluig] Passo anterior salvo:", anterior);
+                    },
+                    function (erro) {
+                        console.warn("[Persistência Fluig] Falha ao salvar passo anterior. Navegação mantida:", erro);
+                    }
+                );
+            }
         }
     },
 
@@ -2398,6 +2890,30 @@
 
         // ====== CARREGAMENTO SOB DEMANDA DO PRIMEIRO LINK (PASSO 1) ======
         if (p === 1 || p === "1") {
+
+            var propJaAssinada = $("#tae_proposta_status_" + that.instanceId).val() === "assinado";
+            var lgpdJaAssinada = $("#tae_lgpd_status_" + that.instanceId).val() === "assinado";
+
+            if (propJaAssinada && lgpdJaAssinada) {
+                console.log("[Assinatura] Primeiro link já assinado. Exibindo etapa 1 sem recarregar PDFs do GED.");
+
+                $d.find("#msg_carregando_proposta_" + that.instanceId).hide();
+                $d.find("#msg_carregando_lgpd_" + that.instanceId).hide();
+
+                if (typeof that.atualizarCartoesPrimeiroLink === "function") {
+                    that.atualizarCartoesPrimeiroLink();
+                }
+
+                if (typeof that.restaurarUIAssinaturas === "function") {
+                    that.restaurarUIAssinaturas();
+                }
+
+                this.passoAtual = p;
+                this.atualizarBotoes();
+                $('html,body').animate({ scrollTop: $d.offset().top - 60 }, 'fast');
+                return;
+            }
+
             var $iframeProp = $d.find("#pdf_viewer_proposta_" + that.instanceId);
             var srcPropAtual = $iframeProp.attr("src");
 
@@ -2572,9 +3088,9 @@
             var json = localStorage.getItem(that.getKeyStorage());
             if (json) {
                 var estado = JSON.parse(json);
-                if (estado.depsPS) { estado.depsPS.forEach(function(nome) { if (jaMarcados.indexOf(nome) === -1) jaMarcados.push(nome); }); }
+                if (estado.depsPS) { estado.depsPS.forEach(function (nome) { if (jaMarcados.indexOf(nome) === -1) jaMarcados.push(nome); }); }
             }
-        } catch(e) {}
+        } catch (e) { }
 
         $container.empty();
         var possuiElegivel = false;
@@ -2592,7 +3108,7 @@
             if (nome.trim() !== "" && (isFilho || isConjuge)) {
                 possuiElegivel = true;
                 var descParentesco = isConjuge ? "Cônjuge" : "Filho(a)";
-                
+
                 // 2. RECRIAR COM A MARCAÇÃO ATIVA
                 var checkedAttr = (jaMarcados.indexOf(nome) > -1) ? "checked" : "";
 
@@ -2611,7 +3127,7 @@
 
         if (opcaoSelecionada.indexOf("Opto") > -1) {
             if (possuiElegivel) $container.show();
-            else $msgAviso.show(); 
+            else $msgAviso.show();
         }
     },
 
@@ -2923,6 +3439,16 @@
                         $btn.text("Substituir").removeClass("btn-warning").addClass("btn-success").prop("disabled", false);
                         FLUIGC.toast({ message: 'Documento salvo no Fluig com sucesso!', type: 'success' });
                         that.salvarRascunhoLocal();
+
+                        that.persistirFormularioNoFluig(
+                            { passoAtual: that.passoAtual, motivo: "upload_documento" },
+                            function () {
+                                console.log("[Persistência Fluig] Status do documento salvo no formulário.");
+                            },
+                            function (erro) {
+                                console.warn("[Persistência Fluig] Falha ao salvar status do documento:", erro);
+                            }
+                        );
                     },
                     function (erro) {
                         FLUIGC.toast({ title: 'Falha', message: erro, type: 'danger' });
@@ -3070,7 +3596,8 @@
             $("#container_assinatura_tae_lgpd_" + that.instanceId).html('<div class="alert alert-info text-center" style="padding:20px;"><i class="flaticon flaticon-refresh icon-spin icon-lg"></i><br>Recuperando PDF assinado do LGPD...</div>').show();
         }
 
-        var assinaturaCompleta = (statusProp === "assinado" && statusLgpd === "assinado" && b64Prop && b64Lgpd);
+        var assinaturaCompleta = (statusProp === "assinado" && statusLgpd === "assinado");
+
         $("#btn_gerar_assinar_primeiro_link_" + that.instanceId).toggle(!assinaturaCompleta);
         $("#status_assinatura_verificada_" + that.instanceId).toggle(assinaturaCompleta);
         $("#btn_gerar_assinar_" + that.instanceId).hide();
@@ -3080,23 +3607,37 @@
 
     atualizarCartoesPrimeiroLink: function () {
         var $d = $("#AdmissaoWidget_" + this.instanceId);
+
         var statusProp = $("#tae_proposta_status_" + this.instanceId).val();
         var statusLgpd = $("#tae_lgpd_status_" + this.instanceId).val();
+
         var b64Prop = $("#carta_assinada_base64_" + this.instanceId).val();
         var b64Lgpd = $("#termo_lgpd_assinada_base64_" + this.instanceId).val();
+
         var previewProp = this.previewDocsPrimeiroLink.proposta;
         var previewLgpd = this.previewDocsPrimeiroLink.lgpd;
+        var previewManifesto = this.previewDocsPrimeiroLink.manifesto || this.manifestoPdfDataUri;
 
-        var propostaOk = (statusProp === "assinado" || !!b64Prop || !!previewProp || !!this.idPdfProposta);
-        var lgpdOk = (statusLgpd === "assinado" || !!b64Lgpd || !!previewLgpd || !!this.idPdfLGPD);
-        var manifestoOk = (statusProp === "assinado" && statusLgpd === "assinado" && !!b64Prop && !!b64Lgpd);
+        var propostaAssinada = statusProp === "assinado";
+        var lgpdAssinada = statusLgpd === "assinado";
+        var assinaturaVerificada = propostaAssinada && lgpdAssinada;
+
+        var propostaOk = propostaAssinada || !!b64Prop || !!previewProp || !!this.idPdfProposta;
+        var lgpdOk = lgpdAssinada || !!b64Lgpd || !!previewLgpd || !!this.idPdfLGPD;
+
+        // O manifesto depende da assinatura verificada, não necessariamente dos base64s em tela.
+        var manifestoOk = assinaturaVerificada || !!previewManifesto;
 
         $("#card_status_proposta_" + this.instanceId).text(propostaOk ? "Ver arquivo" : "Carregando...");
         $("#card_status_lgpd_" + this.instanceId).text(lgpdOk ? "Ver arquivo" : "Carregando...");
-        $("#card_status_manifesto_" + this.instanceId).text(manifestoOk ? "Ver manifesto" : "Aguardando assinatura");
+        $("#card_status_manifesto_" + this.instanceId).text(manifestoOk ? "Assinado" : "Aguardando assinatura");
 
         $d.find(".primeiro-link-card.manifesto-card").toggleClass("locked", !manifestoOk);
         $d.find(".primeiro-link-card.manifesto-card").toggleClass("assinado", manifestoOk);
+
+        // Se já assinou proposta + LGPD, não mostra mais o botão de assinar.
+        $("#btn_gerar_assinar_primeiro_link_" + this.instanceId).toggle(!assinaturaVerificada);
+        $("#status_assinatura_verificada_" + this.instanceId).toggle(assinaturaVerificada);
     },
 
     abrirDocumentoPrimeiroLink: function (tipoDoc) {
@@ -3276,6 +3817,14 @@
      * Orquestra a geração do PDF e envio para o TAE
      */
     gerarEAssinarPrimeiroLink: function (btn) {
+
+        if (this.assinandoPrimeiroLink) {
+            console.warn("[Assinatura] Processo de assinatura já em andamento. Ignorando novo clique.");
+            return;
+        }
+
+        this.assinandoPrimeiroLink = true;
+
         if (window.ignorarValidacao === true) {
             FLUIGC.toast({ title: 'Teste', message: 'Pulando...', type: 'info' });
             this.passoAtual = 2;
@@ -3339,11 +3888,105 @@
                     $("#termo_lgpd_assinada_base64_" + that.instanceId).val(base64Lgpd);
 
                     that.salvarRascunhoLocal();
-                    that.atualizarCofrePrimeiroLinkJSON("kit_proposta_admissao", { idDocTae: idDocProp, status: "assinado", linkAssinaturaTae: "" });
-                    that.atualizarCofrePrimeiroLinkJSON("kit_lgpd_admissao", { idDocTae: idDocLgpd, status: "assinado", linkAssinaturaTae: "" });
+                    that.salvarCofrePrimeiroLinkCompleto({
+                        kit_proposta_admissao: {
+                            idDocTae: idDocProp,
+                            status: "assinado",
+                            linkAssinaturaTae: ""
+                        },
+                        kit_lgpd_admissao: {
+                            idDocTae: idDocLgpd,
+                            status: "assinado",
+                            linkAssinaturaTae: ""
+                        },
+                        manifesto_primeiro_link: {
+                            status: "Gerado/Anexado",
+                            nomeArquivo: "Manifesto_Assinatura.pdf",
+                            atualizadoEm: new Date().toLocaleString("pt-BR")
+                        }
+                    });
 
-                    that.uploadAnexoIndividual(base64Proposta, "Carta_Proposta_Assinada.pdf", "Carta Proposta Assinada", function () { }, function (err) { console.error("Erro no upload da proposta:", err); });
-                    that.uploadAnexoIndividual(base64Lgpd, "Termo_LGPD_Assinado.pdf", "Termo LGPD Assinado", function () { }, function (err) { console.error("Erro no upload do LGPD:", err); });
+                    // that.persistirFormularioNoFluig(
+                    //     { passoAtual: that.passoAtual, motivo: "assinatura_primeiro_link" },
+                    //     function () {
+                    //         console.log("[Persistência Fluig] Status das assinaturas salvo no formulário.");
+                    //     },
+                    //     function (erro) {
+                    //         console.warn("[Persistência Fluig] Falha ao salvar status das assinaturas:", erro);
+                    //     }
+                    // );
+
+                    that.gerarManifestoPrimeiroLinkPdf(function (manifestoDataUri) {
+                        if (!manifestoDataUri) {
+                            FLUIGC.toast({
+                                title: "Erro",
+                                message: "A assinatura foi registrada, mas não foi possível gerar o manifesto.",
+                                type: "danger"
+                            });
+
+                            btn.prop("disabled", false).html(btnTexto);
+                            that.assinandoPrimeiroLink = false;
+                            return;
+                        }
+
+                        that.manifestoPdfDataUri = manifestoDataUri;
+
+                        var manifestoBase64 = manifestoDataUri.indexOf(",") > -1
+                            ? manifestoDataUri.split(",")[1]
+                            : manifestoDataUri;
+
+                        that.uploadAnexoIndividual(
+                            manifestoBase64,
+                            "Manifesto_Assinatura.pdf",
+                            "Manifesto de Assinatura - Primeiro Link",
+                            function () {
+                                console.log("[Assinatura] Manifesto único anexado com sucesso.");
+
+                                that.salvarRascunhoLocal();
+
+                                that.persistirFormularioNoFluig(
+                                    { passoAtual: that.passoAtual, motivo: "manifesto_primeiro_link" },
+                                    function () {
+                                        console.log("[Persistência Fluig] Status do manifesto salvo no formulário.");
+                                    },
+                                    function (erro) {
+                                        console.warn("[Persistência Fluig] Falha ao salvar status do manifesto:", erro);
+                                    }
+                                );
+
+                                that.atualizarCartoesPrimeiroLink();
+
+                                FLUIGC.toast({
+                                    title: "Sucesso",
+                                    message: "Assinatura concluída e manifesto anexado ao processo.",
+                                    type: "success"
+                                });
+
+                                btn.prop("disabled", false).html(btnTexto);
+                                that.assinandoPrimeiroLink = false;
+                            },
+                            function (err) {
+                                console.error("Erro no upload do manifesto:", err);
+
+                                FLUIGC.toast({
+                                    title: "Atenção",
+                                    message: "A assinatura foi registrada, mas houve falha ao anexar o manifesto.",
+                                    type: "warning"
+                                });
+
+                                btn.prop("disabled", false).html(btnTexto);
+                                that.assinandoPrimeiroLink = false;
+                            }
+                        );
+                    });
+
+                    that.salvarCofrePrimeiroLinkCompleto({
+                        manifesto_primeiro_link: {
+                            status: "Gerado/Anexado",
+                            nomeArquivo: "Manifesto_Assinatura.pdf",
+                            atualizadoEm: new Date().toLocaleString("pt-BR")
+                        }
+                    });
 
                     that.restaurarUIAssinaturas();
                     FLUIGC.toast({ title: 'Sucesso', message: 'Carta Proposta e LGPD assinadas com sucesso!', type: 'success' });
