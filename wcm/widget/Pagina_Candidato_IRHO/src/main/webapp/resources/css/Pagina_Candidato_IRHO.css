@@ -1174,17 +1174,24 @@ div[id^="AdmissaoWidget_"] .div-docs-dependente .col-md-4 {
 }
 
 div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"],
-div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"],
-div[id^="AdmissaoWidget_"] .div-docs-dependente {
+div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"] {
     display: flex !important;
     flex-wrap: wrap !important;
     align-items: stretch !important;
 }
 
+div[id^="AdmissaoWidget_"] .div-docs-dependente {
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
 div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"] > [class*="col-"],
-div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"] > [class*="col-"],
-div[id^="AdmissaoWidget_"] .div-docs-dependente > [class*="col-"] {
+div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"] > [class*="col-"] {
     display: flex !important;
+}
+
+div[id^="AdmissaoWidget_"] .div-docs-dependente > [class*="col-"] {
+    display: none;
 }
 
 div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"] > [class*="col-"] > .upload-box,

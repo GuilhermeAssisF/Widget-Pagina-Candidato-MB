@@ -8,7 +8,10 @@
     documentIdFicha: null,
     saveTimeout: null,
     saveTimeoutFluig: null,
+    timeoutLiberaAutosaveFluig: null,
     bloqueioRestauracaoAtivo: false,
+    carregandoDadosIniciais: false,
+    autosaveFluigLiberado: false,
     jornadaAdmissao: "",
     nomeFilial: "",
     idPdfProposta: null,
@@ -284,6 +287,12 @@
         var that = this;
         var url = WCMAPI.getServerURL() + '/api/public/ecm/dataset/datasets';
 
+        that.carregandoDadosIniciais = true;
+        that.autosaveFluigLiberado = false;
+        that.bloqueioRestauracaoAtivo = true;
+
+        console.log("[Autosave Fluig] Bloqueado durante carga inicial.");
+
         var payloadObj = {
             name: "ds_dados_publicos_candidato",
             constraints: [{ _field: "idProcessoFluig", _initialValue: id, _finalValue: id, _type: 1, _likeSearch: false }]
@@ -486,6 +495,8 @@
                             that.passoSalvoFluig = passoSalvoFluig;
 
                             setTimeout(function () {
+                                that.bloqueioRestauracaoAtivo = true;
+
                                 // cpPassoAtualCandidato nasce como "1", então "1" não deve bloquear fallback.
                                 if (!passoSalvoFluig || passoSalvoFluig === "1") {
                                     that.restaurarRascunhoLocal();
@@ -747,14 +758,55 @@
                                     $("#text_exame_orientacao_" + that.instanceId).text(dadosExame.orientacao);
                                 }
 
+                                var jsonPersistCand = getVal("jsonPersistCand");
+                                var estadoPersistidoFluig = null;
+
+                                if (jsonPersistCand) {
+                                    estadoPersistidoFluig = that.parseJsonSeguroCand(jsonPersistCand, null);
+                                    that.restaurarEstadoPersistidoFluig(jsonPersistCand);
+                                }
+
+                                // LocalStorage como fallback real.
+                                // Se o Fluig estiver atrasado, usa o rascunho local para não perder dados.
+                                var estadoLocal = that.lerRascunhoLocalSeguro();
+
+                                var passoDoFluig = parseInt(passoSalvoFluig || "0", 10);
+                                var passoDoJson = estadoPersistidoFluig && estadoPersistidoFluig.passo
+                                    ? parseInt(estadoPersistidoFluig.passo, 10)
+                                    : 0;
+                                var passoDoLocal = estadoLocal && estadoLocal.passo
+                                    ? parseInt(estadoLocal.passo, 10)
+                                    : 0;
+
+                                // Se o localStorage estiver mais avançado que o Fluig, restaura ele também.
+                                if (estadoLocal && passoDoLocal > passoDoFluig) {
+                                    console.warn("[LocalStorage] Fluig está atrasado. Restaurando rascunho local mais recente.", {
+                                        passoFluig: passoDoFluig,
+                                        passoLocal: passoDoLocal
+                                    });
+
+                                    that.restaurarRascunhoLocal();
+                                }
+
+                                // Usa o maior passo conhecido.
+                                var maiorPassoConhecido = Math.max(
+                                    isNaN(passoDoFluig) ? 0 : passoDoFluig,
+                                    isNaN(passoDoJson) ? 0 : passoDoJson,
+                                    isNaN(passoDoLocal) ? 0 : passoDoLocal
+                                );
+
+                                if (maiorPassoConhecido > 0) {
+                                    passoSalvoFluig = String(maiorPassoConhecido);
+                                }
+
                                 if (passoSalvoFluig) {
                                     var pInt = parseInt(passoSalvoFluig, 10);
                                     var statusPropSalvo = $("#tae_proposta_status_" + that.instanceId).val();
                                     var statusLgpdSalvo = $("#tae_lgpd_status_" + that.instanceId).val();
 
                                     if (!isNaN(pInt)) {
-                                        if (pInt > 2) {
-                                            pInt = pInt - 1;
+                                        if (pInt === 1 && statusPropSalvo === "assinado" && statusLgpdSalvo === "assinado") {
+                                            pInt = 2;
                                         } else if (pInt === 2 && (statusPropSalvo !== "assinado" || statusLgpdSalvo !== "assinado")) {
                                             pInt = 1;
                                         }
@@ -771,6 +823,7 @@
                                         }, 500); // Delay suave para esperar a UI terminar de renderizar
                                     }
                                 }
+                                that.liberarAutosaveFluigComDelay("carregarDadosIniciais");
                             }, 200);
                         }
                     }
@@ -867,6 +920,35 @@
 
     getKeyStorage: function () { return "admissao_draft_" + (this.idOrigem || "novo"); },
 
+    liberarAutosaveFluigComDelay: function (origem) {
+        var that = this;
+
+        clearTimeout(that.timeoutLiberaAutosaveFluig);
+
+        that.timeoutLiberaAutosaveFluig = setTimeout(function () {
+            that.carregandoDadosIniciais = false;
+            that.bloqueioRestauracaoAtivo = false;
+            that.autosaveFluigLiberado = true;
+
+            console.log("[Autosave Fluig] Liberado após carga inicial.", origem || "");
+        }, 3000);
+    },
+
+    lerRascunhoLocalSeguro: function () {
+        try {
+            var json = localStorage.getItem(this.getKeyStorage());
+
+            if (!json) {
+                return null;
+            }
+
+            return JSON.parse(json);
+        } catch (e) {
+            console.warn("[LocalStorage] Não foi possível ler rascunho local:", e);
+            return null;
+        }
+    },
+
     parseJsonSeguroCand: function (valor, padrao) {
         if (!valor || String(valor).trim() === "") {
             return padrao;
@@ -877,6 +959,140 @@
         } catch (e) {
             console.warn("[Persistência] JSON inválido:", e, valor);
             return padrao;
+        }
+    },
+
+    restaurarEstadoPersistidoFluig: function (jsonPersistCand) {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+
+        var estado = that.parseJsonSeguroCand(jsonPersistCand, null);
+
+        if (!estado || !estado.campos) {
+            return false;
+        }
+
+        that.bloqueioRestauracaoAtivo = true;
+
+        try {
+            for (var key in estado.campos) {
+                if (!estado.campos.hasOwnProperty(key)) continue;
+
+                var valor = estado.campos[key];
+                var $el = $("#" + key + "_" + that.instanceId);
+
+                if (!$el.length) continue;
+                if ($el.attr("type") === "file") continue;
+
+                if ($el.attr("type") === "checkbox" || $el.attr("type") === "radio") {
+                    if (valor) {
+                        $el.prop("checked", true);
+                    }
+                } else {
+                    // Só completa se o campo ainda estiver vazio.
+                    // Assim o campo real vindo do Fluig continua tendo prioridade.
+                    if (String($el.val() || "").trim() === "" && String(valor || "").trim() !== "") {
+                        $el.val(valor);
+
+                        if ($el.is("select") && valor && $el.find('option[value="' + valor + '"]').length === 0) {
+                            $el.append('<option value="' + valor + '" selected>' + valor + '</option>');
+                        }
+                    }
+                }
+
+                $el.trigger("change").trigger("input");
+            }
+
+            if (estado.rotasVT && estado.rotasVT.length > 0) {
+                $("#container_rotas_vt_" + that.instanceId).empty();
+
+                estado.rotasVT.forEach(function (rota) {
+                    that.adicionarRotaVT();
+
+                    var $ultimaRota = $div.find(".vt-card").last();
+
+                    $ultimaRota.find(".vt-destino").val(rota.destino || "");
+                    $ultimaRota.find(".vt-tipo").val(rota.tipo || "");
+                    $ultimaRota.find(".vt-empresa").val(rota.empresa || "");
+                    $ultimaRota.find(".vt-linha").val(rota.linha || "");
+                    $ultimaRota.find(".vt-valor").val(rota.valor || "");
+                });
+            }
+
+            if (estado.dependentes && estado.dependentes.length > 0) {
+                var $containerDeps = $("#container_dependentes_" + that.instanceId);
+                $containerDeps.empty();
+
+                estado.dependentes.forEach(function (depData, index) {
+                    var parentesco = depData["dep-parentesco"] || "";
+
+                    that.adicionarDependente(parentesco, index === 0 && parentesco === "Mae");
+
+                    var $card = $div.find(".dependente-card").last();
+
+                    for (var classKey in depData) {
+                        if (!depData.hasOwnProperty(classKey)) continue;
+                        if (classKey.indexOf("-name") > -1) continue;
+
+                        var valor = depData[classKey];
+                        var $campo = $card.find("." + classKey);
+
+                        if (!$campo.length) continue;
+                        if ($campo.attr("type") === "file") continue;
+
+                        if ($campo.attr("type") === "checkbox") {
+                            $campo.prop("checked", !!valor);
+                        } else {
+                            $campo.val(valor || "");
+                        }
+
+                        if (classKey.indexOf("dep-base64-") === 0 && valor === "[ENVIADO_PROCESSO]") {
+                            var nomeArquivo = depData[classKey + "-name"] || "Documento recuperado";
+                            $campo.attr("data-filename", nomeArquivo);
+
+                            (function ($hiddenAtual, nomeAtual) {
+                                setTimeout(function () {
+                                    that.atualizarVisualDocumentoDependenteSucesso($hiddenAtual, nomeAtual);
+                                }, 400);
+                            })($campo, nomeArquivo);
+                        }
+                    }
+
+                    try {
+                        $card.find(".dep-parentesco").trigger("change");
+                        $card.find(".dep-nasc").trigger("change");
+
+                        setTimeout(function () {
+                            try {
+                                that.atualizarVisibilidadeDocsDependente($card);
+                            } catch (eDocs) {
+                                console.warn("[Dependentes] Erro ao aplicar regra visual dos documentos:", eDocs);
+                            }
+                        }, 500);
+                    } catch (eTrigger) {
+                        console.warn("[Dependentes] Erro ao disparar regras do dependente:", eTrigger);
+                    }
+                });
+
+                if (typeof that.atualizarDependentesPlanoSaude === "function") {
+                    that.atualizarDependentesPlanoSaude();
+                }
+
+                if (typeof that.atualizarDependentesOdonto === "function") {
+                    that.atualizarDependentesOdonto();
+                }
+            }
+
+            console.log("[Persistência Fluig] Estado jsonPersistCand restaurado.");
+            return true;
+
+        } catch (e) {
+            console.warn("[Persistência Fluig] Erro ao restaurar jsonPersistCand:", e);
+            return false;
+        } finally {
+            setTimeout(function () {
+                that.bloqueioRestauracaoAtivo = false;
+            }, 500);
         }
     },
 
@@ -1062,7 +1278,10 @@
                         }
 
                         if (classes[i].indexOf("dep-base64-") === 0) {
-                            objDep[classes[i] + "-name"] = $el.attr("data-filename") || "";
+                            objDep[classes[i] + "-name"] =
+                                $el.attr("data-filename") ||
+                                $el.attr("data-nome-arquivo") ||
+                                "";
                         }
                     }
                 }
@@ -1169,6 +1388,8 @@
 
         return statusDocs;
     },
+
+
 
     montarStatusAssinaturasCand: function () {
         var id = this.instanceId;
@@ -1306,16 +1527,37 @@
     // 2. Para os Documentos dos Dependentes
     atualizarVisualDocumentoDependenteSucesso: function ($hiddenInput, nomeArquivo) {
         var $box = $hiddenInput.siblings(".upload-box");
+
+        if (!$box.length) {
+            $box = $hiddenInput.closest(".doc-conjuge, .doc-filho, .doc-cert-nasc, .doc-vacina").find(".upload-box").first();
+        }
+
+        if (!$box.length) {
+            $box = $hiddenInput.closest(".form-group, .col-md-4, .col-md-6, .col-md-12").find(".upload-box").first();
+        }
+
         var $status = $box.find(".dep-file-status");
         var $icon = $box.find("i.flaticon");
         var $btn = $box.find(".dep-file-btn");
 
         if ($box.length) {
             $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
-            $icon.removeClass("text-info text-warning flaticon-refresh is-spinning flaticon-person flaticon-assignment-ind flaticon-file-check flaticon-local-hospital text-danger flaticon-close").addClass("text-success flaticon-check-circle");
+            $icon
+                .removeClass("text-info text-warning flaticon-refresh is-spinning flaticon-person flaticon-assignment-ind flaticon-file-check flaticon-local-hospital text-danger flaticon-close")
+                .addClass("text-success flaticon-check-circle");
+
             $box.find("h5").addClass("text-success");
-            $status.html('<strong style="color:#3c763d;">Salvo na nuvem: </strong>' + nomeArquivo).removeClass("text-muted").addClass("text-success");
-            $btn.text("Substituir Arquivo").removeClass("btn-default btn-warning btn-danger").addClass("btn-success").prop("disabled", false);
+
+            $status
+                .html('<strong style="color:#3c763d;">Salvo na nuvem: </strong>' + (nomeArquivo || "Documento já salvo"))
+                .removeClass("text-muted")
+                .addClass("text-success");
+
+            $btn
+                .text("Substituir Arquivo")
+                .removeClass("btn-default btn-warning btn-danger")
+                .addClass("btn-success")
+                .prop("disabled", false);
         }
     },
 
@@ -1430,16 +1672,32 @@
                     }
 
                     if ($el.length > 0) {
+                        var valorAtual = $el.val();
+
+                        // Se o campo já veio preenchido do Fluig, não sobrescreve com localStorage antigo.
+                        if (
+                            valorAtual !== undefined &&
+                            valorAtual !== null &&
+                            String(valorAtual).trim() !== "" &&
+                            valor !== undefined &&
+                            valor !== null &&
+                            String(valor).trim() !== "" &&
+                            String(valorAtual).trim() !== String(valor).trim()
+                        ) {
+                            continue;
+                        }
+
                         if ($el.attr("type") === "checkbox" || $el.attr("type") === "radio") {
                             $el.prop("checked", true);
                         } else {
                             $el.val(valor);
-                            // TRATAMENTO DE SELECTS DE DATASET (Cidades, Naturalidade, Tipo Sanguíneo)
+
                             if ($el.is('select') && valor && $el.find('option[value="' + valor + '"]').length === 0) {
                                 $el.attr('data-valor-pendente', valor);
                                 $el.append('<option value="' + valor + '" selected>' + valor + '</option>');
                             }
                         }
+
                         $el.trigger('change');
                     }
                 }
@@ -1599,17 +1857,43 @@
             pickTime: false
         });
 
-        $div.on("change input", "input:not([type='file']), select, textarea", function () {
-            if (that.bloqueioRestauracaoAtivo) return;
+        $div.on("input", "input:not([type='file']):not([type='hidden']), textarea", function (e) {
+            if (!e.originalEvent) return;
+            if (that.bloqueioRestauracaoAtivo || that.carregandoDadosIniciais) return;
+
             clearTimeout(that.saveTimeout);
-            clearTimeout(that.saveTimeoutFluig);
+
             that.saveTimeout = setTimeout(function () {
                 that.salvarRascunhoLocal();
-                that.saveTimeoutFluig = setTimeout(function () {
-                    if (!that.documentIdFicha || that.bloqueioRestauracaoAtivo) return;
-                    that.persistirFormularioNoFluig({ passoAtual: that.passoAtual }, function () { }, function () { });
-                }, 1200);
             }, 500);
+        });
+
+        $div.on("blur change", "input:not([type='file']):not([type='hidden']), select, textarea", function (e) {
+            // Ignora triggers feitos pelo próprio código, como .trigger("change")
+            if (!e.originalEvent) return;
+
+            if (that.bloqueioRestauracaoAtivo) return;
+            if (that.carregandoDadosIniciais) return;
+            if (!that.autosaveFluigLiberado) return;
+            if (!that.documentIdFicha) return;
+
+            clearTimeout(that.saveTimeoutFluig);
+
+            that.saveTimeoutFluig = setTimeout(function () {
+                if (that.bloqueioRestauracaoAtivo || that.carregandoDadosIniciais || !that.autosaveFluigLiberado) {
+                    return;
+                }
+
+                var dados = that.montarDadosFormularioLeve(that.passoAtual);
+
+                that.soapUpdateCardData(that.documentIdFicha, dados, function () {
+                    console.log("[Autosave Fluig] Campo salvo ao sair/preencher.");
+                    that.salvarRascunhoLocal();
+                }, function (erro) {
+                    console.warn("[Autosave Fluig] Falha ao salvar campo:", erro);
+                    that.salvarRascunhoLocal();
+                });
+            }, 800);
         });
 
         $div.on('change blur', '#cand_sexo_' + that.instanceId +
@@ -1731,52 +2015,44 @@
         //     }
         // });
 
-        function normalizarParentesco(valor) {
-            return String(valor || "")
-                .trim()
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "");
-        }
-
-        function atualizarVisibilidadeDocsDependente($card) {
-            var parentesco = normalizarParentesco($card.find(".dep-parentesco").val());
-            var dataNasc = $card.find(".dep-nasc").val();
-            var $divDocs = $card.find(".div-docs-dependente");
-            var isCLT = (that.jornadaAdmissao !== "Estagio" && that.jornadaAdmissao !== "Estágio");
-
-            $divDocs.hide();
-            $card.find(".doc-conjuge, .doc-filho, .doc-vacina").hide();
-
-            if (!isCLT) return;
-
-            var isConjuge = (parentesco === "conjuge" || parentesco === "companheiro");
-            var isFilho = (parentesco === "filho" || parentesco === "enteado");
-
-            if (isConjuge) {
-                $divDocs.show();
-                $card.find(".doc-conjuge").show();
-                return;
-            }
-
-            if (isFilho && dataNasc) {
-                var idade = that.calcularIdadeDependente(dataNasc);
-                if (idade < 14) {
-                    $divDocs.show();
-                    $card.find(".doc-filho.doc-cert-nasc, .doc-conjuge").show();
-                    if (idade <= 5) {
-                        $card.find(".doc-vacina").show();
-                    }
-                }
-            }
-        }
-
-        // ATUALIZAR REGRAS DO DEPENDENTE AO MUDAR PARENTESCO OU NASCIMENTO
-        $div.off("change", ".dep-parentesco, .dep-nasc").on("change", ".dep-parentesco, .dep-nasc", function () {
+        $div.off("change blur input", ".dep-parentesco, .dep-nasc").on("change blur input", ".dep-parentesco, .dep-nasc", function (e) {
             var $card = $(this).closest(".dependente-card");
-            atualizarVisibilidadeDocsDependente($card);
-        });
 
+            try {
+                that.atualizarVisibilidadeDocsDependente($card);
+            } catch (erroRegra) {
+                console.warn("[Dependentes] Erro ao aplicar regra visual:", erroRegra);
+            }
+
+            // A partir daqui, só salva se foi ação real do usuário.
+            if (!e.originalEvent) return;
+            if (that.bloqueioRestauracaoAtivo) return;
+            if (that.carregandoDadosIniciais) return;
+            if (!that.autosaveFluigLiberado) return;
+
+            that.salvarRascunhoLocal();
+
+            clearTimeout(that.saveTimeoutFluig);
+
+            that.saveTimeoutFluig = setTimeout(function () {
+                if (!that.documentIdFicha || that.bloqueioRestauracaoAtivo || that.carregandoDadosIniciais || !that.autosaveFluigLiberado) {
+                    return;
+                }
+
+                var dados = that.montarDadosFormularioLeve(that.passoAtual);
+
+                that.soapUpdateCardData(
+                    that.documentIdFicha,
+                    dados,
+                    function () {
+                        console.log("[Dependentes] Dados salvos no Fluig.");
+                    },
+                    function (erro) {
+                        console.warn("[Dependentes] Falha ao salvar dependentes:", erro);
+                    }
+                );
+            }, 800);
+        });
 
         // Conversor de arquivo e Estilização Visual nos cards do dependente (COM COMPRESSÃO)
         $div.off("change", ".dep-file-cpf, .dep-file-rgf, .dep-file-rgv, .dep-file-certnasc, .dep-file-vacina").on("change", ".dep-file-cpf, .dep-file-rgf, .dep-file-rgv, .dep-file-certnasc, .dep-file-vacina", function () {
@@ -1807,7 +2083,9 @@
                     var base64Clean = base64Otimizado.indexOf(",") > -1 ? base64Otimizado.split(",")[1] : base64Otimizado;
                     that.uploadAnexoIndividual(base64Clean, fileName, descricaoFluig,
                         function (sucesso) {
-                            $hidden.val("[ENVIADO_PROCESSO]"); $hidden.attr("data-filename", fileName);
+                            $hidden.val("[ENVIADO_PROCESSO]");
+                            $hidden.attr("data-filename", fileName);
+                            $hidden.attr("data-nome-arquivo", fileName);
                             $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
                             $icon.removeClass("text-warning flaticon-refresh is-spinning").addClass("text-success flaticon-check-circle");
                             $box.find("h5").addClass("text-success");
@@ -2493,8 +2771,11 @@
         var that = this;
         var url = WCMAPI.getServerURL() + '/api/public/ecm/dataset/datasets';
 
-        // Blindagem: Remover propriedades indefinidas para evitar sujeira no XML
+        callbackSucesso = typeof callbackSucesso === "function" ? callbackSucesso : function () { };
+        callbackErro = typeof callbackErro === "function" ? callbackErro : function () { };
+
         var cleanDados = {};
+
         for (var k in dadosObjeto) {
             if (dadosObjeto.hasOwnProperty(k)) {
                 cleanDados[k] = (dadosObjeto[k] === undefined || dadosObjeto[k] === null) ? "" : String(dadosObjeto[k]);
@@ -2502,55 +2783,98 @@
         }
 
         var payloadObj = {
-            cardId: parseInt(cardId, 10), // FORÇA CONVERSÃO PARA INTEIRO
+            cardId: parseInt(cardId, 10),
             cardData: cleanDados
         };
 
         var dataProxy = {
             name: "ds_irho_api_proxy",
             constraints: [
-                { _field: "action", _initialValue: "UPDATE_CARD_DATA", _finalValue: "UPDATE_CARD_DATA", _type: 1, _likeSearch: false },
-                { _field: "payload", _initialValue: JSON.stringify(payloadObj), _finalValue: JSON.stringify(payloadObj), _type: 1, _likeSearch: false }
+                {
+                    _field: "action",
+                    _initialValue: "UPDATE_CARD_DATA",
+                    _finalValue: "UPDATE_CARD_DATA",
+                    _type: 1,
+                    _likeSearch: false
+                },
+                {
+                    _field: "payload",
+                    _initialValue: JSON.stringify(payloadObj),
+                    _finalValue: JSON.stringify(payloadObj),
+                    _type: 1,
+                    _likeSearch: false
+                }
             ]
         };
 
         $.ajax({
-            url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(dataProxy),
-            headers: { "Authorization": that.getOAuthHeader(url, 'POST').Authorization },
+            url: url,
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(dataProxy),
+            headers: {
+                "Authorization": that.getOAuthHeader(url, "POST").Authorization
+            },
             success: function (resProxy) {
                 try {
                     if (!resProxy.content || !resProxy.content.values || !resProxy.content.values.length) {
-                        if (error) error("Proxy não retornou conteúdo.");
+                        callbackErro("Retorno vazio do proxy ao tentar updateCardData.");
                         return;
                     }
 
-                    var row = resProxy.content.values[0];
+                    var rProxy = resProxy.content.values[0];
 
-                    if (row.status !== "success") {
-                        if (error) error(row.message || "Erro retornado pelo proxy.");
+                    if (rProxy.status !== "success") {
+                        callbackErro((rProxy.message || "Erro retornado pelo proxy") + " - " + (rProxy.response || ""));
                         return;
                     }
 
-                    var resposta = {};
+                    var respStr = rProxy.response || "";
+
+                    // O dataset pode retornar JSON com o SOAP dentro de response
                     try {
-                        resposta = JSON.parse(row.response || "{}");
+                        var jsonResp = JSON.parse(respStr);
+
+                        if (jsonResp.success === false) {
+                            callbackErro(jsonResp.message || jsonResp.response || "Erro no updateCardData.");
+                            return;
+                        }
+
+                        if (jsonResp.status && Number(jsonResp.status) >= 400) {
+                            callbackErro(jsonResp.response || "Erro HTTP no updateCardData.");
+                            return;
+                        }
+
+                        if (jsonResp.response) {
+                            respStr = jsonResp.response;
+                        }
                     } catch (e) {
-                        resposta = {};
+                        // Se não for JSON, segue tratando como texto/XML
                     }
 
-                    if (resposta.success === false || Number(resposta.status || 200) >= 400) {
-                        console.warn("[UPDATE_CARD_DATA] Falha detalhada:", resposta);
-                        if (error) error(resposta.message || resposta.response || "Erro no updateCardData.");
+                    if (String(respStr).indexOf("faultstring") > -1) {
+                        try {
+                            var parser = new DOMParser();
+                            var xmlDoc = parser.parseFromString(respStr, "text/xml");
+                            var faultNode = xmlDoc.getElementsByTagName("faultstring")[0];
+                            var faultText = faultNode ? faultNode.textContent : respStr;
+                            callbackErro(faultText);
+                        } catch (e2) {
+                            callbackErro("Erro no Fluig: " + respStr);
+                        }
+
                         return;
                     }
 
-                    if (success) success(resposta);
+                    callbackSucesso(respStr);
 
-                } catch (e) {
-                    if (error) error(e.message || e);
+                } catch (e3) {
+                    callbackErro(e3.message || e3);
                 }
             },
-            error: function (xhr, status, error) { callbackErro("Erro na requisição Update via Proxy: " + error); }
+            error: function (xhr, status, error) {
+                callbackErro("Erro na requisição Update via Proxy: " + error);
+            }
         });
     },
 
@@ -2623,6 +2947,30 @@
         });
     },
 
+    persistirCampoAoSair: function () {
+        var that = this;
+
+        if (!that.documentIdFicha || that.bloqueioRestauracaoAtivo) {
+            return;
+        }
+
+        clearTimeout(that.saveTimeoutFluig);
+
+        that.saveTimeoutFluig = setTimeout(function () {
+            that.salvarRascunhoLocal();
+
+            that.persistirFormularioNoFluig(
+                { passoAtual: that.passoAtual, motivo: "blur_campo" },
+                function () {
+                    console.log("[Autosave Fluig] Dados do formulário salvos ao sair do campo.");
+                },
+                function (erro) {
+                    console.warn("[Autosave Fluig] Falha ao salvar ao sair do campo:", erro);
+                }
+            );
+        }, 700);
+    },
+
     soapSaveAndSendTask: function (comentarios, callbackSucesso, callbackErro) {
         var that = this;
         var idSolicitacao = $("#idSolicitacaoRH_" + that.instanceId).val();
@@ -2680,23 +3028,18 @@
         var btn = $div.find("[data-finish]");
         var textoOriginal = btn.html();
 
-        // ==========================================================
-        // BARREIRA DE VALIDAÇÃO: CARTA PROPOSTA E LGPD
-        // ==========================================================
         if (window.ignorarValidacao !== true) {
             var statusProp = $("#tae_proposta_status_" + that.instanceId).val();
             var statusLgpd = $("#tae_lgpd_status_" + that.instanceId).val();
 
-            var b64Prop = $("#carta_assinada_base64_" + that.instanceId).val();
-            var b64Lgpd = $("#termo_lgpd_assinada_base64_" + that.instanceId).val();
+            var assinaturaOk = statusProp === "assinado" && statusLgpd === "assinado";
 
-            if (statusProp !== "assinado" || statusLgpd !== "assinado") {
-                FLUIGC.toast({ title: 'Atenção', message: 'A Carta Proposta ou o Termo LGPD ainda não foram assinados na TOTVS. Volte nas etapas 1 e 2.', type: 'warning' });
-                return;
-            }
-
-            if (!b64Prop || !b64Lgpd) {
-                FLUIGC.toast({ title: 'Atenção', message: 'Os documentos assinados ainda estão a ser descarregados do servidor. Aguarde alguns segundos e clique novamente.', type: 'info' });
+            if (!assinaturaOk) {
+                FLUIGC.toast({
+                    title: 'Atenção',
+                    message: 'A Carta Proposta e o Termo LGPD precisam estar assinados antes do envio.',
+                    type: 'warning'
+                });
                 return;
             }
         }
@@ -2748,6 +3091,31 @@
         if (!that.documentIdFicha) { tratarErro("Erro Técnico: ID da Ficha não carregado."); return; }
 
         var dadosCandidato = this.getDadosFormulario();
+
+        delete dadosCandidato["carta_assinada_base64"];
+        delete dadosCandidato["termo_lgpd_assinada_base64"];
+
+        dadosCandidato["carta_assinada_nome"] = $("#carta_assinada_nome_" + that.instanceId).val() || "Carta Proposta assinada via manifesto";
+        dadosCandidato["termo_lgpd_assinada_nome"] = $("#termo_lgpd_assinada_nome_" + that.instanceId).val() || "Termo LGPD assinado via manifesto";
+
+        dadosCandidato["cpPassoAtualCandidato"] = String(that.totalPassos);
+        dadosCandidato["jsonAssCand"] = JSON.stringify({
+            proposta: {
+                nome: "Carta Proposta",
+                status: "Assinado",
+                detalhe: $("#tae_proposta_iddoc_" + that.instanceId).val() || ""
+            },
+            lgpd: {
+                nome: "Termo LGPD",
+                status: "Assinado",
+                detalhe: $("#tae_lgpd_iddoc_" + that.instanceId).val() || ""
+            },
+            manifesto: {
+                nome: "Manifesto de Assinatura",
+                status: "Gerado/Anexado",
+                detalhe: "Manifesto_Assinatura.pdf"
+            }
+        });
 
         //  NOVO: Gera a ficha em PDF antes de começar as chamadas de API
         that.gerarFichaCadastralPDF(dadosCandidato, function (pdfBase64) {
@@ -2818,29 +3186,89 @@
         });
     },
 
+    montarDadosFormularioLeve: function (passoAtual) {
+        var that = this;
+        var dados = this.getDadosFormulario();
+
+        // Remove documentos dinâmicos configurados
+        if (this.configDocs && this.configDocs.length) {
+            this.configDocs.forEach(function (doc) {
+                var campo = doc.doc_campo_interno ? doc.doc_campo_interno.trim() : "";
+
+                if (campo) {
+                    delete dados[campo + "_base64"];
+                }
+            });
+        }
+
+        // Remove payloads pesados
+        Object.keys(dados).forEach(function (k) {
+            if (k.indexOf("_base64") > -1) {
+                delete dados[k];
+            }
+        });
+
+        // Mantém apenas nomes/status leves
+        dados["cand_foto_nome"] = $("#cand_foto_nome_" + that.instanceId).val() || "";
+        dados["carta_assinada_nome"] = $("#carta_assinada_nome_" + that.instanceId).val() || "";
+        dados["termo_lgpd_assinada_nome"] = $("#termo_lgpd_assinada_nome_" + that.instanceId).val() || "";
+
+        dados["cpPassoAtualCandidato"] = String(passoAtual || this.passoAtual);
+
+        // Mantém também o estado da widget no Fluig.
+        // Isso é o fallback para restaurar campos que ainda não voltam pelos campos reais do formulário.
+        var estadoFluig = this.montarEstadoPersistenciaFluig({
+            passoAtual: passoAtual || this.passoAtual
+        });
+
+        dados["cpStatusCand"] = estadoFluig.cpStatusCand;
+        dados["cpPctCand"] = estadoFluig.cpPctCand;
+        dados["cpUltAtualCand"] = estadoFluig.cpUltAtualCand;
+        dados["cpOrigemAtualCand"] = estadoFluig.cpOrigemAtualCand;
+        dados["cpDispCand"] = estadoFluig.cpDispCand;
+
+        dados["jsonPersistCand"] = estadoFluig.jsonPersistCand;
+        dados["jsonAssCand"] = estadoFluig.jsonAssCand;
+        dados["jsonResumoCand"] = estadoFluig.jsonResumoCand;
+
+        return dados;
+    },
+
     proximoPasso: function () {
         var that = this;
+
         if (this.validarPasso(this.passoAtual) && this.passoAtual < this.totalPassos) {
             this.mostrarLoading(true);
             this.salvarRascunhoLocal();
 
-            // LÓGICA DE PULAR ETAPA PARA ESTÁGIO
             var proximo = that.passoAtual + 1;
+
             if (proximo === 4 && (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio")) {
-                proximo = 5; // Pula a aba de dependentes e vai direto para Filiação
+                proximo = 5;
             }
 
-            this.persistirFormularioNoFluig({ passoAtual: proximo }, function (sucesso) {
+            var dados = this.montarDadosFormularioLeve(proximo);
+
+            this.soapUpdateCardData(this.documentIdFicha, dados, function () {
                 that.mostrarLoading(false);
                 that.irParaPasso(proximo);
+                that.passoAtual = proximo;
                 that.salvarRascunhoLocal();
+
+                console.log("[Persistência Fluig] Dados salvos ao avançar para o passo:", proximo);
             }, function (erro) {
                 that.mostrarLoading(false);
-                console.error("Erro ao persistir no Fluig. Avanço cancelado: ", erro);
+
+                console.warn("[Persistência Fluig] Falha ao salvar, mas a navegação será mantida:", erro);
+
+                // Comportamento da versão antiga: não trava o candidato.
+                that.irParaPasso(proximo);
+                that.salvarRascunhoLocal();
+
                 FLUIGC.toast({
-                    title: 'Erro',
-                    message: 'Não foi possível salvar seu progresso no Fluig. Tente novamente.',
-                    type: 'danger'
+                    title: "Atenção",
+                    message: "Os dados foram mantidos localmente, mas houve falha ao salvar no Fluig. Tente continuar e confira depois.",
+                    type: "warning"
                 });
             });
         }
@@ -2850,28 +3278,24 @@
         if (this.passoAtual > 1) {
             var anterior = this.passoAtual - 1;
 
-            // LÓGICA DE PULAR ETAPA AO VOLTAR PARA ESTÁGIO
             if (anterior === 4 && (this.jornadaAdmissao === "Estagio" || this.jornadaAdmissao === "Estágio")) {
                 anterior = 3;
             }
 
             var that = this;
 
-            // Navega primeiro. O botão Voltar não pode depender do salvamento no Fluig.
-            that.irParaPasso(anterior);
-            that.salvarRascunhoLocal();
+            // Voltar nunca deve depender do Fluig.
+            this.irParaPasso(anterior);
+            this.salvarRascunhoLocal();
 
-            // Tenta salvar no Fluig em segundo plano, sem bloquear a navegação.
-            if (that.documentIdFicha) {
-                that.persistirFormularioNoFluig(
-                    { passoAtual: anterior, motivo: "voltar_passo" },
-                    function () {
-                        console.log("[Persistência Fluig] Passo anterior salvo:", anterior);
-                    },
-                    function (erro) {
-                        console.warn("[Persistência Fluig] Falha ao salvar passo anterior. Navegação mantida:", erro);
-                    }
-                );
+            if (this.documentIdFicha) {
+                var dados = this.montarDadosFormularioLeve(anterior);
+
+                this.soapUpdateCardData(this.documentIdFicha, dados, function () {
+                    console.log("[Persistência Fluig] Passo anterior salvo:", anterior);
+                }, function (erro) {
+                    console.warn("[Persistência Fluig] Falha ao salvar passo anterior:", erro);
+                });
             }
         }
     },
@@ -2982,10 +3406,8 @@
         if (p === 1 || p === "1") {
             var statusProp = $("#tae_proposta_status_" + this.instanceId).val();
             var statusLgpd = $("#tae_lgpd_status_" + this.instanceId).val();
-            var b64Prop = $("#carta_assinada_base64_" + this.instanceId).val();
-            var b64Lgpd = $("#termo_lgpd_assinada_base64_" + this.instanceId).val();
 
-            if (statusProp !== "assinado" || statusLgpd !== "assinado" || !b64Prop || !b64Lgpd) {
+            if (statusProp !== "assinado" || statusLgpd !== "assinado") {
                 FLUIGC.toast({
                     title: 'Atenção',
                     message: 'Assine a Carta Proposta e o Termo LGPD antes de avançar.',
@@ -2993,14 +3415,122 @@
                 });
                 return false;
             }
+
             return true;
         }
+
         return AdmissaoObrigatoriedade.validarPasso(p, this);
+    },
+
+    normalizarTextoDependente: function (valor) {
+        return String(valor || "")
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+    },
+
+    atualizarVisibilidadeDocsDependente: function ($card) {
+        if (!$card || !$card.length) return;
+
+        var parentesco = this.normalizarTextoDependente(
+            $card.find(".dep-parentesco").val()
+        );
+
+        var dataNasc = $card.find(".dep-nasc").val();
+        var idade = this.calcularIdadeDependente(dataNasc);
+
+        var $divDocs = $card.find(".div-docs-dependente");
+
+        var isEstagio =
+            this.jornadaAdmissao === "Estagio" ||
+            this.jornadaAdmissao === "Estágio";
+
+        function getDocWrapper(seletorInput) {
+            var $input = $card.find(seletorInput).first();
+
+            if (!$input.length) {
+                return $();
+            }
+
+            var $wrapper = $input.closest(
+                ".doc-conjuge, .doc-filho, .doc-cert-nasc, .doc-vacina, .form-group, .col-md-4, .col-md-6, .col-md-12"
+            );
+
+            return $wrapper;
+        }
+
+        function esconderDoc(seletorInput) {
+            getDocWrapper(seletorInput).hide();
+        }
+
+        function mostrarDoc(seletorInput) {
+            getDocWrapper(seletorInput).show();
+        }
+
+        // Esconde o painel e todos os documentos individuais.
+        $divDocs.hide();
+
+        esconderDoc(".dep-file-cpf");
+        esconderDoc(".dep-file-rgf");
+        esconderDoc(".dep-file-rgv");
+        esconderDoc(".dep-file-certnasc");
+        esconderDoc(".dep-file-vacina");
+
+        if (isEstagio) {
+            return;
+        }
+
+        var isConjuge =
+            parentesco.indexOf("conjuge") > -1 ||
+            parentesco.indexOf("companheiro") > -1 ||
+            parentesco.indexOf("companheira") > -1;
+
+        var isFilho =
+            parentesco.indexOf("filho") > -1 ||
+            parentesco.indexOf("filha") > -1 ||
+            parentesco.indexOf("enteado") > -1 ||
+            parentesco.indexOf("enteada") > -1;
+
+        if (isConjuge) {
+            $divDocs.show();
+
+            // CPF, RG Frente e RG Verso.
+            mostrarDoc(".dep-file-cpf");
+            mostrarDoc(".dep-file-rgf");
+            mostrarDoc(".dep-file-rgv");
+
+            return;
+        }
+
+        if (isFilho && !isNaN(idade) && idade < 14) {
+            $divDocs.show();
+
+            // Filho/enteado menor de 14: Certidão + CPF + RG Frente + RG Verso.
+            mostrarDoc(".dep-file-certnasc");
+            mostrarDoc(".dep-file-cpf");
+            mostrarDoc(".dep-file-rgf");
+            mostrarDoc(".dep-file-rgv");
+
+            // Até 5 anos: também mostra cartão de vacina.
+            if (idade <= 5) {
+                mostrarDoc(".dep-file-vacina");
+            }
+
+            return;
+        }
+
+        // Pai, mãe, outros e filho/enteado com 14 anos ou mais:
+        // permanece tudo escondido.
+        $divDocs.hide();
     },
 
     adicionarDependenteManual: function () { this.adicionarDependente("", false); },
 
     adicionarDependente: function (parentesco, obrigatorio) {
+
+        var that = this;
+
         var $div = $("#AdmissaoWidget_" + this.instanceId);
         var tmpl = $div.find(".template-dependente").html();
 
@@ -3035,6 +3565,10 @@
             if (obrigatorio) $select.css("pointer-events", "none").css("background-color", "#eee");
             $select.trigger('change');
         }
+
+        setTimeout(function () {
+            that.atualizarVisibilidadeDocsDependente($card);
+        }, 350);
     },
     removerDependente: function (el) { $(el).closest('.dependente-card').fadeOut(function () { $(this).remove(); }); },
     abrirSelecaoArquivo: function (el) { $("#" + $(el).attr("data-trigger-upload")).trigger('click'); },
@@ -3542,6 +4076,36 @@
                 xhr.send();
             }
         });
+    },
+
+    restaurarVisualDocumentosDependentes: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var total = 0;
+
+        $div.find(".dependente-card").each(function () {
+            var $card = $(this);
+
+            $card.find("input[type='hidden']").each(function () {
+                var $hidden = $(this);
+                var valor = $hidden.val();
+
+                if (valor !== "[ENVIADO_PROCESSO]" && valor !== "[ANEXO DO PROCESSO]") {
+                    return true;
+                }
+
+                var nomeArquivo =
+                    $hidden.attr("data-filename") ||
+                    $hidden.attr("data-nome-arquivo") ||
+                    $hidden.data("filename") ||
+                    "Documento já salvo";
+
+                that.atualizarVisualDocumentoDependenteSucesso($hidden, nomeArquivo);
+                total++;
+            });
+        });
+
+        console.log("[Dependentes] Documentos restaurados visualmente:", total);
     },
 
     // =========================================================================
@@ -4908,13 +5472,44 @@
 
     calcularIdadeDependente: function (dataNasc) {
         if (!dataNasc) return 999;
-        var parts = dataNasc.split('-');
-        if (parts.length !== 3) return 999;
-        var nasc = new Date(parts[0], parts[1] - 1, parts[2]);
+
+        dataNasc = String(dataNasc).trim();
+
+        var dia, mes, ano;
+
+        // Formato vindo de input date: yyyy-mm-dd
+        if (dataNasc.indexOf("-") > -1) {
+            var pIso = dataNasc.split("-");
+            if (pIso.length !== 3) return 999;
+
+            ano = parseInt(pIso[0], 10);
+            mes = parseInt(pIso[1], 10) - 1;
+            dia = parseInt(pIso[2], 10);
+        }
+        // Formato vindo do Fluig/dataset: dd/mm/yyyy
+        else if (dataNasc.indexOf("/") > -1) {
+            var pBr = dataNasc.split("/");
+            if (pBr.length !== 3) return 999;
+
+            dia = parseInt(pBr[0], 10);
+            mes = parseInt(pBr[1], 10) - 1;
+            ano = parseInt(pBr[2], 10);
+        } else {
+            return 999;
+        }
+
+        if (isNaN(dia) || isNaN(mes) || isNaN(ano)) return 999;
+
+        var nasc = new Date(ano, mes, dia);
         var hoje = new Date();
+
         var idade = hoje.getFullYear() - nasc.getFullYear();
         var m = hoje.getMonth() - nasc.getMonth();
-        if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+
+        if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) {
+            idade--;
+        }
+
         return idade;
     },
 
