@@ -1625,7 +1625,7 @@
                                     <div class="upload-box text-center" style="padding: 15px; border: 2px dashed #bce8f1; border-radius: 6px; background-color: #f9fdfd; cursor: pointer; transition: all 0.3s ease;" onclick="$(this).siblings('input[type=\'file\']').trigger('click');">
                                         <i class="flaticon flaticon-local-hospital icon-xl text-info"></i>
                                         <h5 class="font-bold mt-10">Cartão Vacina <span class="label label-warning" style="font-size:0.6em">OCR</span></h5>
-                                        <p class="text-muted small dep-file-status" style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">Opcional (&lt; 5 anos)</p>
+                                        <p class="text-muted small dep-file-status" style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">Opcional (até 5 anos)</p>
                                         <button type="button" class="btn btn-default btn-xs dep-file-btn">Anexar</button>
                                     </div>
                                     <input type="file" class="hidden dep-file-vacina" accept="image/*,application/pdf">

@@ -895,6 +895,26 @@
 
                             // Chama a renderização apenas com os documentos aprovados no filtro
                             that.renderizarDocumentos(that.configDocs);
+
+                            setTimeout(function () {
+                                if (that.documentosGeraisPersistidos) {
+                                    that.restaurarVisualDocumentosGerais(that.documentosGeraisPersistidos);
+                                }
+
+                                var estadoLocal = that.lerRascunhoLocalSeguro();
+
+                                if (estadoLocal && estadoLocal.documentosGerais) {
+                                    that.restaurarVisualDocumentosGerais(estadoLocal.documentosGerais);
+                                }
+                            }, 300);
+
+                            var estadoAtual = that.lerRascunhoLocalSeguro();
+
+                            if (estadoAtual && estadoAtual.documentosGerais) {
+                                setTimeout(function () {
+                                    that.restaurarVisualDocumentosGerais(estadoAtual.documentosGerais);
+                                }, 300);
+                            }
                         } else {
                             console.warn("[WIDGET DOCS] Dataset retornou lista vazia.");
                         }
@@ -968,9 +988,15 @@
 
         var estado = that.parseJsonSeguroCand(jsonPersistCand, null);
 
-        if (!estado || !estado.campos) {
+        if (!estado) {
             return false;
         }
+
+        estado.campos = estado.campos || {};
+
+        // Guarda os documentos gerais persistidos para reaplicar o visual
+        // depois que os cards fixos/dinâmicos forem renderizados.
+        that.documentosGeraisPersistidos = estado.documentosGerais || {};
 
         that.bloqueioRestauracaoAtivo = true;
 
@@ -1068,19 +1094,46 @@
                             } catch (eDocs) {
                                 console.warn("[Dependentes] Erro ao aplicar regra visual dos documentos:", eDocs);
                             }
-                        }, 500);
+
+                            for (var ckDoc in depData) {
+                                if (depData.hasOwnProperty(ckDoc) && ckDoc.indexOf("dep-base64-") === 0 && depData[ckDoc] === "[ENVIADO_PROCESSO]") {
+                                    var $cH = $card.find("." + ckDoc);
+
+                                    if ($cH.length > 0) {
+                                        that.atualizarVisualDocumentoDependenteSucesso(
+                                            $cH,
+                                            depData[ckDoc + "-name"] || "Documento já salvo"
+                                        );
+                                    }
+                                }
+                            }
+                        }, 600);
                     } catch (eTrigger) {
                         console.warn("[Dependentes] Erro ao disparar regras do dependente:", eTrigger);
                     }
                 });
 
-                if (typeof that.atualizarDependentesPlanoSaude === "function") {
-                    that.atualizarDependentesPlanoSaude();
+                if (typeof that.atualizarOpcoesPlanoSaude === "function") {
+                    that.atualizarOpcoesPlanoSaude();
+                }
+
+                if (typeof that.restaurarSelecaoPlanoSaude === "function") {
+                    that.restaurarSelecaoPlanoSaude(estado.depsPS || []);
                 }
 
                 if (typeof that.atualizarDependentesOdonto === "function") {
                     that.atualizarDependentesOdonto();
                 }
+
+                if (typeof that.restaurarSelecaoPlanoOdonto === "function") {
+                    that.restaurarSelecaoPlanoOdonto(estado.depsPO || []);
+                }
+            }
+
+            if (estado.documentosGerais) {
+                setTimeout(function () {
+                    that.restaurarVisualDocumentosGerais(estado.documentosGerais);
+                }, 700);
             }
 
             console.log("[Persistência Fluig] Estado jsonPersistCand restaurado.");
@@ -1389,7 +1442,43 @@
         return statusDocs;
     },
 
+    montarDocumentosGeraisWidgetJson: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var docs = {};
 
+        $div.find("input[id$='_nome_" + that.instanceId + "']").each(function () {
+            var $nome = $(this);
+            var idCompleto = $nome.attr("id") || "";
+            var cleanId = that.limparIdWidget(idCompleto);
+
+            if (
+                cleanId === "cand_foto_nome" ||
+                cleanId === "carta_assinada_nome" ||
+                cleanId === "termo_lgpd_assinada_nome"
+            ) {
+                return true;
+            }
+
+            var prefixo = cleanId.replace(/_nome$/, "");
+            var nomeArquivo = $nome.val() || "";
+            var $base64 = $("#" + prefixo + "_base64_" + that.instanceId);
+            var statusBase64 = $base64.val() || "";
+
+            if (
+                nomeArquivo ||
+                statusBase64 === "[ENVIADO_PROCESSO]" ||
+                statusBase64 === "[ANEXO DO PROCESSO]"
+            ) {
+                docs[prefixo] = {
+                    nome: nomeArquivo || "Documento já salvo",
+                    statusBase64: statusBase64 || "[ENVIADO_PROCESSO]"
+                };
+            }
+        });
+
+        return docs;
+    },
 
     montarStatusAssinaturasCand: function () {
         var id = this.instanceId;
@@ -1482,6 +1571,7 @@
             passo: passo,
             campos: this.montarCamposWidgetJson(),
             dependentes: this.montarDependentesWidgetJson(),
+            documentosGerais: this.montarDocumentosGeraisWidgetJson(),
             rotasVT: this.montarRotasVTWidgetJson(),
             depsPS: this.montarSelecionadosPlanoSaudeJson(),
             depsPO: this.montarSelecionadosPlanoOdontoJson(),
@@ -1521,6 +1611,40 @@
             $box.find("h5").addClass("text-success");
             $status.html('<strong style="color:#3c763d;">Salvo na nuvem: </strong>' + nomeArquivo).removeClass("text-muted").addClass("text-success");
             $btn.text("Substituir Arquivo").removeClass("btn-default btn-warning btn-danger").addClass("btn-success").prop("disabled", false);
+        }
+    },
+
+    restaurarVisualDocumentosGerais: function (documentosGerais) {
+        var that = this;
+
+        documentosGerais = documentosGerais || {};
+
+        for (var prefixo in documentosGerais) {
+            if (!documentosGerais.hasOwnProperty(prefixo)) continue;
+
+            var item = documentosGerais[prefixo] || {};
+            var nomeArquivo = item.nome || item.detalhe || "Documento já salvo";
+            var statusBase64 = item.statusBase64 || "[ENVIADO_PROCESSO]";
+
+            var $nome = $("#" + prefixo + "_nome_" + that.instanceId);
+            var $base64 = $("#" + prefixo + "_base64_" + that.instanceId);
+
+            if (!$nome.length || !$base64.length) {
+                continue;
+            }
+
+            $nome.val(nomeArquivo);
+
+            if (
+                statusBase64 === "[ENVIADO_PROCESSO]" ||
+                statusBase64 === "[ANEXO DO PROCESSO]"
+            ) {
+                $base64.val(statusBase64);
+            } else {
+                $base64.val("[ENVIADO_PROCESSO]");
+            }
+
+            that.atualizarVisualDocumentoSucesso(prefixo, nomeArquivo);
         }
     },
 
@@ -1595,17 +1719,10 @@
             });
 
             // SALVA DEPENDENTES SELECIONADOS NO PLANO DE SAÚDE
-            var depsSelecionadosPS = [];
-            $div.find(".check-plano-saude:checked").each(function () { depsSelecionadosPS.push($(this).data("nome-dep")); });
+            var depsSelecionadosPS = that.montarSelecionadosPlanoSaudeJson();
 
             // SALVA DEPENDENTES SELECIONADOS NO PLANO ODONTOLÓGICO
-            var depsSelecionadosPO = [];
-            $div.find(".check-plano-odonto:checked").each(function () {
-                depsSelecionadosPO.push({
-                    nome: $(this).data("nome-dep") || "",
-                    parentesco: $(this).data("parentesco-dep") || ""
-                });
-            });
+            var depsSelecionadosPO = that.montarSelecionadosPlanoOdontoJson();
 
             var dadosDependentes = [];
             $div.find(".dependente-card").each(function () {
@@ -1783,9 +1900,15 @@
                     }
                 }
                 that.atualizarOpcoesPlanoSaude();
+
+                if (typeof that.restaurarSelecaoPlanoSaude === "function") {
+                    that.restaurarSelecaoPlanoSaude(estado.depsPS || []);
+                }
+
                 if (typeof that.atualizarDependentesOdonto === "function") {
                     that.atualizarDependentesOdonto();
                 }
+
                 if (typeof that.restaurarSelecaoPlanoOdonto === "function") {
                     that.restaurarSelecaoPlanoOdonto(estado.depsPO || []);
                 }
@@ -1810,31 +1933,84 @@
 
     limparRascunhoLocal: function () { localStorage.removeItem(this.getKeyStorage()); },
 
-    restaurarSelecaoPlanoOdonto: function (listaSelecionados) {
-        var that = this;
-        if (!listaSelecionados || !listaSelecionados.length) return;
+    montarMapaSelecionadosPlano: function (listaSelecionados) {
+        var mapa = {
+            nomes: {},
+            chaves: {}
+        };
 
-        var mapa = {};
+        if (!listaSelecionados || !listaSelecionados.length) {
+            return mapa;
+        }
+
         listaSelecionados.forEach(function (item) {
             var nome = "";
             var parentesco = "";
+
             if (typeof item === "string") {
                 nome = item;
             } else if (item) {
                 nome = item.nome || "";
                 parentesco = item.parentesco || "";
             }
-            var chave = (nome + "||" + parentesco).toLowerCase();
-            if (chave !== "||") mapa[chave] = true;
-        });
 
-        $("#container_dependentes_odonto_" + that.instanceId).find(".check-plano-odonto").each(function () {
-            var $ck = $(this);
-            var chave = String($ck.data("nome-dep") || "") + "||" + String($ck.data("parentesco-dep") || "");
-            if (mapa[chave.toLowerCase()]) {
-                $ck.prop("checked", true);
+            nome = String(nome || "").trim();
+            parentesco = String(parentesco || "").trim();
+
+            if (!nome) return;
+
+            mapa.nomes[nome.toLowerCase()] = true;
+
+            if (parentesco) {
+                mapa.chaves[(nome + "||" + parentesco).toLowerCase()] = true;
             }
         });
+
+        return mapa;
+    },
+
+    restaurarSelecaoPlanoSaude: function (listaSelecionados) {
+        var that = this;
+
+        var mapa = that.montarMapaSelecionadosPlano(listaSelecionados);
+
+        $("#container_dependentes_plano_" + that.instanceId)
+            .find(".check-plano-saude")
+            .each(function () {
+                var $ck = $(this);
+
+                var nome = String($ck.data("nome-dep") || "").trim();
+                var parentesco = String($ck.data("parentesco-dep") || "").trim();
+
+                var chave = (nome + "||" + parentesco).toLowerCase();
+                var chaveNome = nome.toLowerCase();
+
+                if (mapa.chaves[chave] || mapa.nomes[chaveNome]) {
+                    $ck.prop("checked", true);
+                }
+            });
+    },
+
+    restaurarSelecaoPlanoOdonto: function (listaSelecionados) {
+        var that = this;
+
+        var mapa = that.montarMapaSelecionadosPlano(listaSelecionados);
+
+        $("#container_dependentes_odonto_" + that.instanceId)
+            .find(".check-plano-odonto")
+            .each(function () {
+                var $ck = $(this);
+
+                var nome = String($ck.data("nome-dep") || "").trim();
+                var parentesco = String($ck.data("parentesco-dep") || "").trim();
+
+                var chave = (nome + "||" + parentesco).toLowerCase();
+                var chaveNome = nome.toLowerCase();
+
+                if (mapa.chaves[chave] || mapa.nomes[chaveNome]) {
+                    $ck.prop("checked", true);
+                }
+            });
     },
 
     // =========================================================================
@@ -1952,6 +2128,45 @@
             }
         });
 
+        $div.off("change", ".check-plano-saude, .check-plano-odonto")
+            .on("change", ".check-plano-saude, .check-plano-odonto", function (e) {
+                if (!e.originalEvent) return;
+                if (that.bloqueioRestauracaoAtivo) return;
+                if (that.carregandoDadosIniciais) return;
+
+                that.salvarRascunhoLocal();
+
+                if (!that.autosaveFluigLiberado || !that.documentIdFicha) return;
+
+                clearTimeout(that.saveTimeoutFluig);
+
+                that.saveTimeoutFluig = setTimeout(function () {
+                    if (
+                        that.bloqueioRestauracaoAtivo ||
+                        that.carregandoDadosIniciais ||
+                        !that.autosaveFluigLiberado ||
+                        !that.documentIdFicha
+                    ) {
+                        return;
+                    }
+
+                    var dados = that.montarDadosFormularioLeve(that.passoAtual);
+
+                    that.soapUpdateCardData(
+                        that.documentIdFicha,
+                        dados,
+                        function () {
+                            console.log("[Planos] Dependentes selecionados salvos no Fluig.");
+                            that.salvarRascunhoLocal();
+                        },
+                        function (erro) {
+                            console.warn("[Planos] Falha ao salvar dependentes selecionados:", erro);
+                            that.salvarRascunhoLocal();
+                        }
+                    );
+                }, 600);
+            });
+
         this.marcarAbaComoVisitada('tab_pessoais_' + this.instanceId);
         $div.find('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             var targetId = $(e.target).attr("href").replace("#", "");
@@ -2015,7 +2230,7 @@
         //     }
         // });
 
-        $div.off("change blur input", ".dep-parentesco, .dep-nasc").on("change blur input", ".dep-parentesco, .dep-nasc", function (e) {
+        $div.off("change blur", ".dep-parentesco, .dep-nasc").on("change blur", ".dep-parentesco, .dep-nasc", function (e) {
             var $card = $(this).closest(".dependente-card");
 
             try {
@@ -2024,7 +2239,6 @@
                 console.warn("[Dependentes] Erro ao aplicar regra visual:", erroRegra);
             }
 
-            // A partir daqui, só salva se foi ação real do usuário.
             if (!e.originalEvent) return;
             if (that.bloqueioRestauracaoAtivo) return;
             if (that.carregandoDadosIniciais) return;
@@ -2092,6 +2306,21 @@
                             $status.html('<strong style="color:#3c763d;">Salvo: </strong>' + fileName).removeClass("text-muted").addClass("text-success");
                             $btn.text("Alterar").removeClass("btn-warning").addClass("btn-success").prop("disabled", false);
                             that.salvarRascunhoLocal();
+
+                            if (that.documentIdFicha) {
+                                var dados = that.montarDadosFormularioLeve(that.passoAtual);
+
+                                that.soapUpdateCardData(
+                                    that.documentIdFicha,
+                                    dados,
+                                    function () {
+                                        console.log("[Dependentes] Documento persistido no Fluig:", fileName);
+                                    },
+                                    function (erro) {
+                                        console.warn("[Dependentes] Falha ao persistir documento:", erro);
+                                    }
+                                );
+                            }
                             that.persistirFormularioNoFluig();
                         },
                         function (erro) {
@@ -3228,6 +3457,7 @@
         dados["cpDispCand"] = estadoFluig.cpDispCand;
 
         dados["jsonPersistCand"] = estadoFluig.jsonPersistCand;
+        dados["jsonDocsCand"] = estadoFluig.jsonDocsCand;
         dados["jsonAssCand"] = estadoFluig.jsonAssCand;
         dados["jsonResumoCand"] = estadoFluig.jsonResumoCand;
 
@@ -3392,7 +3622,15 @@
         // ========================================================
 
         if (p === 5) this.preencherFiliacaoViaDependentes();
-        if (p === 6) this.atualizarOpcoesPlanoSaude();
+
+        if (p === 6) {
+            this.atualizarOpcoesPlanoSaude();
+
+            if (typeof this.atualizarDependentesOdonto === "function") {
+                this.atualizarDependentesOdonto();
+            }
+        }
+
         if (p === 8) this.gerarResumoFinal();
 
         this.passoAtual = p;
@@ -3446,41 +3684,6 @@
             this.jornadaAdmissao === "Estagio" ||
             this.jornadaAdmissao === "Estágio";
 
-        function getDocWrapper(seletorInput) {
-            var $input = $card.find(seletorInput).first();
-
-            if (!$input.length) {
-                return $();
-            }
-
-            var $wrapper = $input.closest(
-                ".doc-conjuge, .doc-filho, .doc-cert-nasc, .doc-vacina, .form-group, .col-md-4, .col-md-6, .col-md-12"
-            );
-
-            return $wrapper;
-        }
-
-        function esconderDoc(seletorInput) {
-            getDocWrapper(seletorInput).hide();
-        }
-
-        function mostrarDoc(seletorInput) {
-            getDocWrapper(seletorInput).show();
-        }
-
-        // Esconde o painel e todos os documentos individuais.
-        $divDocs.hide();
-
-        esconderDoc(".dep-file-cpf");
-        esconderDoc(".dep-file-rgf");
-        esconderDoc(".dep-file-rgv");
-        esconderDoc(".dep-file-certnasc");
-        esconderDoc(".dep-file-vacina");
-
-        if (isEstagio) {
-            return;
-        }
-
         var isConjuge =
             parentesco.indexOf("conjuge") > -1 ||
             parentesco.indexOf("companheiro") > -1 ||
@@ -3492,37 +3695,64 @@
             parentesco.indexOf("enteado") > -1 ||
             parentesco.indexOf("enteada") > -1;
 
-        if (isConjuge) {
-            $divDocs.show();
+        function esconderTodos() {
+            $divDocs.hide();
 
-            // CPF, RG Frente e RG Verso.
-            mostrarDoc(".dep-file-cpf");
-            mostrarDoc(".dep-file-rgf");
-            mostrarDoc(".dep-file-rgv");
+            $divDocs.find(".doc-cpf").hide();
+            $divDocs.find(".doc-rg-frente").hide();
+            $divDocs.find(".doc-rg-verso").hide();
+            $divDocs.find(".doc-cert-nasc").hide();
+            $divDocs.find(".doc-vacina").hide();
+        }
+
+        function mostrarBase() {
+            $divDocs.show();
+        }
+
+        esconderTodos();
+
+        // Estágio: nunca mostra documentos de dependentes
+        if (isEstagio) {
+            return;
+        }
+
+        // Cônjuge / Companheiro: CPF + RG frente + RG verso
+        if (isConjuge) {
+            mostrarBase();
+
+            $divDocs.find(".doc-cpf").show();
+            $divDocs.find(".doc-rg-frente").show();
+            $divDocs.find(".doc-rg-verso").show();
 
             return;
         }
 
-        if (isFilho && !isNaN(idade) && idade < 14) {
-            $divDocs.show();
+        // Filho / Enteado: depende da idade
+        if (isFilho) {
+            if (idade === null || idade === undefined || isNaN(idade)) {
+                return;
+            }
 
-            // Filho/enteado menor de 14: Certidão + CPF + RG Frente + RG Verso.
-            mostrarDoc(".dep-file-certnasc");
-            mostrarDoc(".dep-file-cpf");
-            mostrarDoc(".dep-file-rgf");
-            mostrarDoc(".dep-file-rgv");
+            // Menor de 14 anos: Certidão + CPF + RG frente + RG verso
+            if (idade < 14) {
+                mostrarBase();
 
-            // Até 5 anos: também mostra cartão de vacina.
-            if (idade <= 5) {
-                mostrarDoc(".dep-file-vacina");
+                $divDocs.find(".doc-cert-nasc").show();
+                $divDocs.find(".doc-cpf").show();
+                $divDocs.find(".doc-rg-frente").show();
+                $divDocs.find(".doc-rg-verso").show();
+
+                // Até 5 anos: também mostra Cartão de Vacina
+                if (idade <= 5) {
+                    $divDocs.find(".doc-vacina").show();
+                }
             }
 
             return;
         }
 
-        // Pai, mãe, outros e filho/enteado com 14 anos ou mais:
-        // permanece tudo escondido.
-        $divDocs.hide();
+        // Pai, Mãe e outros: não mostra documentos
+        return;
     },
 
     adicionarDependenteManual: function () { this.adicionarDependente("", false); },
@@ -4888,6 +5118,20 @@
             });
         }
 
+        if (that.documentosGeraisPersistidos) {
+            setTimeout(function () {
+                that.restaurarVisualDocumentosGerais(that.documentosGeraisPersistidos);
+            }, 100);
+        }
+
+        var estadoLocal = that.lerRascunhoLocalSeguro();
+
+        if (estadoLocal && estadoLocal.documentosGerais) {
+            setTimeout(function () {
+                that.restaurarVisualDocumentosGerais(estadoLocal.documentosGerais);
+            }, 120);
+        }
+
         var html = ""; var inputs = "";
         that.docsFixosExigidos = []; // Limpa o array de controle
 
@@ -5471,37 +5715,49 @@
     },
 
     calcularIdadeDependente: function (dataNasc) {
-        if (!dataNasc) return 999;
+        if (!dataNasc) return null;
 
-        dataNasc = String(dataNasc).trim();
+        dataNasc = String(dataNasc).trim().split(" ")[0];
 
         var dia, mes, ano;
 
-        // Formato vindo de input date: yyyy-mm-dd
-        if (dataNasc.indexOf("-") > -1) {
+        if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(dataNasc)) {
             var pIso = dataNasc.split("-");
-            if (pIso.length !== 3) return 999;
 
             ano = parseInt(pIso[0], 10);
             mes = parseInt(pIso[1], 10) - 1;
             dia = parseInt(pIso[2], 10);
-        }
-        // Formato vindo do Fluig/dataset: dd/mm/yyyy
-        else if (dataNasc.indexOf("/") > -1) {
+        } else if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(dataNasc)) {
             var pBr = dataNasc.split("/");
-            if (pBr.length !== 3) return 999;
 
             dia = parseInt(pBr[0], 10);
             mes = parseInt(pBr[1], 10) - 1;
             ano = parseInt(pBr[2], 10);
+
+            if (ano < 100) {
+                ano += ano > 50 ? 1900 : 2000;
+            }
         } else {
-            return 999;
+            return null;
         }
 
-        if (isNaN(dia) || isNaN(mes) || isNaN(ano)) return 999;
+        if (isNaN(dia) || isNaN(mes) || isNaN(ano)) return null;
 
         var nasc = new Date(ano, mes, dia);
+
+        if (
+            nasc.getFullYear() !== ano ||
+            nasc.getMonth() !== mes ||
+            nasc.getDate() !== dia
+        ) {
+            return null;
+        }
+
         var hoje = new Date();
+
+        if (nasc > hoje) {
+            return null;
+        }
 
         var idade = hoje.getFullYear() - nasc.getFullYear();
         var m = hoje.getMonth() - nasc.getMonth();
