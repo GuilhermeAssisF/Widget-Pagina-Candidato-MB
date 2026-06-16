@@ -611,7 +611,9 @@
                                     "cand_ps_opcao_": ["TxtIncPlanoSaudeOpcao"],
                                     "cand_ps_tipo_dep_": ["TxtIncPlanoSaudeTipoDep"],
                                     "cand_ps_qtd_conjuge_": ["TxtIncPlanoSaudeQtdConjuge"],
-                                    "cand_ps_qtd_filhos_": ["TxtIncPlanoSaudeQtdFilhos"]
+                                    "cand_ps_qtd_filhos_": ["TxtIncPlanoSaudeQtdFilhos"],
+                                    "cand_po_opcao_": ["TxtIncPlanoOdontoOpcao", "cand_odonto_opcao"],
+                                    "cand_po_tipo_plano_": ["TxtIncPlanoOdontoTipoCod", "TxtIncPlanoOdontoTipo"]
                                 };
 
                                 for (var widgetField in map) {
@@ -668,11 +670,67 @@
                                 if (vtBruto === "1") $("#cand_vt_opcao_" + that.instanceId).val("Opto").trigger("change");
                                 else if (vtBruto === "2") $("#cand_vt_opcao_" + that.instanceId).val("Nao opto").trigger("change");
 
-                                var $selectPS = $("#cand_ps_opcao_" + that.instanceId);
-                                $selectPS.val("");
+                                function normalizarTextoPlano(valor) {
+                                    return String(valor || "")
+                                        .toLowerCase()
+                                        .normalize("NFD")
+                                        .replace(/[\u0300-\u036f]/g, "")
+                                        .replace(/\s+/g, " ")
+                                        .trim();
+                                }
 
-                                $("#div_ps_detalhes_" + that.instanceId).hide();
-                                $("#div_ps_custos_" + that.instanceId).hide();
+                                function selecionarSelectPorValorOuTexto($select, valor) {
+                                    var valorPlano = String(valor || "").trim();
+
+                                    if (!valorPlano || !$select.length) {
+                                        return;
+                                    }
+
+                                    $select.val(valorPlano);
+
+                                    if ($select.val()) {
+                                        return;
+                                    }
+
+                                    var valorNormalizado = normalizarTextoPlano(valorPlano);
+
+                                    $select.find("option").each(function () {
+                                        var $option = $(this);
+                                        var textoNormalizado = normalizarTextoPlano($option.text());
+                                        var valueNormalizado = normalizarTextoPlano($option.val());
+
+                                        if (textoNormalizado === valorNormalizado || valueNormalizado === valorNormalizado) {
+                                            $select.val($option.val());
+                                            return false;
+                                        }
+                                    });
+                                }
+
+                                var opcaoSaudeSalva = getVal("TxtIncPlanoSaudeOpcao");
+                                var planoSaudeSalvo = getVal(["TxtIncPlanoSaudeTipoCod", "TxtIncPlanoSaudeTipo"]);
+
+                                var $selectPS = $("#cand_ps_opcao_" + that.instanceId);
+                                var $selectPlanoPS = $("#cand_ps_tipo_plano_" + that.instanceId);
+
+                                if (opcaoSaudeSalva) {
+                                    $selectPS.val(opcaoSaudeSalva).trigger("change");
+                                    selecionarSelectPorValorOuTexto($selectPlanoPS, planoSaudeSalvo);
+                                } else {
+                                    $selectPS.val("");
+                                    $("#div_ps_detalhes_" + that.instanceId).hide();
+                                    $("#div_ps_custos_" + that.instanceId).hide();
+                                }
+
+                                var opcaoOdontoSalva = getVal(["TxtIncPlanoOdontoOpcao", "cand_odonto_opcao"]);
+                                var planoOdontoSalvo = getVal(["TxtIncPlanoOdontoTipoCod", "TxtIncPlanoOdontoTipo"]);
+
+                                var $selectPO = $("#cand_po_opcao_" + that.instanceId);
+                                var $selectPlanoPO = $("#cand_po_tipo_plano_" + that.instanceId);
+
+                                if (opcaoOdontoSalva) {
+                                    $selectPO.val(opcaoOdontoSalva).trigger("change");
+                                    selecionarSelectPorValorOuTexto($selectPlanoPO, planoOdontoSalvo);
+                                }
 
                                 var camposData = [
                                     { de: ["dtDataNascColaboradorValue", "dtDataNascColaborador"], para: "cand_nascimento_" },
@@ -2777,6 +2835,12 @@
             orgao: (possuiReservista == "Sim") ? $div.find("#cand_reservista_orgao_" + that.instanceId).val() : ""
         };
 
+        var $planoSaude = $div.find("#cand_ps_tipo_plano_" + that.instanceId);
+        var $planoOdonto = $div.find("#cand_po_tipo_plano_" + that.instanceId);
+
+        var optouPlanoSaude = ($div.find("#cand_ps_opcao_" + that.instanceId).val() || "").indexOf("Opto") !== -1;
+        var optouPlanoOdonto = $div.find("#cand_po_opcao_" + that.instanceId).val() === "Sim";
+
         // MONTAGEM DO JSON QUE VAI PARA O FLUIG
         var dadosCandidato = {
             "origem_dados": "widget_saveAndSendTask",
@@ -2860,8 +2924,10 @@
 
             "ValeTransp": $div.find("#cand_vt_opcao_" + that.instanceId).val() === "Opto" ? "1" : "2",
 
+            // Dados de Plano de Saúde
             "TxtIncPlanoSaudeOpcao": $div.find("#cand_ps_opcao_" + that.instanceId).val(),
-            "TxtIncPlanoSaudeTipo": ($div.find("#cand_ps_opcao_" + that.instanceId).val() || "").indexOf("Opto") !== -1 ? $div.find("#cand_ps_tipo_plano_" + that.instanceId + " option:selected").text() : "",
+            "TxtIncPlanoSaudeTipo": optouPlanoSaude ? $planoSaude.find("option:selected").text() : "",
+            "TxtIncPlanoSaudeTipoCod": optouPlanoSaude ? $planoSaude.val() : "",
             "TxtDepsPlanoSaude": strDependentesPS,
 
             "BancoPAgto": $div.find("#cand_banco_" + that.instanceId).val(),
@@ -2955,7 +3021,8 @@
         // Salva em um campo do formulário
         dadosCandidato["TxtDepsPlanoOdonto"] = selecionadosPO.join(", ");
         dadosCandidato["TxtIncPlanoOdontoOpcao"] = $div.find("#cand_po_opcao_" + that.instanceId).val();
-        dadosCandidato["TxtIncPlanoOdontoTipo"] = $div.find("#cand_po_opcao_" + that.instanceId).val() === "Sim" ? $div.find("#cand_po_tipo_plano_" + that.instanceId + " option:selected").text() : "";
+        dadosCandidato["TxtIncPlanoOdontoTipo"] = optouPlanoOdonto ? $planoOdonto.find("option:selected").text() : "";
+        dadosCandidato["TxtIncPlanoOdontoTipoCod"] = optouPlanoOdonto ? $planoOdonto.val() : "";
 
         var deps = [];
         var countDeps = 0;
