@@ -2,7 +2,7 @@ var AdmissaoObrigatoriedade = {
 
     // 1. MAPEAMENTO DE REGRAS: Retorna true se o campo for obrigatório
     regras: function (widget) {
-        var isEstagio = (widget.jornadaAdmissao === "Estagio" || widget.jornadaAdmissao === "Estágio");
+        var isEstagio = (widget.jornadaAdmissao === "Estagio" || widget.jornadaAdmissao === "Estagiario" || widget.jornadaAdmissao === "Estágio" || widget.jornadaAdmissao === "Estagiário");
         var isCLT = !isEstagio;
         var isMasculino = ($("#cand_sexo_" + widget.instanceId).val() === "Masculino" || $("#cand_sexo_" + widget.instanceId).val() === "M");
 
@@ -74,9 +74,9 @@ var AdmissaoObrigatoriedade = {
             "cand_emergencia_telefone": function () { return true; },
 
             // Docs Extras
-            "cand_primeiro_emprego": function () { return isCLT; },
-            "cand_pis": function () { return isCLT && val("cand_primeiro_emprego") === "Nao"; },
-            "cand_ano_primeiro_emprego": function () { return isCLT && val("cand_primeiro_emprego") === "Nao"; },
+            "cand_primeiro_emprego": function () { return false; },
+            "cand_pis": function () { return false; },
+            "cand_ano_primeiro_emprego": function () { return false; },
             "cand_tipo_ctps": function () { return false; },
             "cand_ctps_numero": function () { return false; },
             "cand_ctps_serie": function () { return false; },

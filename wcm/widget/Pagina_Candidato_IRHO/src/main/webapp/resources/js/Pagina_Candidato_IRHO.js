@@ -453,32 +453,6 @@
                             that.jornadaAdmissao = getVal("cpJornadaAdmissao");
                             that.nomeFilial = getVal(["FUN_NOMECOMERCIAL_FILIAL", "IDDESC_EMPRESAFILIAL"]) || "";
 
-                            var isCLT = (that.jornadaAdmissao === "CLT");
-
-                            if (isCLT) {
-                                // Oculta os campos detalhados de formação para CLT
-                                $("#cand_curso_" + that.instanceId).closest("div").hide();
-                                $("#cand_ano_conclusao_" + that.instanceId).closest("div").hide();
-                                $("#cand_instituicao_" + that.instanceId).closest("div").hide();
-                                $("#cand_cnpj_instituicao_" + that.instanceId).closest("div").hide();
-                                $("#cand_coordenador_" + that.instanceId).closest("div").hide();
-                                $("#cand_nacionalidade_coordenador_" + that.instanceId).closest("div").hide();
-
-                                // Ajusta a largura do campo Grau de Instrução para ocupar a linha toda (opcional)
-                                $("#cand_grau_instrucao_" + that.instanceId).closest("div").removeClass("col-md-3").addClass("col-md-12");
-                            } else {
-                                // Garante que fiquem visíveis para Estágio
-                                $("#cand_curso_" + that.instanceId).closest("div").show();
-                                $("#cand_ano_conclusao_" + that.instanceId).closest("div").show();
-                                $("#cand_instituicao_" + that.instanceId).closest("div").show();
-                                $("#cand_cnpj_instituicao_" + that.instanceId).closest("div").show();
-                                $("#cand_coordenador_" + that.instanceId).closest("div").show();
-                                $("#cand_nacionalidade_coordenador_" + that.instanceId).closest("div").show();
-
-                                // Retorna a largura original
-                                $("#cand_grau_instrucao_" + that.instanceId).closest("div").removeClass("col-md-12").addClass("col-md-3");
-                            }
-
                             // Captura Dados Clínicos (Backup Rascunho)
                             var dadosExame = {
                                 data: getVal("cpDataHoraExame"),
@@ -2983,7 +2957,7 @@
             "TxtIncPlanoSaudeOpcao": $div.find("#cand_ps_opcao_" + that.instanceId).val(),
             "TxtIncPlanoSaudeTipo": optouPlanoSaude ? $planoSaude.find("option:selected").text() : "",
             "TxtIncPlanoSaudeTipoCod": optouPlanoSaude ? $planoSaude.val() : "",
-            "TxtDepsPlanoSaude": strDependentesPS,
+            "TxtDepsPlanoSaude": "",
 
             "BancoPAgto": $div.find("#cand_banco_" + that.instanceId).val(),
             "AgPagto": $div.find("#cand_agencia_" + that.instanceId).val(),
@@ -3742,6 +3716,10 @@
             }
         }
         // ========================================================
+
+        if (p === 3 || p === "3") {
+            this.aplicarRegrasVisuaisPorJornada();
+        }
 
         if (p === 5) this.preencherFiliacaoViaDependentes();
 
@@ -5829,29 +5807,48 @@
             ", #cand_coordenador_nome_" + that.instanceId +
             ", #cand_coordenador_nacionalidade_" + that.instanceId).closest(".form-group");
 
-        if (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio") {
+        var jornadaNormalizada = String(that.jornadaAdmissao || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
+        var isEstagio =
+            jornadaNormalizada === "estagio" ||
+            jornadaNormalizada === "estagiario";
+
+        var $campoGrauInstrucao = $("#cand_grau_instrucao_" + that.instanceId).closest(".form-group");
+
+        $campoGrauInstrucao
+            .removeClass("col-md-1 col-md-2 col-md-3 col-md-4 col-md-5 col-md-6 col-md-7 col-md-8 col-md-9 col-md-10 col-md-11 col-md-12");
+
+        $campoGrauInstrucao.find("select, input").css("width", "100%");
+
+        if (isEstagio) {
             $painelCTPS.hide();
             $painelCNH.hide();
             $painelRegProf.hide();
             $painelPlanoSaude.hide();
             $abaDependentes.hide();
 
-            // Exibe os campos detalhados de formação para Estágio
+            // Estágio: mostra os campos detalhados de formação.
             $camposEstagio.show();
-            // Retorna o Grau de Instrução para metade da tela
-            $("#cand_grau_instrucao_" + that.instanceId).closest(".form-group").removeClass("col-md-12").addClass("col-md-6");
+
+            // Em estágio, Grau de Instrução pode dividir espaço com os demais campos.
+            $campoGrauInstrucao.addClass("col-md-6");
         } else {
-            // LÓGICA PARA CLT
+            // CLT e demais jornadas não estágio.
             $painelCTPS.show();
             $painelCNH.show();
             $painelRegProf.show();
             $painelPlanoSaude.show();
             $abaDependentes.show();
 
-            // Oculta os campos detalhados de formação
+            // CLT: oculta os campos detalhados de formação.
             $camposEstagio.hide();
-            // Estica o Grau de Instrução para ocupar a linha toda, já que os outros sumiram
-            $("#cand_grau_instrucao_" + that.instanceId).closest(".form-group").removeClass("col-md-6").addClass("col-md-12");
+
+            // Como só fica Grau de Instrução, ele ocupa a linha inteira.
+            $campoGrauInstrucao.addClass("col-md-12");
         }
 
         // Força a renderização dos documentos fixos baseada na jornada e nos dados preenchidos
