@@ -64,6 +64,7 @@
 
         this.iniciarListeners($div);
         this.atualizarBotoes();
+        this.carregarPlanosBeneficios();
 
         // Fluxo Inicial
         if (this.idOrigem) {
@@ -668,6 +669,14 @@
                                         return;
                                     }
 
+                                    var codigoPlano = "";
+                                    var descricaoPlano = "";
+
+                                    if (valorPlano.indexOf(" - ") > -1) {
+                                        codigoPlano = valorPlano.split(" - ")[0].trim();
+                                        descricaoPlano = valorPlano.substring(valorPlano.indexOf(" - ") + 3).trim();
+                                    }
+
                                     $select.val(valorPlano);
 
                                     if ($select.val()) {
@@ -681,7 +690,16 @@
                                         var textoNormalizado = normalizarTextoPlano($option.text());
                                         var valueNormalizado = normalizarTextoPlano($option.val());
 
-                                        if (textoNormalizado === valorNormalizado || valueNormalizado === valorNormalizado) {
+                                        var valorNormalizado = normalizarTextoPlano(valorPlano);
+                                        var codigoNormalizado = normalizarTextoPlano(codigoPlano);
+                                        var descricaoNormalizada = normalizarTextoPlano(descricaoPlano);
+
+                                        if (
+                                            textoNormalizado === valorNormalizado ||
+                                            valueNormalizado === valorNormalizado ||
+                                            valueNormalizado === codigoNormalizado ||
+                                            textoNormalizado === descricaoNormalizada
+                                        ) {
                                             $select.val($option.val());
                                             return false;
                                         }
@@ -1020,6 +1038,122 @@
             console.warn("[Persistência] JSON inválido:", e, valor);
             return padrao;
         }
+    },
+
+    normalizarTextoBeneficio: function (valor) {
+        var texto = String(valor || "").trim().toLowerCase();
+
+        try {
+            texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        } catch (e) { }
+
+        return texto;
+    },
+
+    isOpcaoPlanoSaudeOptante: function (valor) {
+        var texto = this.normalizarTextoBeneficio(valor);
+
+        if (!texto) return false;
+        if (texto.indexOf("nao") > -1 || texto.indexOf("não") > -1) return false;
+
+        return texto.indexOf("opto") > -1 ||
+            texto.indexOf("optante") > -1 ||
+            texto === "sim";
+    },
+
+    isOpcaoPlanoOdontoOptante: function (valor) {
+        var texto = this.normalizarTextoBeneficio(valor);
+
+        if (!texto) return false;
+        if (texto.indexOf("nao") > -1 || texto.indexOf("não") > -1) return false;
+
+        return texto === "sim" ||
+            texto.indexOf("opto") > -1 ||
+            texto.indexOf("optante") > -1;
+    },
+
+    carregarPlanosPorDataset: function (datasetName, selectId, placeholder) {
+        var that = this;
+        var $select = $("#" + selectId + "_" + that.instanceId);
+
+        if (!$select.length) return;
+
+        $select.empty();
+        $select.append('<option value="">' + (placeholder || "Selecione o plano...") + '</option>');
+
+        var url = WCMAPI.getServerURL() + "/api/public/ecm/dataset/datasets";
+
+        var payload = {
+            name: datasetName,
+            constraints: []
+        };
+
+        $.ajax({
+            url: url,
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(payload),
+            headers: {
+                "Authorization": that.getOAuthHeader(url, "POST").Authorization
+            },
+            success: function (res) {
+                try {
+                    var valores = res &&
+                        res.content &&
+                        res.content.values
+                        ? res.content.values
+                        : [];
+
+                    for (var i = 0; i < valores.length; i++) {
+                        var item = valores[i] || {};
+
+                        if (item.ERROR) {
+                            console.warn("[Planos] Dataset retornou erro:", datasetName, item.ERROR);
+                            continue;
+                        }
+
+                        var codigo = String(item.CODIGO || "").trim();
+                        var descricao = String(item.DESCRICAO || "").trim();
+
+                        if (!codigo || !descricao) continue;
+
+                        // Não mostra a opção "000000 - NAO OPTANTE" no campo de seleção.
+                        if (codigo === "000000") continue;
+
+                        $select.append(
+                            '<option value="' + codigo + '" data-descricao="' + descricao.replace(/"/g, "&quot;") + '">' +
+                            descricao +
+                            '</option>'
+                        );
+                    }
+
+                    var valorPendente = $select.attr("data-valor-pendente");
+                    if (valorPendente) {
+                        $select.val(valorPendente);
+                        $select.removeAttr("data-valor-pendente");
+                    }
+                } catch (e) {
+                    console.warn("[Planos] Erro ao carregar opções do dataset " + datasetName + ":", e);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.warn("[Planos] Falha ao consultar dataset " + datasetName + ":", error);
+            }
+        });
+    },
+
+    carregarPlanosBeneficios: function () {
+        this.carregarPlanosPorDataset(
+            "ds_irho_planoSaude",
+            "cand_ps_tipo_plano",
+            "Selecione o plano de saúde..."
+        );
+
+        this.carregarPlanosPorDataset(
+            "ds_irho_planoOdonto",
+            "cand_po_tipo_plano",
+            "Selecione o plano odontológico..."
+        );
     },
 
     restaurarEstadoPersistidoFluig: function (jsonPersistCand) {
@@ -2150,20 +2284,28 @@
             var $inputTipoPlano = $("#cand_po_tipo_plano_" + that.instanceId);
             var $divDependentes = $("#div_po_dependentes_" + that.instanceId); // Novo contentor de dependentes
 
-            if (valor === "Sim") {
+            if (that.isOpcaoPlanoOdontoOptante(valor)) {
                 $divPlanos.slideDown();
-                $divDependentes.slideDown(); // Mostra a área de seleção
+                $divDependentes.slideDown();
 
-                // Chama a função para buscar os dependentes cadastrados e montar os checkboxes
+                if ($inputTipoPlano.find("option").length <= 1) {
+                    that.carregarPlanosPorDataset(
+                        "ds_irho_retornaPlanoOdonto",
+                        "cand_po_tipo_plano",
+                        "Selecione o plano odontológico..."
+                    );
+                }
+
                 if (typeof that.atualizarDependentesOdonto === "function") {
                     that.atualizarDependentesOdonto();
                 }
             } else {
                 $divPlanos.slideUp();
-                $divDependentes.slideUp(); // Esconde a área
-                $inputTipoPlano.val(""); // Limpa o plano selecionado
+                $divDependentes.slideUp();
 
-                // Desmarca todos os checkboxes de dependentes do odonto caso o candidato desista
+                // Não exibe 000000 no select, mas o getDadosFormulario gravará 000000.
+                $inputTipoPlano.val("");
+
                 $("#container_dependentes_odonto_" + that.instanceId).find("input[type='checkbox']").prop("checked", false);
             }
         });
@@ -2521,11 +2663,18 @@
             // Aqui estava o erro! O ID correto é div_ps_detalhes_
             var $divDependentes = $("#div_ps_detalhes_" + that.instanceId);
 
-            if (valor === "Opto pela inclusão de dependente(s) e estou ciente dos custos e regras") {
+            if (that.isOpcaoPlanoSaudeOptante(valor)) {
                 $divPlanos.slideDown();
                 $divDependentes.slideDown();
 
-                // Desenha os checkboxes
+                if ($inputTipoPlano.find("option").length <= 1) {
+                    that.carregarPlanosPorDataset(
+                        "ds_irho_retornaPlanoSaude",
+                        "cand_ps_tipo_plano",
+                        "Selecione o plano de saúde..."
+                    );
+                }
+
                 if (typeof that.atualizarOpcoesPlanoSaude === "function") {
                     that.atualizarOpcoesPlanoSaude();
                 }
@@ -2533,7 +2682,7 @@
                 $divPlanos.slideUp();
                 $divDependentes.slideUp();
 
-                // Limpa tudo se o candidato mudar de ideias
+                // Não exibe 000000 no select, mas o getDadosFormulario gravará 000000.
                 $inputTipoPlano.val("");
                 $("#container_dependentes_plano_" + that.instanceId).find("input[type='checkbox']").prop("checked", false);
             }
@@ -2859,10 +3008,38 @@
         var $planoSaude = $div.find("#cand_ps_tipo_plano_" + that.instanceId);
         var $planoOdonto = $div.find("#cand_po_tipo_plano_" + that.instanceId);
 
-        var optouPlanoSaude = ($div.find("#cand_ps_opcao_" + that.instanceId).val() || "").indexOf("Opto") !== -1;
-        var optouPlanoOdonto = $div.find("#cand_po_opcao_" + that.instanceId).val() === "Sim";
+        var optouPlanoSaude = that.isOpcaoPlanoSaudeOptante(
+            $div.find("#cand_ps_opcao_" + that.instanceId).val()
+        );
+
+        var optouPlanoOdonto = that.isOpcaoPlanoOdontoOptante(
+            $div.find("#cand_po_opcao_" + that.instanceId).val()
+        );
 
         var tipoCtpsValor = $div.find("#cand_tipo_ctps_" + that.instanceId).val() || "";
+
+        function montarCodigoDescricaoPlano(codigo, descricao) {
+            codigo = String(codigo || "").trim();
+            descricao = String(descricao || "").trim();
+
+            if (!codigo && !descricao) return "";
+            if (codigo && descricao) return codigo + " - " + descricao;
+
+            return descricao || codigo;
+        }
+
+        var codigoPlanoSaude = optouPlanoSaude ? ($planoSaude.val() || "") : "000000";
+        var descricaoPlanoSaude = optouPlanoSaude
+            ? ($planoSaude.find("option:selected").text() || "")
+            : "NAO OPTANTE";
+        var idDescPlanoSaude = montarCodigoDescricaoPlano(codigoPlanoSaude, descricaoPlanoSaude);
+
+        var codigoPlanoOdonto = optouPlanoOdonto ? ($planoOdonto.val() || "") : "000000";
+        var descricaoPlanoOdonto = optouPlanoOdonto
+            ? ($planoOdonto.find("option:selected").text() || "")
+            : "NAO OPTANTE";
+        var idDescPlanoOdonto = montarCodigoDescricaoPlano(codigoPlanoOdonto, descricaoPlanoOdonto);
+
         var tipoCtpsNormalizado = tipoCtpsValor
             .toLowerCase()
             .normalize("NFD")
@@ -2955,8 +3132,8 @@
 
             // Dados de Plano de Saúde
             "TxtIncPlanoSaudeOpcao": $div.find("#cand_ps_opcao_" + that.instanceId).val(),
-            "TxtIncPlanoSaudeTipo": optouPlanoSaude ? $planoSaude.find("option:selected").text() : "",
-            "TxtIncPlanoSaudeTipoCod": optouPlanoSaude ? $planoSaude.val() : "",
+            "TxtIncPlanoSaudeTipo": idDescPlanoSaude,
+            "TxtIncPlanoSaudeTipoCod": codigoPlanoSaude,
             "TxtDepsPlanoSaude": "",
 
             "BancoPAgto": $div.find("#cand_banco_" + that.instanceId).val(),
@@ -3050,8 +3227,8 @@
         // Salva em um campo do formulário
         dadosCandidato["TxtDepsPlanoOdonto"] = selecionadosPO.join(", ");
         dadosCandidato["TxtIncPlanoOdontoOpcao"] = $div.find("#cand_po_opcao_" + that.instanceId).val();
-        dadosCandidato["TxtIncPlanoOdontoTipo"] = optouPlanoOdonto ? $planoOdonto.find("option:selected").text() : "";
-        dadosCandidato["TxtIncPlanoOdontoTipoCod"] = optouPlanoOdonto ? $planoOdonto.val() : "";
+        dadosCandidato["TxtIncPlanoOdontoTipo"] = idDescPlanoOdonto;
+        dadosCandidato["TxtIncPlanoOdontoTipoCod"] = codigoPlanoOdonto;
 
         var deps = [];
         var countDeps = 0;
@@ -3987,11 +4164,15 @@
         });
 
         var opcaoSelecionada = $div.find('#cand_ps_opcao_' + that.instanceId).val() || "";
-        $msgAviso.hide(); $container.hide();
+        $msgAviso.hide();
+        $container.hide();
 
-        if (opcaoSelecionada.indexOf("Opto") > -1) {
-            if (possuiElegivel) $container.show();
-            else $msgAviso.show();
+        if (that.isOpcaoPlanoSaudeOptante(opcaoSelecionada)) {
+            if (possuiElegivel) {
+                $container.show();
+            } else {
+                $msgAviso.show();
+            }
         }
     },
 
