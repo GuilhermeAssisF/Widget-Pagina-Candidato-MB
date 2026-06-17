@@ -21,6 +21,10 @@
         lgpd: "",
         manifesto: ""
     },
+    primeiroLinkDocsAbertos: {
+        proposta: false,
+        lgpd: false
+    },
     cameraFotoStream: null,
     fotoCapturadaDataUrl: "",
     fotoCapturadaBase64: "",
@@ -438,7 +442,11 @@
                                 });
                             }
                             if (that.idPdfProposta && that.idPdfLGPD) {
-                                $("#btn_gerar_assinar_primeiro_link_" + that.instanceId).fadeIn();
+                                $("#btn_gerar_assinar_primeiro_link_" + that.instanceId)
+                                    .show()
+                                    .prop("disabled", true)
+                                    .addClass("disabled")
+                                    .attr("title", "Abra a Carta Proposta e o Termo LGPD antes de assinar.");
                             }
                             // =========================================================
 
@@ -4459,7 +4467,12 @@
 
         var assinaturaCompleta = (statusProp === "assinado" && statusLgpd === "assinado");
 
-        $("#btn_gerar_assinar_primeiro_link_" + that.instanceId).toggle(!assinaturaCompleta);
+        $("#btn_gerar_assinar_primeiro_link_" + that.instanceId)
+            .show()
+            .prop("disabled", true)
+            .addClass("disabled")
+            .attr("title", "Abra a Carta Proposta e o Termo LGPD antes de assinar.");
+
         $("#status_assinatura_verificada_" + that.instanceId).toggle(assinaturaCompleta);
         $("#btn_gerar_assinar_" + that.instanceId).hide();
         $("#btn_gerar_assinar_lgpd_" + that.instanceId).hide();
@@ -4496,8 +4509,26 @@
         $d.find(".primeiro-link-card.manifesto-card").toggleClass("locked", !manifestoOk);
         $d.find(".primeiro-link-card.manifesto-card").toggleClass("assinado", manifestoOk);
 
-        // Se já assinou proposta + LGPD, não mostra mais o botão de assinar.
-        $("#btn_gerar_assinar_primeiro_link_" + this.instanceId).toggle(!assinaturaVerificada);
+        var abriuProposta = this.primeiroLinkDocsAbertos && this.primeiroLinkDocsAbertos.proposta === true;
+        var abriuLgpd = this.primeiroLinkDocsAbertos && this.primeiroLinkDocsAbertos.lgpd === true;
+        var podeAssinar = !assinaturaVerificada && propostaOk && lgpdOk && abriuProposta && abriuLgpd;
+
+        var $btnAssinarPrimeiroLink = $("#btn_gerar_assinar_primeiro_link_" + this.instanceId);
+
+        if (assinaturaVerificada) {
+            $btnAssinarPrimeiroLink
+                .hide()
+                .prop("disabled", true)
+                .removeClass("disabled")
+                .removeAttr("title");
+        } else {
+            $btnAssinarPrimeiroLink
+                .show()
+                .prop("disabled", !podeAssinar)
+                .toggleClass("disabled", !podeAssinar)
+                .attr("title", podeAssinar ? "" : "Abra a Carta Proposta e o Termo LGPD antes de assinar.");
+        }
+
         $("#status_assinatura_verificada_" + this.instanceId).toggle(assinaturaVerificada);
     },
 
@@ -4598,6 +4629,14 @@
         $("#iframe_visualizador_primeiro_link_" + this.instanceId).attr("src", src);
         $("#customModalDocumento_" + this.instanceId).css("display", "flex");
         this.currentPrimeiroLinkBlobUrl = (String(src || "").indexOf("blob:") === 0) ? src : "";
+
+        if (tipo === "Carta Proposta") {
+            this.primeiroLinkDocsAbertos.proposta = true;
+        } else if (tipo === "Termo LGPD") {
+            this.primeiroLinkDocsAbertos.lgpd = true;
+        }
+
+        this.atualizarCartoesPrimeiroLink();
     },
 
     fecharVisualizadorPrimeiroLink: function () {
