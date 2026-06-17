@@ -2432,6 +2432,45 @@
             }
         });
 
+        function atualizarCamposCTPS() {
+            var tipoCtps = ($("#cand_tipo_ctps_" + that.instanceId).val() || "").toLowerCase();
+
+            var isFisica =
+                tipoCtps === "fisica" ||
+                tipoCtps === "física" ||
+                tipoCtps.indexOf("fis") > -1;
+
+            var $camposCtpsFisica = $()
+                .add($("#cand_ctps_numero_" + that.instanceId).closest(".form-group"))
+                .add($("#cand_ctps_serie_" + that.instanceId).closest(".form-group"))
+                .add($("#cand_ctps_uf_" + that.instanceId).closest(".form-group"))
+                .add($("#cand_ctps_data_emissao_" + that.instanceId).closest(".form-group"));
+
+            if (isFisica) {
+                $camposCtpsFisica.show();
+            } else {
+                $camposCtpsFisica.hide();
+
+                $("#cand_ctps_numero_" + that.instanceId).val("");
+                $("#cand_ctps_serie_" + that.instanceId).val("");
+                $("#cand_ctps_uf_" + that.instanceId).val("");
+                $("#cand_ctps_data_emissao_" + that.instanceId).val("");
+            }
+
+            AdmissaoObrigatoriedade.atualizarAsteriscos(that);
+        }
+
+        $div.on('change', '#cand_tipo_ctps_' + this.instanceId, function (e) {
+            atualizarCamposCTPS();
+
+            if (!e.originalEvent) return;
+            if (that.bloqueioRestauracaoAtivo || that.carregandoDadosIniciais) return;
+
+            that.salvarRascunhoLocal();
+        });
+
+        atualizarCamposCTPS();
+
         $div.on('change', '#cand_sexo_' + that.instanceId, function () {
             var val = $(this).val();
             if (val === "Masculino" || val === "M") {
@@ -2849,6 +2888,14 @@
         var optouPlanoSaude = ($div.find("#cand_ps_opcao_" + that.instanceId).val() || "").indexOf("Opto") !== -1;
         var optouPlanoOdonto = $div.find("#cand_po_opcao_" + that.instanceId).val() === "Sim";
 
+        var tipoCtpsValor = $div.find("#cand_tipo_ctps_" + that.instanceId).val() || "";
+        var tipoCtpsNormalizado = tipoCtpsValor
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+        var ctpsFisicaSelecionada = tipoCtpsNormalizado.indexOf("fis") > -1;
+
         // MONTAGEM DO JSON QUE VAI PARA O FLUIG
         var dadosCandidato = {
             "origem_dados": "widget_saveAndSendTask",
@@ -2900,11 +2947,11 @@
             "PIS": $div.find("#cand_pis_" + that.instanceId).val(),
             "PIS_Ano_Primeiro_Emp": $div.find("#cand_ano_primeiro_emprego_" + that.instanceId).val(),
 
-            "CTPS_Fisica_Digital": $div.find("#cand_tipo_ctps_" + that.instanceId).val(),
-            "txtCartTrab": $div.find("#cand_ctps_numero_" + that.instanceId).val(),
-            "txtSerieCart": $div.find("#cand_ctps_serie_" + that.instanceId).val(),
-            "UFCARTTRAB": $div.find("#cand_ctps_uf_" + that.instanceId).val(),
-            "dtDataEmissaoCartTrab": formatarDataBR($div.find("#cand_ctps_data_emissao_" + that.instanceId).val()),
+            "CTPS_Fisica_Digital": tipoCtpsValor,
+            "txtCartTrab": ctpsFisicaSelecionada ? $div.find("#cand_ctps_numero_" + that.instanceId).val() : "",
+            "txtSerieCart": ctpsFisicaSelecionada ? $div.find("#cand_ctps_serie_" + that.instanceId).val() : "",
+            "UFCARTTRAB": ctpsFisicaSelecionada ? $div.find("#cand_ctps_uf_" + that.instanceId).val() : "",
+            "dtDataEmissaoCartTrab": ctpsFisicaSelecionada ? formatarDataBR($div.find("#cand_ctps_data_emissao_" + that.instanceId).val()) : "",
 
             "txtCNH_Possui": possuiCNH, "CARTMOTORISTA": dadosCNH.numero, "TIPOCARTHABILIT": dadosCNH.tipo,
             "DTVENCHABILIT": dadosCNH.vencimento, "ORGEMISSORCNH": dadosCNH.orgao, "DTEMISSAOCNH": dadosCNH.emissao,
