@@ -1,8 +1,8 @@
 // Arquivo: resources/js/mock_dados_teste.js
 
-$(document).ready(function() {
+$(document).ready(function () {
     // Aguarda a renderização da widget
-    setTimeout(function() {
+    setTimeout(function () {
         criarBotaoPreenchimento();
     }, 1000);
 });
@@ -17,13 +17,13 @@ function criarBotaoPreenchimento() {
 
     // Cria o botão de teste
     var btnHtml = '<button type="button" class="btn btn-warning btn-sm pull-right" id="btn_mock_teste_' + instanceId + '" style="margin: 10px; z-index:9999; position:relative;">' +
-                  '<i class="flaticon flaticon-science"></i> Preencher Dados Teste' +
-                  '</button>';
-    
+        '<i class="flaticon flaticon-science"></i> Preencher Dados Teste' +
+        '</button>';
+
     $container.find(".text-center").first().prepend(btnHtml);
 
     // Evento de clique
-    $("#btn_mock_teste_" + instanceId).on("click", function() {
+    $("#btn_mock_teste_" + instanceId).on("click", function () {
         preencherTudo(instanceId);
     });
 }
@@ -93,8 +93,8 @@ function preencherTudo(id) {
     setVal("cand_banco_" + id, "341"); // Itaú
     setVal("cand_agencia_" + id, "1234");
     setVal("cand_conta_corrente_" + id, "12345-6");
-    setVal("cand_tipo_conta_" + id, "Corrente"); 
-    setVal("cand_tipo_pix_" + id, "CPF");        
+    setVal("cand_tipo_conta_" + id, "Corrente");
+    setVal("cand_tipo_pix_" + id, "CPF");
     setVal("cand_chave_pix_" + id, "123.456.789-00"); // Chave PIX livre
 
     // =========================================================================
@@ -119,7 +119,7 @@ function preencherTudo(id) {
 
     // setVal("cand_cartao_sus_" + id, "123456789012345");
 
-    setVal("cand_reservista_possuo_" + id, "Sim"); 
+    setVal("cand_reservista_possuo_" + id, "Sim");
     setVal("cand_reservista_numero_" + id, "123456789");
     setVal("cand_reservista_categoria_" + id, "1");
     setVal("cand_reservista_circunscricao_" + id, "2 CSM");
@@ -149,7 +149,7 @@ function preencherTudo(id) {
     // =========================================================================
     // FORMAÇÃO
     // =========================================================================
-    setVal("cand_grau_instrucao_" + id, "Superior Completo"); 
+    setVal("cand_grau_instrucao_" + id, "Superior Completo");
     setVal("cand_ano_conclusao_" + id, "2019");
     setVal("cand_curso_" + id, "Engenharia de Software");
     setVal("cand_instituicao_" + id, "Universidade Fictícia");
@@ -217,25 +217,32 @@ function preencherTudo(id) {
 
 function mockDependentes(id) {
     var $container = $("#container_dependentes_" + id);
-    
+
     // 1. PREENCHER A MÃE (Que já existe na tela por padrão no Card)
     var $cardMae = null;
-    $container.find(".dependente-card").each(function() {
+    $container.find(".dependente-card").each(function () {
         if ($(this).find(".dep-parentesco").val() === "Mae") {
             $cardMae = $(this);
         }
     });
 
     if ($cardMae && $cardMae.length > 0) {
-        $cardMae.find(".dep-parentesco").val("Mãe").trigger("change");
+        $cardMae.find(".dep-parentesco").val("Mae").trigger("change");
         $cardMae.find(".dep-nome").val("Maria da Silva").trigger("change");
         $cardMae.find(".dep-cpf").val("162.271.276-55").trigger("change"); // CPF VÁLIDO
         $cardMae.find(".dep-rg").val("12.345.678-9").trigger("change");
         // $cardMae.find(".dep-sus").val("123456789012345").trigger("change");
         $cardMae.find(".dep-nasc").val("1970-05-10").trigger("change");
         $cardMae.find(".dep-est-civil").val("Casado").trigger("change");
-        $cardMae.find(".dep-sexo").val("Feminino").trigger("change"); 
+        $cardMae.find(".dep-sexo").val("Feminino").trigger("change");
         // $cardMae.find(".dep-sf").val("Nao").trigger("change"); 
+        $cardMae.find(".dep-possui-deficiencia")
+            .val("Sim")
+            .trigger("change");
+
+        $cardMae.find(".dep-tipo-deficiencia")
+            .val("Visual")
+            .trigger("change");
         $cardMae.find(".dep-obs").val("Mock Dependente Mãe").trigger("change");
 
         // Mock upload da Mãe
@@ -252,7 +259,7 @@ function mockUploadVisual(prefixo, instanceId, fileName) {
 
     // Atualiza o visual (CSS) para ficar verde
     var $box = $("#box_" + prefixo + "_" + instanceId);
-    if($box.length > 0) {
+    if ($box.length > 0) {
         $box.css({ "border": "2px solid #5cb85c", "background-color": "#dff0d8", "opacity": "1" });
         $box.find("i.flaticon").removeClass("text-info flaticon-upload").addClass("text-success flaticon-check-circle-on");
         $box.find("p").html('<b>Arquivo Anexado:</b><br><span style="font-size:12px;">' + fileName + '</span>');

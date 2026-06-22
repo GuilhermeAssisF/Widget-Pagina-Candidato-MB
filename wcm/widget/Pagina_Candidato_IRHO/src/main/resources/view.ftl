@@ -1688,199 +1688,199 @@
                   </div>
                 </div>
                 <#-- <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <i class="flaticon flaticon-briefcase">
-                    </i>
+<div class="panel-heading">
+<i class="flaticon flaticon-briefcase">
+</i>
                     PIS / Primeiro Emprego
                   </div>
-                  <div class="panel-body">
-                    <div class="row">
-                      <div class="form-group col-md-5">
-                        <label>
+<div class="panel-body">
+<div class="row">
+<div class="form-group col-md-5">
+<label>
                           É Primeiro Emprego (Não possui PIS)?
                         </label>
-                        <select class="form-control" id="cand_primeiro_emprego_${instanceId}">
-                          <option value="">
+<select class="form-control" id="cand_primeiro_emprego_${instanceId}">
+<option value="">
                             Selecione...
                           </option>
-                          <option value="Sim">
+<option value="Sim">
                             Sim
                           </option>
-                          <option value="Nao">
+<option value="Nao">
                             Não
                           </option>
-                        </select>
-                      </div>
-                      <div class="col-md-3 form-group" id="div_cand_pis_${instanceId}">
-                        <label>
+</select>
+</div>
+<div class="col-md-3 form-group" id="div_cand_pis_${instanceId}">
+<label>
                           Número do PIS
                         </label>
-                        <input type="text" class="form-control" id="cand_pis_${instanceId}" mask="000.00000.00-0">
-                      </div>
-                      <div class="col-md-4 form-group" id="div_cand_ano_primeiro_emprego_${instanceId}">
-                        <label>
+<input type="text" class="form-control" id="cand_pis_${instanceId}" mask="000.00000.00-0">
+</div>
+<div class="col-md-4 form-group" id="div_cand_ano_primeiro_emprego_${instanceId}">
+<label>
                           Ano do Primeiro Emprego
                         </label>
-                        <input type="text" class="form-control" id="cand_ano_primeiro_emprego_${instanceId}" maxlength="4" placeholder="Ex: 2018">
-                      </div>
-                    </div>
-                  </div>
-                </div> -->
+<input type="text" class="form-control" id="cand_ano_primeiro_emprego_${instanceId}" maxlength="4" placeholder="Ex: 2018">
+</div>
+</div>
+</div>
+</div> -->
                 <#-- <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <i class="flaticon flaticon-book">
-                    </i>
+<div class="panel-heading">
+<i class="flaticon flaticon-book">
+</i>
                     Carteira de Trabalho (CTPS)
                   </div>
-                  <div class="panel-body">
-                    <div class="row">
-                      <div class="form-group col-md-4">
-                        <label>
+<div class="panel-body">
+<div class="row">
+<div class="form-group col-md-4">
+<label>
                           Carteira Física ou Digital?
                         </label>
-                        <select class="form-control" id="cand_tipo_ctps_${instanceId}">
-                          <option value="">
+<select class="form-control" id="cand_tipo_ctps_${instanceId}">
+<option value="">
                             Selecione...
                           </option>
-                          <option value="Digital">
+<option value="Digital">
                             Digital
                           </option>
-                          <option value="Fisica">
+<option value="Fisica">
                             Física
                           </option>
-                        </select>
-                      </div>
-                      <div class="form-group col-md-4">
-                        <label>
+</select>
+</div>
+<div class="form-group col-md-4">
+<label>
                           Número da Carteira
                         </label>
-                        <input type="text" class="form-control" id="cand_ctps_numero_${instanceId}">
-                      </div>
-                      <div class="form-group col-md-4">
-                        <label>
+<input type="text" class="form-control" id="cand_ctps_numero_${instanceId}">
+</div>
+<div class="form-group col-md-4">
+<label>
                           Série
                         </label>
-                        <input type="text" class="form-control" id="cand_ctps_serie_${instanceId}">
-                      </div>
-                    </div>
-                    <div class="row">
-                      <div class="form-group col-md-4">
-                        <label>
+<input type="text" class="form-control" id="cand_ctps_serie_${instanceId}">
+</div>
+</div>
+<div class="row">
+<div class="form-group col-md-4">
+<label>
                           Data de Emissão
                         </label>
-                        <input type="text" class="form-control fluig-calendar" id="cand_ctps_data_emissao_${instanceId}" placeholder="DD/MM/AAAA">
-                      </div>
-                      <div class="form-group col-md-4">
-                        <label>
+<input type="text" class="form-control fluig-calendar" id="cand_ctps_data_emissao_${instanceId}" placeholder="DD/MM/AAAA">
+</div>
+<div class="form-group col-md-4">
+<label>
                           UF da CTPS
                         </label>
-                        <select class="form-control" id="cand_ctps_uf_${instanceId}">
-                          <option value="">
+<select class="form-control" id="cand_ctps_uf_${instanceId}">
+<option value="">
                             Selecione...
                           </option>
-                          <option value="AC">
+<option value="AC">
                             AC
                           </option>
-                          <option value="AL">
+<option value="AL">
                             AL
                           </option>
-                          <option value="AP">
+<option value="AP">
                             AP
                           </option>
-                          <option value="AM">
+<option value="AM">
                             AM
                           </option>
-                          <option value="BA">
+<option value="BA">
                             BA
                           </option>
-                          <option value="CE">
+<option value="CE">
                             CE
                           </option>
-                          <option value="DF">
+<option value="DF">
                             DF
                           </option>
-                          <option value="ES">
+<option value="ES">
                             ES
                           </option>
-                          <option value="GO">
+<option value="GO">
                             GO
                           </option>
-                          <option value="MA">
+<option value="MA">
                             MA
                           </option>
-                          <option value="MT">
+<option value="MT">
                             MT
                           </option>
-                          <option value="MS">
+<option value="MS">
                             MS
                           </option>
-                          <option value="MG">
+<option value="MG">
                             MG
                           </option>
-                          <option value="PA">
+<option value="PA">
                             PA
                           </option>
-                          <option value="PB">
+<option value="PB">
                             PB
                           </option>
-                          <option value="PR">
+<option value="PR">
                             PR
                           </option>
-                          <option value="PE">
+<option value="PE">
                             PE
                           </option>
-                          <option value="PI">
+<option value="PI">
                             PI
                           </option>
-                          <option value="RJ">
+<option value="RJ">
                             RJ
                           </option>
-                          <option value="RN">
+<option value="RN">
                             RN
                           </option>
-                          <option value="RS">
+<option value="RS">
                             RS
                           </option>
-                          <option value="RO">
+<option value="RO">
                             RO
                           </option>
-                          <option value="RR">
+<option value="RR">
                             RR
                           </option>
-                          <option value="SC">
+<option value="SC">
                             SC
                           </option>
-                          <option value="SP">
+<option value="SP">
                             SP
                           </option>
-                          <option value="SE">
+<option value="SE">
                             SE
                           </option>
-                          <option value="TO">
+<option value="TO">
                             TO
                           </option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div> -->
+</select>
+</div>
+</div>
+</div>
+</div> -->
                 <#-- <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <i class="fa-solid fa-heart-pulse">
-                    </i>
+<div class="panel-heading">
+<i class="fa-solid fa-heart-pulse">
+</i>
                     Cartão SUS
                   </div>
-                  <div class="panel-body">
-                    <div class="row">
-                      <div class="form-group col-md-4">
-                        <label>
+<div class="panel-body">
+<div class="row">
+<div class="form-group col-md-4">
+<label>
                           Número do Cartão SUS
                         </label>
-                        <input type="text" class="form-control" id="cand_cartao_sus_${instanceId}">
-                      </div>
-                    </div>
-                  </div>
-                </div> -->
+<input type="text" class="form-control" id="cand_cartao_sus_${instanceId}">
+</div>
+</div>
+</div>
+</div> -->
                 <div class="panel panel-default">
                   <div class="panel-heading">
                     <i class="fa-solid fa-id-badge">
@@ -2454,12 +2454,61 @@
                       </div>
                     </div>
                     <div class="row">
-                      <#-- <div class="form-group col-md-4">
+                      <div class="form-group col-md-4">
                         <label>
+                          Possui Deficiência?
+                        </label>
+                        <select class="form-control dep-possui-deficiencia">
+                          <option value="">
+                            Selecione...
+                          </option>
+                          <option value="Nao">
+                            Não
+                          </option>
+                          <option value="Sim">
+                            Sim
+                          </option>
+                        </select>
+                      </div>
+                      <div class="form-group col-md-8 div-dep-tipo-deficiencia" style="display:none;">
+                        <label>
+                          Tipo de Deficiência
+                        </label>
+                        <select class="form-control dep-tipo-deficiencia">
+                          <option value="">
+                            Selecione...
+                          </option>
+                          <option value="Fisica">
+                            Física
+                          </option>
+                          <option value="Auditiva">
+                            Auditiva
+                          </option>
+                          <option value="Fala">
+                            Fala
+                          </option>
+                          <option value="Visual">
+                            Visual
+                          </option>
+                          <option value="Mental">
+                            Mental
+                          </option>
+                          <option value="Intelectual">
+                            Intelectual
+                          </option>
+                          <option value="Reabilitado">
+                            Reabilitado
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <#-- <div class="form-group col-md-4">
+<label>
                           Cartão SUS
                         </label>
-                        <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
-                      </div> -->
+<input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
+</div> -->
                       <div class="form-group col-md-12">
                         <label>
                           Observação
@@ -2495,18 +2544,18 @@
                         </select>
                       </div>
                       <#-- <div class="col-md-3 form-group div-salario-familia" style="display: none;">
-                        <label>
+<label>
                           Salário Família?
                         </label>
-                        <select class="form-control dep-sf">
-                          <option value="Nao">
+<select class="form-control dep-sf">
+<option value="Nao">
                             Não
                           </option>
-                          <option value="Sim">
+<option value="Sim">
                             Sim
                           </option>
-                        </select>
-                      </div> -->
+</select>
+</div> -->
                     </div>
                   </div>
                 </div>
@@ -3103,13 +3152,141 @@
                 <input type="text" class="form-control dep-rg" placeholder="Número do RG">
               </div>
             </div>
+            <div class="panel panel-default div-dados-mae-filho"
+     style="display:none; margin-top:15px;">
+              <div class="panel-heading">
+                <h5 class="panel-title">
+                  <i class="flaticon flaticon-person icon-sm">
+                  </i>
+                  Dados da Mãe do Dependente
+                </h5>
+              </div>
+              <div class="panel-body">
+                <div class="row">
+                  <div class="form-group col-md-6">
+                    <label>
+                      Nome Completo da Mãe
+                    </label>
+                    <input type="text"
+                       class="form-control dep-mae-nome"
+                       placeholder="Nome completo da mãe">
+                  </div>
+                  <div class="form-group col-md-3">
+                    <label>
+                      CPF da Mãe
+                    </label>
+                    <input type="text"
+                       class="form-control dep-mae-cpf"
+                       mask="000.000.000-00">
+                  </div>
+                  <div class="form-group col-md-3">
+                    <label>
+                      RG da Mãe
+                    </label>
+                    <input type="text"
+                       class="form-control dep-mae-rg"
+                       placeholder="Número do RG">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group col-md-4">
+                    <label>
+                      Data de Nascimento da Mãe
+                    </label>
+                    <input type="text"
+                       class="form-control fluig-calendar dep-mae-nasc"
+                       placeholder="DD/MM/AAAA">
+                  </div>
+                  <div class="form-group col-md-4">
+                    <label>
+                      Estado Civil da Mãe
+                    </label>
+                    <select class="form-control dep-mae-est-civil">
+                      <option value="Solteiro">
+                        Solteira
+                      </option>
+                      <option value="Casado">
+                        Casada
+                      </option>
+                      <option value="Divorciado">
+                        Divorciada
+                      </option>
+                      <option value="Viuvo">
+                        Viúva
+                      </option>
+                      <option value="Uniao Estavel">
+                        União Estável
+                      </option>
+                      <option value="Separado">
+                        Separada
+                      </option>
+                      <option value="Desquitado">
+                        Desquitada
+                      </option>
+                      <option value="Outros">
+                        Outros
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-md-4">
+                <label>
+                  Possui Deficiência?
+                </label>
+                <select class="form-control dep-possui-deficiencia">
+                  <option value="">
+                    Selecione...
+                  </option>
+                  <option value="Nao">
+                    Não
+                  </option>
+                  <option value="Sim">
+                    Sim
+                  </option>
+                </select>
+              </div>
+              <div class="form-group col-md-8 div-dep-tipo-deficiencia" style="display:none;">
+                <label>
+                  Tipo de Deficiência
+                </label>
+                <select class="form-control dep-tipo-deficiencia">
+                  <option value="">
+                    Selecione...
+                  </option>
+                  <option value="Fisica">
+                    Física
+                  </option>
+                  <option value="Auditiva">
+                    Auditiva
+                  </option>
+                  <option value="Fala">
+                    Fala
+                  </option>
+                  <option value="Visual">
+                    Visual
+                  </option>
+                  <option value="Mental">
+                    Mental
+                  </option>
+                  <option value="Intelectual">
+                    Intelectual
+                  </option>
+                  <option value="Reabilitado">
+                    Reabilitado
+                  </option>
+                </select>
+              </div>
+            </div>
             <div class="row">
               <#-- <div class="form-group col-md-4">
-                <label>
+<label>
                   Cartão SUS
                 </label>
-                <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
-              </div> -->
+<input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
+</div> -->
               <div class="form-group col-md-12">
                 <label>
                   Observação
@@ -3145,18 +3322,18 @@
                 </select>
               </div>
               <#-- <div class="col-md-3 form-group div-salario-familia" style="display: none;">
-                <label>
+<label>
                   Salário Família?
                 </label>
-                <select class="form-control dep-sf">
-                  <option value="Nao">
+<select class="form-control dep-sf">
+<option value="Nao">
                     Não
                   </option>
-                  <option value="Sim">
+<option value="Sim">
                     Sim
                   </option>
-                </select>
-              </div> -->
+</select>
+</div> -->
             </div>
             <div class="row div-docs-dependente" style="display: none; margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px;">
               <div class="col-md-12">

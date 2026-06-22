@@ -1289,6 +1289,7 @@
                     try {
                         $card.find(".dep-parentesco").trigger("change");
                         $card.find(".dep-nasc").trigger("change");
+                        $card.find(".dep-possui-deficiencia").trigger("change");
 
                         setTimeout(function () {
                             try {
@@ -2067,6 +2068,7 @@
 
                     $ultimoCard.find(".dep-parentesco").trigger('change');
                     $ultimoCard.find(".dep-nasc").trigger("change");
+                    $ultimoCard.find(".dep-possui-deficiencia").trigger("change");
 
                     setTimeout(function () {
                         for (var ckDoc in depData) {
@@ -2283,6 +2285,26 @@
                 that.renderizarDocumentosFixos();
             });
 
+        var camposDadosMaeCandidata =
+            "#cand_sexo_" + that.instanceId + ", " +
+            "#cand_nomeCompleto_" + that.instanceId + ", " +
+            "#cand_cpf_" + that.instanceId + ", " +
+            "#cand_rg_" + that.instanceId + ", " +
+            "#cand_nascimento_" + that.instanceId + ", " +
+            "#cand_estado_civil_" + that.instanceId;
+
+        $div
+            .off("change.maeFilho input.maeFilho", camposDadosMaeCandidata)
+            .on(
+                "change.maeFilho input.maeFilho",
+                camposDadosMaeCandidata,
+                function () {
+                    $div.find(".dependente-card").each(function () {
+                        that.atualizarDadosMaeFilho($(this));
+                    });
+                }
+            );
+
         // Lógica de Banco Itaú
         $div.off("change", "#cand_possui_conta_itau_" + this.instanceId).on("change", "#cand_possui_conta_itau_" + this.instanceId, function () {
             var valor = $(this).val();
@@ -2403,7 +2425,16 @@
             // }
 
             that.atualizarVisibilidadeIncidenciasDependente($card);
+            that.atualizarDadosMaeFilho($card);
         });
+
+        $div.off("change", ".dep-possui-deficiencia")
+            .on("change", ".dep-possui-deficiencia", function () {
+                var $card = $(this).closest(".dependente-card");
+
+                that.atualizarVisibilidadeDeficienciaDependente($card);
+                AdmissaoObrigatoriedade.atualizarAsteriscos(that);
+            });
 
         // CONSULTA CPF DEPENDENTE
         $div.off("blur", ".dep-cpf").on("blur", ".dep-cpf", function () {
@@ -2666,6 +2697,8 @@
                 $div.find("#cand_reservista_categoria_" + that.instanceId + ", #cand_reservista_circunscricao_" + that.instanceId + ", #cand_reservista_regiao_" + that.instanceId + ", #cand_reservista_orgao_" + that.instanceId).val("");
             }
         });
+
+
 
         $div.on("input", ".fluig-calendar", function () {
             $(this).val(that.mascaraData($(this).val()));
@@ -3372,6 +3405,38 @@
             dadosCandidato["TxtRgDep___" + i] = $card.find(".dep-rg").val();
             // dadosCandidato["TxtCartaoSusDep___" + i] = $card.find(".dep-sus").val();
             dadosCandidato["TxtObsDep___" + i] = $card.find(".dep-obs").val();
+
+            var isFilho = parentesco === "Filho";
+
+            dadosCandidato["TxtNomeMaeDep___" + i] =
+                isFilho ? ($card.find(".dep-mae-nome").val() || "") : "";
+
+            dadosCandidato["TxtCPFMaeDep___" + i] =
+                isFilho ? ($card.find(".dep-mae-cpf").val() || "") : "";
+
+            dadosCandidato["TxtRgMaeDep___" + i] =
+                isFilho ? ($card.find(".dep-mae-rg").val() || "") : "";
+
+            dadosCandidato["cpDataNascMaeDep___" + i] =
+                isFilho
+                    ? formatarDataBR($card.find(".dep-mae-nasc").val())
+                    : "";
+
+            dadosCandidato["TxtEstCivilMaeDep___" + i] =
+                isFilho
+                    ? ($card.find(".dep-mae-est-civil").val() || "")
+                    : "";
+
+            var possuiDeficienciaDep =
+                $card.find(".dep-possui-deficiencia").val() || "";
+
+            dadosCandidato["TxtPossuiDeficienciaDep___" + i] =
+                possuiDeficienciaDep;
+
+            dadosCandidato["TxtTipoDeficienciaDep___" + i] =
+                possuiDeficienciaDep === "Sim"
+                    ? ($card.find(".dep-tipo-deficiencia").val() || "")
+                    : "";
 
             // INCIDÊNCIAS
             dadosCandidato["TxtIncIRRF___" + i] = ($card.find(".dep-irrf").val() === "Sim" ? "1" : "0");
@@ -4116,6 +4181,113 @@
         }
     },
 
+    atualizarVisibilidadeDeficienciaDependente: function ($card) {
+        if (!$card || !$card.length) return;
+
+        var possuiDeficiencia =
+            $card.find(".dep-possui-deficiencia").val() || "";
+
+        var $blocoTipo =
+            $card.find(".div-dep-tipo-deficiencia");
+
+        var $tipoDeficiencia =
+            $card.find(".dep-tipo-deficiencia");
+
+        if (possuiDeficiencia === "Sim") {
+            $blocoTipo.show();
+        } else {
+            $blocoTipo.hide();
+            $tipoDeficiencia.val("");
+        }
+    },
+
+    atualizarDadosMaeFilho: function ($card) {
+        if (!$card || !$card.length) {
+            return;
+        }
+
+        var that = this;
+        var parentesco = $card.find(".dep-parentesco").val() || "";
+        var isFilho = parentesco === "Filho";
+
+        var $bloco = $card.find(".div-dados-mae-filho");
+
+        var $camposMae = $card.find(
+            ".dep-mae-nome, " +
+            ".dep-mae-cpf, " +
+            ".dep-mae-rg, " +
+            ".dep-mae-nasc, " +
+            ".dep-mae-est-civil"
+        );
+
+        if (!isFilho) {
+            $bloco.hide();
+
+            $camposMae
+                .val("")
+                .prop("readonly", false)
+                .removeAttr("data-mae-automatica")
+                .css({
+                    "pointer-events": "auto",
+                    "background-color": "#fff"
+                });
+
+            return;
+        }
+
+        $bloco.show();
+
+        var sexoCandidato =
+            $("#cand_sexo_" + that.instanceId).val() || "";
+
+        var candidataEhMae =
+            sexoCandidato === "Feminino" ||
+            sexoCandidato === "F";
+
+        if (candidataEhMae) {
+            $card.find(".dep-mae-nome")
+                .val($("#cand_nomeCompleto_" + that.instanceId).val() || "");
+
+            $card.find(".dep-mae-cpf")
+                .val($("#cand_cpf_" + that.instanceId).val() || "");
+
+            $card.find(".dep-mae-rg")
+                .val($("#cand_rg_" + that.instanceId).val() || "");
+
+            $card.find(".dep-mae-nasc")
+                .val($("#cand_nascimento_" + that.instanceId).val() || "");
+
+            $card.find(".dep-mae-est-civil")
+                .val($("#cand_estado_civil_" + that.instanceId).val() || "");
+
+            $camposMae
+                .attr("data-mae-automatica", "true")
+                .prop("readonly", true)
+                .attr("tabindex", "-1")
+                .css({
+                    "pointer-events": "none",
+                    "background-color": "#eee"
+                });
+        } else {
+            $camposMae.each(function () {
+                var $campo = $(this);
+
+                if ($campo.attr("data-mae-automatica") === "true") {
+                    $campo.val("");
+                }
+
+                $campo
+                    .removeAttr("data-mae-automatica")
+                    .removeAttr("tabindex")
+                    .prop("readonly", false)
+                    .css({
+                        "pointer-events": "auto",
+                        "background-color": "#fff"
+                    });
+            });
+        }
+    },
+
     atualizarVisibilidadeDocsDependente: function ($card) {
         if (!$card || !$card.length) return;
 
@@ -4230,6 +4402,12 @@
             pickTime: false
         });
 
+        FLUIGC.calendar($card.find(".dep-mae-nasc"), {
+            language: "pt-br",
+            pickDate: true,
+            pickTime: false
+        });
+
         // CORREÇÃO AQUI: O card vem com display:none do HTML, então forçamos ele a aparecer!
         $card.slideDown(300);
 
@@ -4246,7 +4424,9 @@
 
         setTimeout(function () {
             that.atualizarVisibilidadeDocsDependente($card);
+            that.atualizarVisibilidadeDeficienciaDependente($card);
             that.atualizarVisibilidadeIncidenciasDependente($card);
+            that.atualizarDadosMaeFilho($card);
         }, 350);
     },
     removerDependente: function (el) { $(el).closest('.dependente-card').fadeOut(function () { $(this).remove(); }); },

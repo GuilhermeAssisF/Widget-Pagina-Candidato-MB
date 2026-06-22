@@ -139,12 +139,68 @@ var AdmissaoObrigatoriedade = {
         if (isCLT) {
             $div.find(".dependente-card").each(function () {
                 var $card = $(this);
-                ["dep-parentesco", "dep-nome", "dep-sexo", "dep-cpf", "dep-nasc"].forEach(function (cls) {
-                    var $label = $card.find("." + cls).closest(".form-group").find("label").first();
-                    if ($label.length && $label.find(".asterisco-dinamico").length === 0) {
-                        $label.append(' <span class="text-danger asterisco-dinamico">*</span>');
+                [
+                    "dep-parentesco",
+                    "dep-nome",
+                    "dep-sexo",
+                    "dep-cpf",
+                    "dep-nasc",
+                    "dep-possui-deficiencia"
+                ].forEach(function (cls) {
+                    var $label = $card
+                        .find("." + cls)
+                        .closest(".form-group")
+                        .find("label")
+                        .first();
+
+                    if (
+                        $label.length &&
+                        $label.find(".asterisco-dinamico").length === 0
+                    ) {
+                        $label.append(
+                            ' <span class="text-danger asterisco-dinamico">*</span>'
+                        );
                     }
                 });
+
+                if ($card.find(".dep-possui-deficiencia").val() === "Sim") {
+                    var $labelTipoDeficiencia = $card
+                        .find(".dep-tipo-deficiencia")
+                        .closest(".form-group")
+                        .find("label")
+                        .first();
+
+                    if (
+                        $labelTipoDeficiencia.length &&
+                        $labelTipoDeficiencia.find(".asterisco-dinamico").length === 0
+                    ) {
+                        $labelTipoDeficiencia.append(
+                            ' <span class="text-danger asterisco-dinamico">*</span>'
+                        );
+                    }
+                }
+
+                if ($card.find(".dep-parentesco").val() === "Filho") {
+                    [
+                        "dep-mae-nome",
+                        "dep-mae-cpf"
+                    ].forEach(function (cls) {
+                        var $labelMae = $card
+                            .find("." + cls)
+                            .closest(".form-group")
+                            .find("label")
+                            .first();
+
+                        if (
+                            $labelMae.length &&
+                            $labelMae.find(".asterisco-dinamico").length === 0
+                        ) {
+                            $labelMae.append(
+                                ' <span class="text-danger asterisco-dinamico">*</span>'
+                            );
+                        }
+                    });
+                }
             });
         }
     },
@@ -214,13 +270,72 @@ var AdmissaoObrigatoriedade = {
                         { cls: "dep-nome", nome: "Nome" },
                         { cls: "dep-sexo", nome: "Sexo" },
                         { cls: "dep-cpf", nome: "CPF" },
-                        { cls: "dep-nasc", nome: "Nascimento" }
+                        { cls: "dep-nasc", nome: "Nascimento" },
+                        {
+                            cls: "dep-possui-deficiencia",
+                            nome: "Possui Deficiência?"
+                        }
                     ];
 
                     for (var d = 0; d < obgDeps.length; d++) {
                         var $f = $card.find("." + obgDeps[d].cls);
                         if ($f.length && (!$f.val() || $f.val().trim() === "")) {
                             return erro("O campo <strong>" + obgDeps[d].nome + "</strong> do dependente " + (index + 1) + " é obrigatório.", $f);
+                        }
+                    }
+
+                    var possuiDeficiencia =
+                        $card.find(".dep-possui-deficiencia").val();
+
+                    if (possuiDeficiencia === "Sim") {
+                        var $tipoDeficiencia =
+                            $card.find(".dep-tipo-deficiencia");
+
+                        if (
+                            !$tipoDeficiencia.val() ||
+                            $tipoDeficiencia.val().trim() === ""
+                        ) {
+                            return erro(
+                                "O campo <strong>Tipo de Deficiência</strong> do dependente " +
+                                (index + 1) +
+                                " é obrigatório.",
+                                $tipoDeficiencia
+                            );
+                        }
+                    }
+
+                    var parentescoDependente =
+                        $card.find(".dep-parentesco").val() || "";
+
+                    if (parentescoDependente === "Filho") {
+                        var camposMaeObrigatorios = [
+                            {
+                                cls: "dep-mae-nome",
+                                nome: "Nome da Mãe"
+                            },
+                            {
+                                cls: "dep-mae-cpf",
+                                nome: "CPF da Mãe"
+                            }
+                        ];
+
+                        for (var m = 0; m < camposMaeObrigatorios.length; m++) {
+                            var $campoMae =
+                                $card.find("." + camposMaeObrigatorios[m].cls);
+
+                            if (
+                                !$campoMae.val() ||
+                                $campoMae.val().trim() === ""
+                            ) {
+                                return erro(
+                                    "O campo <strong>" +
+                                    camposMaeObrigatorios[m].nome +
+                                    "</strong> do dependente " +
+                                    (index + 1) +
+                                    " é obrigatório.",
+                                    $campoMae
+                                );
+                            }
                         }
                     }
 
