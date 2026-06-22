@@ -8,10 +8,7 @@ var AdmissaoObrigatoriedade = {
 
         // Verifica a filial para decidir se exige medidas (Roupas/EPI)
         var filialUpper = (widget.nomeFilial || "").toUpperCase();
-        var exigeMedidas = (filialUpper.indexOf("LAJINHA") > -1 ||
-            filialUpper.indexOf("BREJETUBA") > -1 ||
-            filialUpper.indexOf("PARAGUACU") > -1 ||
-            filialUpper.indexOf("PARAGUAÇU") > -1);
+        var exigeMedidas = false;
 
         // Função auxiliar para pegar valor do campo
         var val = function (id) { return $("#" + id + "_" + widget.instanceId).val(); };
@@ -55,9 +52,9 @@ var AdmissaoObrigatoriedade = {
             "cand_tipo_deficiencia": function () { return val("cand_possui_deficiencia") === "Sim"; },
 
             // Medidas (Roupas/EPI) - Apenas para filiais que exigem
-            "cand_tamanho_calcado": function () { return exigeMedidas; },
-            "cand_tamanho_camisa": function () { return exigeMedidas; },
-            "cand_tamanho_calca": function () { return exigeMedidas; },
+            // "cand_tamanho_calcado": function () { return exigeMedidas; },
+            // "cand_tamanho_camisa": function () { return exigeMedidas; },
+            // "cand_tamanho_calca": function () { return exigeMedidas; },
 
             // Bancários
             "cand_possui_conta_itau": function () { return true; },
@@ -74,13 +71,13 @@ var AdmissaoObrigatoriedade = {
             "cand_emergencia_telefone": function () { return true; },
 
             // Docs Extras
-            "cand_primeiro_emprego": function () { return false; },
-            "cand_pis": function () { return false; },
-            "cand_ano_primeiro_emprego": function () { return false; },
-            "cand_tipo_ctps": function () { return false; },
-            "cand_ctps_numero": function () { return false; },
-            "cand_ctps_serie": function () { return false; },
-            "cand_ctps_uf": function () { return false; },
+            // "cand_primeiro_emprego": function () { return false; },
+            // "cand_pis": function () { return false; },
+            // "cand_ano_primeiro_emprego": function () { return false; },
+            // "cand_tipo_ctps": function () { return false; },
+            // "cand_ctps_numero": function () { return false; },
+            // "cand_ctps_serie": function () { return false; },
+            // "cand_ctps_uf": function () { return false; },
 
             "cand_cnh_possuo": function () { return isCLT; },
             "cand_cnh_tipo": function () { return isCLT && val("cand_cnh_possuo") === "Sim"; },

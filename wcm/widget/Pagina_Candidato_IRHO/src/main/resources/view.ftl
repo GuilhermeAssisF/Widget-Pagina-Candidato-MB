@@ -1088,142 +1088,144 @@
                     </select>
                   </div>
                 </div>
-                <hr>
-                <h4 style="color: #1eaad9;">
-                  Medidas (Uniformes e EPIs)
-                </h4>
-                <div class="row">
-                  <div class="form-group col-md-4">
-                    <label style="font-size: 12px;">
-                      Tamanho do Calçado
-                    </label>
-                    <select class="form-control" id="cand_tamanho_calcado_${instanceId}">
-                      <option value="">
-                        Selecione...
-                      </option>
-                      <option value="01">
-                        33
-                      </option>
-                      <option value="02">
-                        34
-                      </option>
-                      <option value="03">
-                        35
-                      </option>
-                      <option value="04">
-                        36
-                      </option>
-                      <option value="05">
-                        37
-                      </option>
-                      <option value="06">
-                        38
-                      </option>
-                      <option value="07">
-                        39
-                      </option>
-                      <option value="08">
-                        40
-                      </option>
-                      <option value="09">
-                        41
-                      </option>
-                      <option value="10">
-                        42
-                      </option>
-                      <option value="11">
-                        43
-                      </option>
-                      <option value="12">
-                        44
-                      </option>
-                      <option value="13">
-                        45
-                      </option>
-                    </select>
-                  </div>
-                  <div class="form-group col-md-4">
-                    <label style="font-size: 12px;">
-                      Tamanho da Camisa
-                    </label>
-                    <select class="form-control" id="cand_tamanho_camisa_${instanceId}">
-                      <option value="">
-                        Selecione...
-                      </option>
-                      <option value="01">
-                        PP
-                      </option>
-                      <option value="02">
-                        P
-                      </option>
-                      <option value="03">
-                        M
-                      </option>
-                      <option value="04">
-                        G
-                      </option>
-                      <option value="05">
-                        GG
-                      </option>
-                      <option value="06">
-                        XG
-                      </option>
-                      <option value="07">
-                        XGG
-                      </option>
-                      <option value="08">
-                        EGG
-                      </option>
-                      <option value="09">
-                        GGG
-                      </option>
-                      <option value="10">
-                        XXG
-                      </option>
-                    </select>
-                  </div>
-                  <div class="form-group col-md-4">
-                    <label style="font-size: 12px;">
-                      Tamanho da Calça
-                    </label>
-                    <select class="form-control" id="cand_tamanho_calca_${instanceId}">
-                      <option value="">
-                        Selecione...
-                      </option>
-                      <option value="36">
-                        36
-                      </option>
-                      <option value="38">
-                        38
-                      </option>
-                      <option value="40">
-                        40
-                      </option>
-                      <option value="42">
-                        42
-                      </option>
-                      <option value="44">
-                        44
-                      </option>
-                      <option value="46">
-                        46
-                      </option>
-                      <option value="48">
-                        48
-                      </option>
-                      <option value="50">
-                        50
-                      </option>
-                      <option value="52">
-                        52
-                      </option>
-                      <option value="54">
-                        54
-                      </option>
-                      <option value="56">
-                        56
-                      </option>
-                    </select>
+                <div id="bloco_medidas_uniformes_epis_${instanceId}" style="display:none;">
+                  <hr>
+                  <h4 style="color: #1eaad9;">
+                    Medidas (Uniformes e EPIs)
+                  </h4>
+                  <div class="row">
+                    <div class="form-group col-md-4">
+                      <label style="font-size: 12px;">
+                        Tamanho do Calçado
+                      </label>
+                      <select class="form-control" id="cand_tamanho_calcado_${instanceId}">
+                        <option value="">
+                          Selecione...
+                        </option>
+                        <option value="01">
+                          33
+                        </option>
+                        <option value="02">
+                          34
+                        </option>
+                        <option value="03">
+                          35
+                        </option>
+                        <option value="04">
+                          36
+                        </option>
+                        <option value="05">
+                          37
+                        </option>
+                        <option value="06">
+                          38
+                        </option>
+                        <option value="07">
+                          39
+                        </option>
+                        <option value="08">
+                          40
+                        </option>
+                        <option value="09">
+                          41
+                        </option>
+                        <option value="10">
+                          42
+                        </option>
+                        <option value="11">
+                          43
+                        </option>
+                        <option value="12">
+                          44
+                        </option>
+                        <option value="13">
+                          45
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group col-md-4">
+                      <label style="font-size: 12px;">
+                        Tamanho da Camisa
+                      </label>
+                      <select class="form-control" id="cand_tamanho_camisa_${instanceId}">
+                        <option value="">
+                          Selecione...
+                        </option>
+                        <option value="01">
+                          PP
+                        </option>
+                        <option value="02">
+                          P
+                        </option>
+                        <option value="03">
+                          M
+                        </option>
+                        <option value="04">
+                          G
+                        </option>
+                        <option value="05">
+                          GG
+                        </option>
+                        <option value="06">
+                          XG
+                        </option>
+                        <option value="07">
+                          XGG
+                        </option>
+                        <option value="08">
+                          EGG
+                        </option>
+                        <option value="09">
+                          GGG
+                        </option>
+                        <option value="10">
+                          XXG
+                        </option>
+                      </select>
+                    </div>
+                    <div class="form-group col-md-4">
+                      <label style="font-size: 12px;">
+                        Tamanho da Calça
+                      </label>
+                      <select class="form-control" id="cand_tamanho_calca_${instanceId}">
+                        <option value="">
+                          Selecione...
+                        </option>
+                        <option value="36">
+                          36
+                        </option>
+                        <option value="38">
+                          38
+                        </option>
+                        <option value="40">
+                          40
+                        </option>
+                        <option value="42">
+                          42
+                        </option>
+                        <option value="44">
+                          44
+                        </option>
+                        <option value="46">
+                          46
+                        </option>
+                        <option value="48">
+                          48
+                        </option>
+                        <option value="50">
+                          50
+                        </option>
+                        <option value="52">
+                          52
+                        </option>
+                        <option value="54">
+                          54
+                        </option>
+                        <option value="56">
+                          56
+                        </option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div class="text-right">
@@ -1685,7 +1687,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="panel panel-default">
+                <#-- <div class="panel panel-default">
                   <div class="panel-heading">
                     <i class="flaticon flaticon-briefcase">
                     </i>
@@ -1723,8 +1725,8 @@
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="panel panel-default">
+                </div> -->
+                <#-- <div class="panel panel-default">
                   <div class="panel-heading">
                     <i class="flaticon flaticon-book">
                     </i>
@@ -1861,8 +1863,8 @@
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="panel panel-default">
+                </div> -->
+                <#-- <div class="panel panel-default">
                   <div class="panel-heading">
                     <i class="fa-solid fa-heart-pulse">
                     </i>
@@ -1878,7 +1880,7 @@
                       </div>
                     </div>
                   </div>
-                </div>
+                </div> -->
                 <div class="panel panel-default">
                   <div class="panel-heading">
                     <i class="fa-solid fa-id-badge">
@@ -2452,13 +2454,13 @@
                       </div>
                     </div>
                     <div class="row">
-                      <div class="form-group col-md-4">
+                      <#-- <div class="form-group col-md-4">
                         <label>
                           Cartão SUS
                         </label>
                         <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
-                      </div>
-                      <div class="form-group col-md-8">
+                      </div> -->
+                      <div class="form-group col-md-12">
                         <label>
                           Observação
                         </label>
@@ -2466,7 +2468,33 @@
                       </div>
                     </div>
                     <div class="row">
-                      <div class="col-md-3 form-group div-salario-familia" style="display: none;">
+                      <div class="col-md-3 form-group div-inc-irrf" style="display: none;">
+                        <label>
+                          Incide IRRF?
+                        </label>
+                        <select class="form-control dep-irrf">
+                          <option value="Nao">
+                            Não
+                          </option>
+                          <option value="Sim">
+                            Sim
+                          </option>
+                        </select>
+                      </div>
+                      <div class="col-md-3 form-group div-inc-pensao" style="display: none;">
+                        <label>
+                          Incide Pensão?
+                        </label>
+                        <select class="form-control dep-pensao">
+                          <option value="Nao">
+                            Não
+                          </option>
+                          <option value="Sim">
+                            Sim
+                          </option>
+                        </select>
+                      </div>
+                      <#-- <div class="col-md-3 form-group div-salario-familia" style="display: none;">
                         <label>
                           Salário Família?
                         </label>
@@ -2478,7 +2506,7 @@
                             Sim
                           </option>
                         </select>
-                      </div>
+                      </div> -->
                     </div>
                   </div>
                 </div>
@@ -3076,13 +3104,13 @@
               </div>
             </div>
             <div class="row">
-              <div class="form-group col-md-4">
+              <#-- <div class="form-group col-md-4">
                 <label>
                   Cartão SUS
                 </label>
                 <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
-              </div>
-              <div class="form-group col-md-8">
+              </div> -->
+              <div class="form-group col-md-12">
                 <label>
                   Observação
                 </label>
@@ -3090,7 +3118,33 @@
               </div>
             </div>
             <div class="row">
-              <div class="col-md-3 form-group div-salario-familia" style="display: none;">
+              <div class="col-md-3 form-group div-inc-irrf" style="display: none;">
+                <label>
+                  Incide IRRF?
+                </label>
+                <select class="form-control dep-irrf">
+                  <option value="Nao">
+                    Não
+                  </option>
+                  <option value="Sim">
+                    Sim
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-3 form-group div-inc-pensao" style="display: none;">
+                <label>
+                  Incide Pensão?
+                </label>
+                <select class="form-control dep-pensao">
+                  <option value="Nao">
+                    Não
+                  </option>
+                  <option value="Sim">
+                    Sim
+                  </option>
+                </select>
+              </div>
+              <#-- <div class="col-md-3 form-group div-salario-familia" style="display: none;">
                 <label>
                   Salário Família?
                 </label>
@@ -3102,7 +3156,7 @@
                     Sim
                   </option>
                 </select>
-              </div>
+              </div> -->
             </div>
             <div class="row div-docs-dependente" style="display: none; margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px;">
               <div class="col-md-12">

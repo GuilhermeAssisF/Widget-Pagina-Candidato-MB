@@ -83,9 +83,9 @@ function preencherTudo(id) {
     // CONTRATAÇÃO (Apenas as medidas e complementos)
     // =========================================================================
     setVal("cand_possui_deficiencia_" + id, "Nao");
-    setVal("cand_tamanho_calcado_" + id, "08"); // 40
-    setVal("cand_tamanho_camisa_" + id, "03");  // M
-    setVal("cand_tamanho_calca_" + id, "40");   // 40
+    // setVal("cand_tamanho_calcado_" + id, "08"); // 40
+    // setVal("cand_tamanho_camisa_" + id, "03");  // M
+    // setVal("cand_tamanho_calca_" + id, "40");   // 40
 
     // =========================================================================
     // BANCÁRIOS E PIX
@@ -107,17 +107,17 @@ function preencherTudo(id) {
     // =========================================================================
     // DOCS EXTRAS (PIS, CTPS, SUS, Reservista, CNH, Reg. Profissional, Passaporte)
     // =========================================================================
-    setVal("cand_primeiro_emprego_" + id, "Nao"); 
-    setVal("cand_pis_" + id, "123.45678.90-1");
-    setVal("cand_ano_primeiro_emprego_" + id, "2018");
+    // setVal("cand_primeiro_emprego_" + id, "Nao"); 
+    // setVal("cand_pis_" + id, "123.45678.90-1");
+    // setVal("cand_ano_primeiro_emprego_" + id, "2018");
 
-    setVal("cand_tipo_ctps_" + id, "Digital");
-    setVal("cand_ctps_numero_" + id, "1234567");
-    setVal("cand_ctps_serie_" + id, "1234");
-    setVal("cand_ctps_data_emissao_" + id, "2018-01-15");
-    setVal("cand_ctps_uf_" + id, "SP");
+    // setVal("cand_tipo_ctps_" + id, "Digital");
+    // setVal("cand_ctps_numero_" + id, "1234567");
+    // setVal("cand_ctps_serie_" + id, "1234");
+    // setVal("cand_ctps_data_emissao_" + id, "2018-01-15");
+    // setVal("cand_ctps_uf_" + id, "SP");
 
-    setVal("cand_cartao_sus_" + id, "123456789012345");
+    // setVal("cand_cartao_sus_" + id, "123456789012345");
 
     setVal("cand_reservista_possuo_" + id, "Sim"); 
     setVal("cand_reservista_numero_" + id, "123456789");
@@ -201,7 +201,7 @@ function preencherTudo(id) {
     mockUploadVisual("cand_doc_escolaridade", id, "diploma.pdf");
     mockUploadVisual("cand_doc_cnh", id, "cnh.pdf");
     mockUploadVisual("cand_doc_reservista", id, "reservista.pdf");
-    mockUploadVisual("cand_doc_pis", id, "comprovante_pis.pdf");
+    // mockUploadVisual("cand_doc_pis", id, "comprovante_pis.pdf");
 
     // =========================================================================
     // DEPENDENTES DINÂMICOS (Mãe e Filho fictício)
@@ -231,11 +231,11 @@ function mockDependentes(id) {
         $cardMae.find(".dep-nome").val("Maria da Silva").trigger("change");
         $cardMae.find(".dep-cpf").val("162.271.276-55").trigger("change"); // CPF VÁLIDO
         $cardMae.find(".dep-rg").val("12.345.678-9").trigger("change");
-        $cardMae.find(".dep-sus").val("123456789012345").trigger("change");
+        // $cardMae.find(".dep-sus").val("123456789012345").trigger("change");
         $cardMae.find(".dep-nasc").val("1970-05-10").trigger("change");
         $cardMae.find(".dep-est-civil").val("Casado").trigger("change");
         $cardMae.find(".dep-sexo").val("Feminino").trigger("change"); 
-        $cardMae.find(".dep-sf").val("Nao").trigger("change"); 
+        // $cardMae.find(".dep-sf").val("Nao").trigger("change"); 
         $cardMae.find(".dep-obs").val("Mock Dependente Mãe").trigger("change");
 
         // Mock upload da Mãe

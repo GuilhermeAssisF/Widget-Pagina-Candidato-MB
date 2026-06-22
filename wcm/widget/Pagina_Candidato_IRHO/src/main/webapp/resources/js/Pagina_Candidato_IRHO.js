@@ -181,11 +181,11 @@
         setVal("cand_pai_est_civil", "Casado");
 
         // 6. Documentos Extras (Desviando das validações opcionais)
-        setVal("cand_primeiro_emprego", "Sim"); // Diz que é primeiro emprego para pular o PIS
-        setVal("cand_tipo_ctps", "Digital");
-        setVal("cand_ctps_numero", "1234567");
-        setVal("cand_ctps_serie", "1234");
-        setVal("cand_ctps_uf", "SP");
+        // setVal("cand_primeiro_emprego", "Sim"); // Diz que é primeiro emprego para pular o PIS
+        // setVal("cand_tipo_ctps", "Digital");
+        // setVal("cand_ctps_numero", "1234567");
+        // setVal("cand_ctps_serie", "1234");
+        // setVal("cand_ctps_uf", "SP");
         setVal("cand_cnh_possuo", "Não");
         setVal("cand_reservista_possuo", "Não");
 
@@ -536,9 +536,9 @@
                                     "cand_turno_": ["FUN_IDDESCTURN"],
                                     "cand_possui_deficiencia_": ["txtPossuiDeficiencia"],
                                     "cand_tipo_deficiencia_": ["txtTipoDeficiencia"],
-                                    "cand_tamanho_calcado_": ["txtTamanhoCalcado"],
-                                    "cand_tamanho_camisa_": ["txtTamanhoCamisa"],
-                                    "txtTamanhoCalca": ["cand_tamanho_calca_"],
+                                    // "cand_tamanho_calcado_": ["txtTamanhoCalcado"],
+                                    // "cand_tamanho_camisa_": ["txtTamanhoCamisa"],
+                                    // "txtTamanhoCalca": ["cand_tamanho_calca_"],
                                     "cand_banco_": ["BancoPAgto"],
                                     "cand_agencia_": ["AgPagto"],
                                     "cand_conta_corrente_": ["ContPagto"],
@@ -559,14 +559,14 @@
                                     "cand_reservista_circunscricao_": ["Reservista_Circunscricao"],
                                     "cand_reservista_regiao_": ["Reservista_Regiao"],
                                     "cand_reservista_orgao_": ["Reservista_Orgao"],
-                                    "cand_primeiro_emprego_": ["PIS_Primeiro_Emprego"],
-                                    "cand_pis_": ["PIS"],
-                                    "cand_ano_primeiro_emprego_": ["PIS_Ano_Primeiro_Emp"],
-                                    "cand_tipo_ctps_": ["CTPS_Fisica_Digital"],
-                                    "cand_ctps_numero_": ["txtCartTrab"],
-                                    "cand_ctps_serie_": ["txtSerieCart"],
-                                    "cand_ctps_uf_": ["UFCARTTRAB"],
-                                    "cand_cartao_sus_": ["Cartao_SUS"],
+                                    // "cand_primeiro_emprego_": ["PIS_Primeiro_Emprego"],
+                                    // "cand_pis_": ["PIS"],
+                                    // "cand_ano_primeiro_emprego_": ["PIS_Ano_Primeiro_Emp"],
+                                    // "cand_tipo_ctps_": ["CTPS_Fisica_Digital"],
+                                    // "cand_ctps_numero_": ["txtCartTrab"],
+                                    // "cand_ctps_serie_": ["txtSerieCart"],
+                                    // "cand_ctps_uf_": ["UFCARTTRAB"],
+                                    // "cand_cartao_sus_": ["Cartao_SUS"],
                                     "cand_reg_prof_orgao_": ["Reg_Prof_Orgao"],
                                     "cand_reg_prof_uf_": ["Reg_Prof_UF"],
                                     "cand_reg_prof_num_": ["Reg_Prof_Num"],
@@ -1072,11 +1072,16 @@
             texto.indexOf("optante") > -1;
     },
 
-    carregarPlanosPorDataset: function (datasetName, selectId, placeholder) {
+    carregarPlanosPorDataset: function (datasetName, selectId, placeholder, callbackFinal) {
         var that = this;
         var $select = $("#" + selectId + "_" + that.instanceId);
 
-        if (!$select.length) return;
+        callbackFinal = typeof callbackFinal === "function" ? callbackFinal : function () { };
+
+        if (!$select.length) {
+            callbackFinal();
+            return;
+        }
 
         $select.empty();
         $select.append('<option value="">' + (placeholder || "Selecione o plano...") + '</option>');
@@ -1138,21 +1143,44 @@
             },
             error: function (xhr, status, error) {
                 console.warn("[Planos] Falha ao consultar dataset " + datasetName + ":", error);
+            },
+            complete: function () {
+                callbackFinal();
             }
         });
     },
 
     carregarPlanosBeneficios: function () {
-        this.carregarPlanosPorDataset(
+        var that = this;
+
+        if (that.planosBeneficiosCarregando) {
+            console.log("[Planos] Carregamento já em andamento. Ignorando nova chamada.");
+            return;
+        }
+
+        that.planosBeneficiosCarregando = true;
+
+        console.log("[Planos] Iniciando carregamento sequencial dos planos.");
+
+        that.carregarPlanosPorDataset(
             "ds_irho_planoSaude",
             "cand_ps_tipo_plano",
-            "Selecione o plano de saúde..."
-        );
+            "Selecione o plano de saúde...",
+            function () {
+                console.log("[Planos] Plano de saúde finalizado. Aguardando para carregar odonto.");
 
-        this.carregarPlanosPorDataset(
-            "ds_irho_planoOdonto",
-            "cand_po_tipo_plano",
-            "Selecione o plano odontológico..."
+                setTimeout(function () {
+                    that.carregarPlanosPorDataset(
+                        "ds_irho_planoOdonto",
+                        "cand_po_tipo_plano",
+                        "Selecione o plano odontológico...",
+                        function () {
+                            that.planosBeneficiosCarregando = false;
+                            console.log("[Planos] Carregamento sequencial concluído.");
+                        }
+                    );
+                }, 300);
+            }
         );
     },
 
@@ -2360,7 +2388,7 @@
             var valor = $(this).val();
             var $card = $(this).closest(".dependente-card");
             var $campoSexo = $card.find(".dep-sexo");
-            var $divSalarioFamilia = $card.find(".div-salario-familia");
+            // var $divSalarioFamilia = $card.find(".div-salario-familia");
 
             if (valor === "Mae") {
                 $campoSexo.val("Feminino").prop("readonly", true).css({ "pointer-events": "none", "background-color": "#eee" }).attr("tabindex", "-1");
@@ -2368,11 +2396,13 @@
                 $campoSexo.prop("readonly", false).css({ "pointer-events": "auto", "background-color": "#fff" }).removeAttr("tabindex");
             }
 
-            if (valor === "Filho") $divSalarioFamilia.slideDown();
-            else {
-                $divSalarioFamilia.slideUp();
-                $card.find(".dep-sf").val("Nao");
-            }
+            // if (valor === "Filho" || valor === "Enteado") $divSalarioFamilia.slideDown();
+            // else {
+            //     $divSalarioFamilia.slideUp();
+            //     $card.find(".dep-sf").val("Nao");
+            // }
+
+            that.atualizarVisibilidadeIncidenciasDependente($card);
         });
 
         // CONSULTA CPF DEPENDENTE
@@ -2385,6 +2415,45 @@
                 that.consultarCPFDependente(cpf, $card);
             }
         });
+
+        $div.off("change", ".dep-irrf, .dep-pensao")
+            .on("change", ".dep-irrf, .dep-pensao", function (e) {
+                if (!e.originalEvent) return;
+                if (that.bloqueioRestauracaoAtivo) return;
+                if (that.carregandoDadosIniciais) return;
+
+                that.salvarRascunhoLocal();
+
+                if (!that.autosaveFluigLiberado || !that.documentIdFicha) return;
+
+                clearTimeout(that.saveTimeoutFluig);
+
+                that.saveTimeoutFluig = setTimeout(function () {
+                    if (
+                        that.bloqueioRestauracaoAtivo ||
+                        that.carregandoDadosIniciais ||
+                        !that.autosaveFluigLiberado ||
+                        !that.documentIdFicha
+                    ) {
+                        return;
+                    }
+
+                    var dados = that.montarDadosFormularioLeve(that.passoAtual);
+
+                    that.soapUpdateCardData(
+                        that.documentIdFicha,
+                        dados,
+                        function () {
+                            console.log("[Dependentes] Incidências IRRF/Pensão salvas no Fluig.");
+                            that.salvarRascunhoLocal();
+                        },
+                        function (erro) {
+                            console.warn("[Dependentes] Falha ao salvar incidências:", erro);
+                            that.salvarRascunhoLocal();
+                        }
+                    );
+                }, 600);
+            });
 
         $div.on("input", "#cand_instituicao_cnpj_" + this.instanceId, function () {
             $(this).val(that.mascaraCNPJ($(this).val()));
@@ -2536,56 +2605,56 @@
             .on("blur", function () { that.buscaCEP($(this).val()); });
 
         // Controle: Se é primeiro emprego, esconde PIS e ANO
-        $div.on('change', '#cand_primeiro_emprego_' + that.instanceId, function () {
-            if ($(this).val() === "Sim") {
-                $div.find("#div_cand_pis_" + that.instanceId).hide();
-                $div.find("#div_cand_ano_primeiro_emprego_" + that.instanceId).hide();
-                $div.find("#cand_pis_" + that.instanceId).val("");
-                $div.find("#cand_ano_primeiro_emprego_" + that.instanceId).val("");
-            } else {
-                $div.find("#div_cand_pis_" + that.instanceId).show();
-                $div.find("#div_cand_ano_primeiro_emprego_" + that.instanceId).show();
-            }
-        });
+        // $div.on('change', '#cand_primeiro_emprego_' + that.instanceId, function () {
+        //     if ($(this).val() === "Sim") {
+        //         $div.find("#div_cand_pis_" + that.instanceId).hide();
+        //         $div.find("#div_cand_ano_primeiro_emprego_" + that.instanceId).hide();
+        //         $div.find("#cand_pis_" + that.instanceId).val("");
+        //         $div.find("#cand_ano_primeiro_emprego_" + that.instanceId).val("");
+        //     } else {
+        //         $div.find("#div_cand_pis_" + that.instanceId).show();
+        //         $div.find("#div_cand_ano_primeiro_emprego_" + that.instanceId).show();
+        //     }
+        // });
 
-        function atualizarCamposCTPS() {
-            var tipoCtps = ($("#cand_tipo_ctps_" + that.instanceId).val() || "").toLowerCase();
+        // function atualizarCamposCTPS() {
+        //     var tipoCtps = ($("#cand_tipo_ctps_" + that.instanceId).val() || "").toLowerCase();
 
-            var isFisica =
-                tipoCtps === "fisica" ||
-                tipoCtps === "física" ||
-                tipoCtps.indexOf("fis") > -1;
+        //     var isFisica =
+        //         tipoCtps === "fisica" ||
+        //         tipoCtps === "física" ||
+        //         tipoCtps.indexOf("fis") > -1;
 
-            var $camposCtpsFisica = $()
-                .add($("#cand_ctps_numero_" + that.instanceId).closest(".form-group"))
-                .add($("#cand_ctps_serie_" + that.instanceId).closest(".form-group"))
-                .add($("#cand_ctps_uf_" + that.instanceId).closest(".form-group"))
-                .add($("#cand_ctps_data_emissao_" + that.instanceId).closest(".form-group"));
+        //     var $camposCtpsFisica = $()
+        //         .add($("#cand_ctps_numero_" + that.instanceId).closest(".form-group"))
+        //         .add($("#cand_ctps_serie_" + that.instanceId).closest(".form-group"))
+        //         .add($("#cand_ctps_uf_" + that.instanceId).closest(".form-group"))
+        //         .add($("#cand_ctps_data_emissao_" + that.instanceId).closest(".form-group"));
 
-            if (isFisica) {
-                $camposCtpsFisica.show();
-            } else {
-                $camposCtpsFisica.hide();
+        //     if (isFisica) {
+        //         $camposCtpsFisica.show();
+        //     } else {
+        //         $camposCtpsFisica.hide();
 
-                $("#cand_ctps_numero_" + that.instanceId).val("");
-                $("#cand_ctps_serie_" + that.instanceId).val("");
-                $("#cand_ctps_uf_" + that.instanceId).val("");
-                $("#cand_ctps_data_emissao_" + that.instanceId).val("");
-            }
+        //         $("#cand_ctps_numero_" + that.instanceId).val("");
+        //         $("#cand_ctps_serie_" + that.instanceId).val("");
+        //         $("#cand_ctps_uf_" + that.instanceId).val("");
+        //         $("#cand_ctps_data_emissao_" + that.instanceId).val("");
+        //     }
 
-            AdmissaoObrigatoriedade.atualizarAsteriscos(that);
-        }
+        //     AdmissaoObrigatoriedade.atualizarAsteriscos(that);
+        // }
 
-        $div.on('change', '#cand_tipo_ctps_' + this.instanceId, function (e) {
-            atualizarCamposCTPS();
+        // $div.on('change', '#cand_tipo_ctps_' + this.instanceId, function (e) {
+        //     atualizarCamposCTPS();
 
-            if (!e.originalEvent) return;
-            if (that.bloqueioRestauracaoAtivo || that.carregandoDadosIniciais) return;
+        //     if (!e.originalEvent) return;
+        //     if (that.bloqueioRestauracaoAtivo || that.carregandoDadosIniciais) return;
 
-            that.salvarRascunhoLocal();
-        });
+        //     that.salvarRascunhoLocal();
+        // });
 
-        atualizarCamposCTPS();
+        // atualizarCamposCTPS();
 
         $div.on('change', '#cand_sexo_' + that.instanceId, function () {
             var val = $(this).val();
@@ -2859,7 +2928,7 @@
                 title: "3. Formação e Contratação", icon: "flaticon-assignment",
                 fields: [
                     { label: "Grau Instrução", id: "cand_grau_instrucao", col: 4 }, { label: "Curso", id: "cand_curso", col: 4 }, { label: "Conclusão", id: "cand_ano_conclusao", col: 4 },
-                    { label: "Camisa", id: "cand_tamanho_camisa", col: 3 }, { label: "Calçado", id: "cand_tamanho_calcado", col: 3 }, { label: "Deficiência?", id: "cand_possui_deficiencia", col: 3 }
+                    { label: "Deficiência?", id: "cand_possui_deficiencia", col: 3 }
                 ]
             },
             {
@@ -3016,7 +3085,7 @@
             $div.find("#cand_po_opcao_" + that.instanceId).val()
         );
 
-        var tipoCtpsValor = $div.find("#cand_tipo_ctps_" + that.instanceId).val() || "";
+        // var tipoCtpsValor = $div.find("#cand_tipo_ctps_" + that.instanceId).val() || "";
 
         function montarCodigoDescricaoPlano(codigo, descricao) {
             codigo = String(codigo || "").trim();
@@ -3040,12 +3109,12 @@
             : "NAO OPTANTE";
         var idDescPlanoOdonto = montarCodigoDescricaoPlano(codigoPlanoOdonto, descricaoPlanoOdonto);
 
-        var tipoCtpsNormalizado = tipoCtpsValor
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "");
+        // var tipoCtpsNormalizado = tipoCtpsValor
+        //     .toLowerCase()
+        //     .normalize("NFD")
+        //     .replace(/[\u0300-\u036f]/g, "");
 
-        var ctpsFisicaSelecionada = tipoCtpsNormalizado.indexOf("fis") > -1;
+        // var ctpsFisicaSelecionada = tipoCtpsNormalizado.indexOf("fis") > -1;
 
         // MONTAGEM DO JSON QUE VAI PARA O FLUIG
         var dadosCandidato = {
@@ -3059,7 +3128,7 @@
             "txtCODETD": "MG",
             "txtCODPAIS": "1",
             "CODUFCARTIDENTIDADE": "MG",
-            "CODUFCTPS": "MG",
+            // "CODUFCTPS": "MG",
             "FUN_SALARIOBASE": "2000.00",
 
             "txtEstadoCivil": estCivilValor,
@@ -3093,16 +3162,16 @@
             "UFTITULO": $div.find("#cand_titulo_uf_" + that.instanceId).val(),
             "DTTITELEITOR": formatarDataBR($div.find("#cand_titulo_data_emissao_" + that.instanceId).val()),
 
-            // NOVOS DADOS DE PIS / CTPS
-            "PIS_Primeiro_Emprego": $div.find("#cand_primeiro_emprego_" + that.instanceId).val(),
-            "PIS": $div.find("#cand_pis_" + that.instanceId).val(),
-            "PIS_Ano_Primeiro_Emp": $div.find("#cand_ano_primeiro_emprego_" + that.instanceId).val(),
+            // // NOVOS DADOS DE PIS / CTPS
+            // "PIS_Primeiro_Emprego": $div.find("#cand_primeiro_emprego_" + that.instanceId).val(),
+            // "PIS": $div.find("#cand_pis_" + that.instanceId).val(),
+            // "PIS_Ano_Primeiro_Emp": $div.find("#cand_ano_primeiro_emprego_" + that.instanceId).val(),
 
-            "CTPS_Fisica_Digital": tipoCtpsValor,
-            "txtCartTrab": ctpsFisicaSelecionada ? $div.find("#cand_ctps_numero_" + that.instanceId).val() : "",
-            "txtSerieCart": ctpsFisicaSelecionada ? $div.find("#cand_ctps_serie_" + that.instanceId).val() : "",
-            "UFCARTTRAB": ctpsFisicaSelecionada ? $div.find("#cand_ctps_uf_" + that.instanceId).val() : "",
-            "dtDataEmissaoCartTrab": ctpsFisicaSelecionada ? formatarDataBR($div.find("#cand_ctps_data_emissao_" + that.instanceId).val()) : "",
+            // "CTPS_Fisica_Digital": tipoCtpsValor,
+            // "txtCartTrab": ctpsFisicaSelecionada ? $div.find("#cand_ctps_numero_" + that.instanceId).val() : "",
+            // "txtSerieCart": ctpsFisicaSelecionada ? $div.find("#cand_ctps_serie_" + that.instanceId).val() : "",
+            // "UFCARTTRAB": ctpsFisicaSelecionada ? $div.find("#cand_ctps_uf_" + that.instanceId).val() : "",
+            // "dtDataEmissaoCartTrab": ctpsFisicaSelecionada ? formatarDataBR($div.find("#cand_ctps_data_emissao_" + that.instanceId).val()) : "",
 
             "txtCNH_Possui": possuiCNH, "CARTMOTORISTA": dadosCNH.numero, "TIPOCARTHABILIT": dadosCNH.tipo,
             "DTVENCHABILIT": dadosCNH.vencimento, "ORGEMISSORCNH": dadosCNH.orgao, "DTEMISSAOCNH": dadosCNH.emissao,
@@ -3144,9 +3213,9 @@
             "txtChavePix": $div.find("#cand_chave_pix_" + that.instanceId).val(),
 
             "txtEscolaridade": $div.find("#cand_grau_instrucao_" + that.instanceId).val(),
-            "txtTamanhoCamisa": $div.find("#cand_tamanho_camisa_" + that.instanceId).val(),
-            "txtTamanhoCalcado": $div.find("#cand_tamanho_calcado_" + that.instanceId).val(),
-            "txtTamanhoCalca": $div.find("#cand_tamanho_calca_" + that.instanceId).val(),
+            // "txtTamanhoCamisa": $div.find("#cand_tamanho_camisa_" + that.instanceId).val(),
+            // "txtTamanhoCalcado": $div.find("#cand_tamanho_calcado_" + that.instanceId).val(),
+            // "txtTamanhoCalca": $div.find("#cand_tamanho_calca_" + that.instanceId).val(),
             "txtNomeCurso": $div.find("#cand_curso_" + that.instanceId).val(),
             "txtInstituicaoEnsino": $div.find("#cand_instituicao_" + that.instanceId).val(),
             "txtAnoConclusao": $div.find("#cand_ano_conclusao_" + that.instanceId).val(),
@@ -3159,7 +3228,7 @@
             "txtTelefoneEmergencia": $div.find("#cand_emergencia_telefone_" + that.instanceId).val(),
 
             // DADOS DE SUS, REGISTRO PROFISSIONAL E PASSAPORTE
-            "Cartao_SUS": $div.find("#cand_cartao_sus_" + that.instanceId).val(),
+            // "Cartao_SUS": $div.find("#cand_cartao_sus_" + that.instanceId).val(),
             "Reg_Prof_Orgao": $div.find("#cand_reg_prof_orgao_" + that.instanceId).val(),
             "Reg_Prof_UF": $div.find("#cand_reg_prof_uf_" + that.instanceId).val(),
             "Reg_Prof_Num": $div.find("#cand_reg_prof_num_" + that.instanceId).val(),
@@ -3207,24 +3276,64 @@
         });
         dadosCandidato["json_rotas_vt"] = JSON.stringify(rotasVT);
 
+        function normalizarNomeDependentePlano(valor) {
+            var texto = String(valor || "").trim().toLowerCase();
+
+            try {
+                texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            } catch (e) { }
+
+            return texto.replace(/\s+/g, " ");
+        }
+
+        function normalizarParentescoPlano(valor) {
+            var texto = normalizarNomeDependentePlano(valor);
+
+            if (texto.indexOf("conjuge") > -1 || texto.indexOf("companheiro") > -1) {
+                return "conjuge";
+            }
+
+            if (texto.indexOf("filho") > -1 || texto.indexOf("filha") > -1 || texto.indexOf("enteado") > -1 || texto.indexOf("enteada") > -1) {
+                return "filho";
+            }
+
+            return texto;
+        }
+
+        function montarChaveDependentePlano(nome, parentesco) {
+            return normalizarNomeDependentePlano(nome) + "||" + normalizarParentescoPlano(parentesco);
+        }
+
+        var mapaDependentesPS = {};
         var selecionadosPS = [];
+
         $div.find(".check-plano-saude:checked").each(function () {
-            // Adiciona o hífen no início para criar um aspecto de lista
-            selecionadosPS.push("- " + $(this).data("nome-dep") + " (" + $(this).data("parentesco-dep") + ")");
+            var nomeDep = $(this).data("nome-dep") || "";
+            var parentescoDep = $(this).data("parentesco-dep") || "";
+
+            if (!mapaDependentesPS[montarChaveDependentePlano(nomeDep, parentescoDep)]) {
+                selecionadosPS.push("- " + nomeDep + " (" + parentescoDep + ")");
+            }
+
+            mapaDependentesPS[montarChaveDependentePlano(nomeDep, parentescoDep)] = true;
         });
 
-        // O join("\n") cria a quebra de linha que o textarea do Fluig reconhece
-        var strDependentesPS = selecionadosPS.join("\n");
-
-        // Salva em um campo do formulário (Ex: TxtDepsPlanoSaude)
         dadosCandidato["TxtDepsPlanoSaude"] = selecionadosPS.join(", ");
 
+        var mapaDependentesPO = {};
         var selecionadosPO = [];
+
         $div.find(".check-plano-odonto:checked").each(function () {
-            selecionadosPO.push("- " + $(this).data("nome-dep") + " (" + $(this).data("parentesco-dep") + ")");
+            var nomeDep = $(this).data("nome-dep") || "";
+            var parentescoDep = $(this).data("parentesco-dep") || "";
+
+            if (!mapaDependentesPO[montarChaveDependentePlano(nomeDep, parentescoDep)]) {
+                selecionadosPO.push("- " + nomeDep + " (" + parentescoDep + ")");
+            }
+
+            mapaDependentesPO[montarChaveDependentePlano(nomeDep, parentescoDep)] = true;
         });
 
-        // Salva em um campo do formulário
         dadosCandidato["TxtDepsPlanoOdonto"] = selecionadosPO.join(", ");
         dadosCandidato["TxtIncPlanoOdontoOpcao"] = $div.find("#cand_po_opcao_" + that.instanceId).val();
         dadosCandidato["TxtIncPlanoOdontoTipo"] = idDescPlanoOdonto;
@@ -3233,10 +3342,21 @@
         var deps = [];
         var countDeps = 0;
         $div.find(".dependente-card").each(function () {
-            countDeps++; var i = countDeps; var $card = $(this);
+            countDeps++;
+            var i = countDeps;
+            var $card = $(this);
             var parentesco = $card.find(".dep-parentesco").val();
 
-            dadosCandidato["txtNomDepen___" + i] = $card.find(".dep-nome").val();
+            var nomeDependenteAtual = $card.find(".dep-nome").val() || "";
+            var chaveDependentePlano = montarChaveDependentePlano(nomeDependenteAtual, parentesco);
+
+            var dependenteNoPlanoSaude = mapaDependentesPS[chaveDependentePlano] === true;
+            var dependenteNoPlanoOdonto = mapaDependentesPO[chaveDependentePlano] === true;
+
+            var dataInclusaoAM = formatarDataBR($div.find("#cand_data_admissao_" + that.instanceId).val());
+            var dataInclusaoAO = formatarDataBR($div.find("#cand_data_admissao_" + that.instanceId).val());
+
+            dadosCandidato["txtNomDepen___" + i] = nomeDependenteAtual;
             dadosCandidato["txtParentescoDepen___" + i] = parentesco;
             dadosCandidato["cpDataNascimentoDep___" + i] = formatarDataBR($card.find(".dep-nasc").val());
             dadosCandidato["TxtCPFDep___" + i] = $card.find(".dep-cpf").val();
@@ -3250,17 +3370,29 @@
 
             // NOVOS CAMPOS ADICIONADOS (Ajuste os nomes "TxtRgDep___", "TxtCartaoSusDep___" consoante o formulário Fluig)
             dadosCandidato["TxtRgDep___" + i] = $card.find(".dep-rg").val();
-            dadosCandidato["TxtCartaoSusDep___" + i] = $card.find(".dep-sus").val();
+            // dadosCandidato["TxtCartaoSusDep___" + i] = $card.find(".dep-sus").val();
             dadosCandidato["TxtObsDep___" + i] = $card.find(".dep-obs").val();
 
-            // INCIDÊNCIAS (Hardcoded para 0, exceto Salário Família)
-            dadosCandidato["TxtIncIRRF___" + i] = "0";
-            dadosCandidato["TxtIncMedica___" + i] = "0";
+            // INCIDÊNCIAS
+            dadosCandidato["TxtIncIRRF___" + i] = ($card.find(".dep-irrf").val() === "Sim" ? "1" : "0");
+            dadosCandidato["TxtIncMedica___" + i] = dependenteNoPlanoSaude ? "1" : "0";
             dadosCandidato["TxtIncINSS___" + i] = "0";
-            dadosCandidato["TxtIncPensao___" + i] = "0";
+            dadosCandidato["TxtIncPensao___" + i] = ($card.find(".dep-pensao").val() === "Sim" ? "1" : "0");
+            dadosCandidato["TxtIncOdonto___" + i] = dependenteNoPlanoOdonto ? "1" : "0";
 
-            // SALÁRIO FAMÍLIA (O único que mantivemos na tela)
-            dadosCandidato["TxtIncSalFamilia___" + i] = ($card.find(".dep-sf").val() == "Sim" ? "1" : "0");
+            // Dados complementares do plano por dependente
+            dadosCandidato["cpDataInclusaoAMDep___" + i] = dependenteNoPlanoSaude ? dataInclusaoAM : "";
+            dadosCandidato["cpPlanoAMDep___" + i] = dependenteNoPlanoSaude ? idDescPlanoSaude : "";
+            dadosCandidato["cpPlanoAMDepCod___" + i] = dependenteNoPlanoSaude ? codigoPlanoSaude : "";
+
+            dadosCandidato["cpDataInclusaoAODep___" + i] = dependenteNoPlanoOdonto ? dataInclusaoAO : "";
+            dadosCandidato["cpPlanoAODep___" + i] = dependenteNoPlanoOdonto ? idDescPlanoOdonto : "";
+            dadosCandidato["cpPlanoAODepCod___" + i] = dependenteNoPlanoOdonto ? codigoPlanoOdonto : "";
+
+            // SALÁRIO FAMÍLIA
+            // dadosCandidato["TxtIncSalFamilia___" + i] = ($card.find(".dep-sf").val() == "Sim" ? "1" : "0");
+
+            dadosCandidato["TxtIncSalFamilia___" + i] = "0";
 
             deps.push({ nome: $card.find(".dep-nome").val() });
         });
@@ -3945,6 +4077,45 @@
             .replace(/[\u0300-\u036f]/g, "");
     },
 
+    atualizarVisibilidadeIncidenciasDependente: function ($card) {
+        if (!$card || !$card.length) return;
+
+        var parentesco = this.normalizarTextoDependente(
+            $card.find(".dep-parentesco").val()
+        );
+
+        var isConjuge =
+            parentesco.indexOf("conjuge") > -1 ||
+            parentesco.indexOf("companheiro") > -1 ||
+            parentesco.indexOf("companheira") > -1;
+
+        var isFilho =
+            parentesco.indexOf("filho") > -1 ||
+            parentesco.indexOf("filha") > -1 ||
+            parentesco.indexOf("enteado") > -1 ||
+            parentesco.indexOf("enteada") > -1;
+
+        var exibeIRRF = isConjuge || isFilho;
+        var exibePensao = isFilho;
+
+        var $divIRRF = $card.find(".div-inc-irrf");
+        var $divPensao = $card.find(".div-inc-pensao");
+
+        if (exibeIRRF) {
+            $divIRRF.slideDown();
+        } else {
+            $divIRRF.hide();
+            $card.find(".dep-irrf").val("Nao");
+        }
+
+        if (exibePensao) {
+            $divPensao.slideDown();
+        } else {
+            $divPensao.hide();
+            $card.find(".dep-pensao").val("Nao");
+        }
+    },
+
     atualizarVisibilidadeDocsDependente: function ($card) {
         if (!$card || !$card.length) return;
 
@@ -4075,6 +4246,7 @@
 
         setTimeout(function () {
             that.atualizarVisibilidadeDocsDependente($card);
+            that.atualizarVisibilidadeIncidenciasDependente($card);
         }, 350);
     },
     removerDependente: function (el) { $(el).closest('.dependente-card').fadeOut(function () { $(this).remove(); }); },
@@ -5382,10 +5554,35 @@
         var that = this;
         var html = "";
         var inputs = "";
-        this.configDocs = lista;
 
-        for (var i = 0; i < lista.length; i++) {
-            var d = lista[i];
+        function normalizarIdentificacaoDocumento(documento) {
+            return [
+                documento.doc_campo_interno,
+                documento.doc_titulo,
+                documento.doc_descricao
+            ].join(" ")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toUpperCase();
+        }
+
+        var listaFiltrada = (lista || []).filter(function (documento) {
+            var identificacao = normalizarIdentificacaoDocumento(documento);
+
+            var documentoPis =
+                /(^|[^A-Z0-9])PIS([^A-Z0-9]|$)/.test(identificacao);
+
+            var documentoCtps =
+                /(^|[^A-Z0-9])CTPS([^A-Z0-9]|$)/.test(identificacao) ||
+                identificacao.indexOf("CARTEIRA DE TRABALHO") > -1;
+
+            return !documentoPis && !documentoCtps;
+        });
+
+        this.configDocs = listaFiltrada;
+
+        for (var i = 0; i < listaFiltrada.length; i++) {
+            var d = listaFiltrada[i];
             if (!d.doc_campo_interno) continue;
 
             var id = d.doc_campo_interno.trim();
@@ -6138,8 +6335,8 @@
         secao("Documentação");
         linha("RG", dados.TxtRg + " (" + dados.ORGAOCARTIDENTIDADE + "/" + dados.UFCARTIDENTIDADE + ")");
         linha("Emissão RG", dados.DTEMISSAOIDENT);
-        linha("PIS", dados.PIS);
-        linha("CTPS (Física/Digital)", dados.CTPS_Fisica_Digital + " - " + dados.txtCartTrab);
+        // linha("PIS", dados.PIS);
+        // linha("CTPS (Física/Digital)", dados.CTPS_Fisica_Digital + " - " + dados.txtCartTrab);
         linha("Título de Eleitor", dados.TITULOELEITOR + " (Zona: " + dados.ZONATITELEITOR + " / Seção: " + dados.SECAOTITELEITOR + ")");
 
         if (dados.txtCNH_Possui === "Sim") linha("CNH", dados.CARTMOTORISTA + " (Cat: " + dados.TIPOCARTHABILIT + ")");
