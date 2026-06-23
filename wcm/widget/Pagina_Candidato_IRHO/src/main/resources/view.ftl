@@ -3030,6 +3030,43 @@
         </div>
       </div>
     </div>
+    <style>
+      /*
+      * Linhas dinâmicas dos dependentes.
+      * Os campos visíveis dividem automaticamente o espaço disponível.
+      */
+      .dependente-card .linha-condicional-dependente,
+      .dependente-card .linha-incidencias-dependente {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      align-items: end;
+      column-gap: 30px;
+      row-gap: 15px;
+      margin-left: -15px;
+      margin-right: -15px;
+      }
+      .dependente-card .linha-condicional-dependente {
+      margin-bottom: 15px;
+      }
+      .dependente-card .linha-incidencias-dependente {
+      margin-bottom: 0;
+      }
+      .dependente-card .linha-condicional-dependente > .form-group,
+      .dependente-card .linha-incidencias-dependente > .form-group {
+      float: none;
+      width: auto;
+      min-width: 0;
+      margin-bottom: 0;
+      padding-left: 15px;
+      padding-right: 15px;
+      }
+      @media (max-width: 767px) {
+      .dependente-card .linha-condicional-dependente,
+      .dependente-card .linha-incidencias-dependente {
+      grid-template-columns: 1fr;
+      }
+      }
+    </style>
     <script type="text/template" class="template-dependente">
       <div class="dependente-card" style="display:none;" data-uuid="{{UUID}}">
         <div class="panel panel-default" style="border-left: 4px solid #1eaad9;">
@@ -3189,7 +3226,7 @@
                   </div>
                 </div>
                 <div class="row">
-                  <div class="form-group col-md-4">
+                  <div class="form-group col-md-6">
                     <label>
                       Data de Nascimento da Mãe
                     </label>
@@ -3197,7 +3234,7 @@
                        class="form-control fluig-calendar dep-mae-nasc"
                        placeholder="DD/MM/AAAA">
                   </div>
-                  <div class="form-group col-md-4">
+                  <div class="form-group col-md-6">
                     <label>
                       Estado Civil da Mãe
                     </label>
@@ -3231,8 +3268,8 @@
                 </div>
               </div>
             </div>
-            <div class="row">
-              <div class="form-group col-md-4">
+            <div class="linha-condicional-dependente">
+              <div class="form-group">
                 <label>
                   Possui Deficiência?
                 </label>
@@ -3248,7 +3285,8 @@
                   </option>
                 </select>
               </div>
-              <div class="form-group col-md-8 div-dep-tipo-deficiencia" style="display:none;">
+              <div class="form-group div-dep-tipo-deficiencia"
+       style="display:none;">
                 <label>
                   Tipo de Deficiência
                 </label>
@@ -3279,6 +3317,15 @@
                   </option>
                 </select>
               </div>
+              <div class="form-group div-data-uniao-dependente"
+       style="display:none;">
+                <label>
+                  Data de União/Casamento
+                </label>
+                <input type="text"
+           class="form-control fluig-calendar dep-data-uniao"
+           placeholder="DD/MM/AAAA">
+              </div>
             </div>
             <div class="row">
               <#-- <div class="form-group col-md-4">
@@ -3294,8 +3341,9 @@
                 <input type="text" class="form-control dep-obs" placeholder="Alguma observação sobre este dependente?">
               </div>
             </div>
-            <div class="row">
-              <div class="col-md-3 form-group div-inc-irrf" style="display: none;">
+            <div class="linha-incidencias-dependente">
+              <div class="form-group div-inc-irrf"
+       style="display:none;">
                 <label>
                   Incide IRRF?
                 </label>
@@ -3308,7 +3356,8 @@
                   </option>
                 </select>
               </div>
-              <div class="col-md-3 form-group div-inc-pensao" style="display: none;">
+              <div class="form-group div-inc-pensao"
+       style="display:none;">
                 <label>
                   Incide Pensão?
                 </label>
@@ -3321,19 +3370,6 @@
                   </option>
                 </select>
               </div>
-              <#-- <div class="col-md-3 form-group div-salario-familia" style="display: none;">
-<label>
-                  Salário Família?
-                </label>
-<select class="form-control dep-sf">
-<option value="Nao">
-                    Não
-                  </option>
-<option value="Sim">
-                    Sim
-                  </option>
-</select>
-</div> -->
             </div>
             <div class="row div-docs-dependente" style="display: none; margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px;">
               <div class="col-md-12">

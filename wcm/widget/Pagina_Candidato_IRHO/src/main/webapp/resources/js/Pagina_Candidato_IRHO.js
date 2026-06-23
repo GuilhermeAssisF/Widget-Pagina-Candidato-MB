@@ -2426,6 +2426,9 @@
 
             that.atualizarVisibilidadeIncidenciasDependente($card);
             that.atualizarDadosMaeFilho($card);
+            that.atualizarDataUniaoDependente($card);
+
+            AdmissaoObrigatoriedade.atualizarAsteriscos(that);
         });
 
         $div.off("change", ".dep-possui-deficiencia")
@@ -3406,6 +3409,21 @@
             // dadosCandidato["TxtCartaoSusDep___" + i] = $card.find(".dep-sus").val();
             dadosCandidato["TxtObsDep___" + i] = $card.find(".dep-obs").val();
 
+            var parentescoNormalizado =
+                that.normalizarTextoDependente(parentesco);
+
+            var isConjuge =
+                parentescoNormalizado.indexOf("conjuge") > -1 ||
+                parentescoNormalizado.indexOf("companheiro") > -1 ||
+                parentescoNormalizado.indexOf("companheira") > -1;
+
+            dadosCandidato["cpDataUniaoDep___" + i] =
+                isConjuge
+                    ? formatarDataBR(
+                        $card.find(".dep-data-uniao").val() || ""
+                    )
+                    : "";
+
             var isFilho = parentesco === "Filho";
 
             dadosCandidato["TxtNomeMaeDep___" + i] =
@@ -4201,6 +4219,31 @@
         }
     },
 
+    atualizarDataUniaoDependente: function ($card) {
+        if (!$card || !$card.length) {
+            return;
+        }
+
+        var parentesco = this.normalizarTextoDependente(
+            $card.find(".dep-parentesco").val()
+        );
+
+        var isConjuge =
+            parentesco.indexOf("conjuge") > -1 ||
+            parentesco.indexOf("companheiro") > -1 ||
+            parentesco.indexOf("companheira") > -1;
+
+        var $bloco = $card.find(".div-data-uniao-dependente");
+        var $campo = $card.find(".dep-data-uniao");
+
+        if (isConjuge) {
+            $bloco.slideDown();
+        } else {
+            $bloco.hide();
+            $campo.val("");
+        }
+    },
+
     atualizarDadosMaeFilho: function ($card) {
         if (!$card || !$card.length) {
             return;
@@ -4402,6 +4445,12 @@
             pickTime: false
         });
 
+        FLUIGC.calendar($card.find(".dep-data-uniao"), {
+            language: "pt-br",
+            pickDate: true,
+            pickTime: false
+        });
+
         FLUIGC.calendar($card.find(".dep-mae-nasc"), {
             language: "pt-br",
             pickDate: true,
@@ -4427,6 +4476,7 @@
             that.atualizarVisibilidadeDeficienciaDependente($card);
             that.atualizarVisibilidadeIncidenciasDependente($card);
             that.atualizarDadosMaeFilho($card);
+            that.atualizarDataUniaoDependente($card);
         }, 350);
     },
     removerDependente: function (el) { $(el).closest('.dependente-card').fadeOut(function () { $(this).remove(); }); },

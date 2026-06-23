@@ -146,6 +146,7 @@ var AdmissaoObrigatoriedade = {
                     "dep-cpf",
                     "dep-nasc",
                     "dep-possui-deficiencia"
+
                 ].forEach(function (cls) {
                     var $label = $card
                         .find("." + cls)
@@ -175,6 +176,30 @@ var AdmissaoObrigatoriedade = {
                         $labelTipoDeficiencia.find(".asterisco-dinamico").length === 0
                     ) {
                         $labelTipoDeficiencia.append(
+                            ' <span class="text-danger asterisco-dinamico">*</span>'
+                        );
+                    }
+                }
+
+                var parentescoDependente =
+                    $card.find(".dep-parentesco").val() || "";
+
+                var isConjuge =
+                    parentescoDependente === "Conjuge" ||
+                    parentescoDependente === "Companheiro";
+
+                if (isConjuge) {
+                    var $labelDataUniao = $card
+                        .find(".dep-data-uniao")
+                        .closest(".form-group")
+                        .find("label")
+                        .first();
+
+                    if (
+                        $labelDataUniao.length &&
+                        $labelDataUniao.find(".asterisco-dinamico").length === 0
+                    ) {
+                        $labelDataUniao.append(
                             ' <span class="text-danger asterisco-dinamico">*</span>'
                         );
                     }
@@ -306,6 +331,27 @@ var AdmissaoObrigatoriedade = {
 
                     var parentescoDependente =
                         $card.find(".dep-parentesco").val() || "";
+
+                    var isConjuge =
+                        parentescoDependente === "Conjuge" ||
+                        parentescoDependente === "Companheiro";
+
+                    if (isConjuge) {
+                        var $dataUniao =
+                            $card.find(".dep-data-uniao");
+
+                        if (
+                            !$dataUniao.val() ||
+                            $dataUniao.val().trim() === ""
+                        ) {
+                            return erro(
+                                "O campo <strong>Data de União/Casamento</strong> do dependente " +
+                                (index + 1) +
+                                " é obrigatório.",
+                                $dataUniao
+                            );
+                        }
+                    }
 
                     if (parentescoDependente === "Filho") {
                         var camposMaeObrigatorios = [
