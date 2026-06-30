@@ -6,11 +6,11 @@
 
 :root {
     /* Cores extraídas do Painel de Admissão */
-    --color-primary: #8e7dd6; 
+    --color-primary: #8e7dd6;
     --color-primary-dark: #58489d;
     --color-primary-light: #f3f0fd;
     --color-primary-hover: #6f5ebc;
-    
+
     /* Gradientes da Identidade Visual do Painel */
     --header-grad-inicio: #8e7dd6;
     --header-grad-fim: #58489d;
@@ -126,15 +126,15 @@ div[id^="AdmissaoWidget_"] {
 /* Caixa de Vidro e Logo */
 .header-logo-wrapper {
     background: rgba(255, 255, 255, 0.1) !important;
-    padding: 8px 12px !important; 
+    padding: 8px 12px !important;
     border-radius: 12px !important;
-    margin-right: 16px !important; 
+    margin-right: 16px !important;
     backdrop-filter: blur(4px) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: max-content; 
+    width: max-content;
 }
 
 .header-logo {
@@ -159,7 +159,7 @@ div[id^="AdmissaoWidget_"] {
     font-weight: 700 !important;
     color: #ffffff !important;
     margin: 0 !important;
-    line-height: 1.1 !important; 
+    line-height: 1.1 !important;
     letter-spacing: 1px;
     text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.089) !important;
 }
@@ -171,20 +171,23 @@ div[id^="AdmissaoWidget_"] {
     font-weight: 500;
     letter-spacing: 2px;
     margin: 0 !important;
-    line-height: 1 !important; 
+    line-height: 1 !important;
 }
 
 /* ==========================================================================
    CARD MESTRE DE CONTEÚDO (FLUTUANTE)
    ========================================================================== */
 .main-content-card {
-    max-width: 1000px; /* Acompanha o tamanho do cabeçalho */
-    margin: 12px auto 40px auto; /* "Rente" ao cabeçalho (12px de distância) */
+    max-width: 1000px;
+    /* Acompanha o tamanho do cabeçalho */
+    margin: 12px auto 40px auto;
+    /* "Rente" ao cabeçalho (12px de distância) */
     background-color: var(--bg-painel) !important;
     border: 1px solid var(--borda-painel) !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 20px var(--sombra-painel) !important;
-    overflow: hidden; /* Garante que o conteúdo respeite as bordas arredondadas */
+    overflow: hidden;
+    /* Garante que o conteúdo respeite as bordas arredondadas */
     transition: all 0.3s ease;
 }
 
@@ -194,13 +197,15 @@ div[id^="AdmissaoWidget_"] {
 
 /* Ajuste no Stepper para integrar ao topo do Card */
 .modern-stepper-wrapper {
-    background: transparent !important; /* Remove o fundo próprio para usar o do card */
+    background: transparent !important;
+    /* Remove o fundo próprio para usar o do card */
     padding: 24px 0 10px 0 !important;
     border-bottom: 1px solid var(--borda-padrao) !important;
 }
 
 .stepper-container {
-    max-width: 100%; /* Ocupa a largura total do card interno */
+    max-width: 100%;
+    /* Ocupa a largura total do card interno */
     padding: 0 30px;
 }
 
@@ -234,7 +239,7 @@ div[id^="AdmissaoWidget_"] {
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 /* ==========================================================================
@@ -244,7 +249,7 @@ div[id^="AdmissaoWidget_"] {
     background: var(--bg-pagina);
     padding: 24px 0;
     border-bottom: 1px solid var(--borda-padrao);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .stepper-container {
@@ -298,18 +303,25 @@ div[id^="AdmissaoWidget_"] {
     transition: transform 0.4s ease;
 }
 
-.step-item.completed::after { transform: scaleX(1); }
-.step-item:last-child::after { display: none; }
+.step-item.completed::after {
+    transform: scaleX(1);
+}
+
+.step-item:last-child::after {
+    display: none;
+}
 
 .step-indicator {
     /* Força o fundo a ser exatamente o branco do card, eliminando o quadrado cinza */
-    background-color: var(--bg-painel, #ffffff) !important; 
-    padding: 0 8px !important; /* Mantém o respiro para "cortar" a linha cinza com elegância */
+    background-color: var(--bg-painel, #ffffff) !important;
+    padding: 0 8px !important;
+    /* Mantém o respiro para "cortar" a linha cinza com elegância */
     display: flex !important;
     justify-content: center !important;
     position: relative !important;
     z-index: 3 !important;
-    color: var(--header-grad-inicio) !important; /* Cor do número do passo */
+    color: var(--header-grad-inicio) !important;
+    /* Cor do número do passo */
 }
 
 .step-icon {
@@ -481,6 +493,23 @@ div[id^="AdmissaoWidget_"] {
     margin-top: 4px;
 }
 
+/* iPhone e iPad: somente o card de envio */
+div[id^="AdmissaoWidget_"] .foto-step-actions.foto-step-actions-ios {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    max-width: 440px;
+    margin: 4px auto 0;
+}
+
+div[id^="AdmissaoWidget_"].dispositivo-ios [id^="btn_abrir_camera_"] {
+    display: none !important;
+}
+
+div[id^="AdmissaoWidget_"] .foto-step-actions.foto-step-actions-ios .foto-action-card {
+    width: 100%;
+    max-width: 100%;
+}
+
 .foto-action-card {
     appearance: none;
     border: 1px solid #e2e8f0;
@@ -644,6 +673,182 @@ div[id^="AdmissaoWidget_"] {
         min-width: 0;
         flex: 1 1 100%;
     }
+
+    /* ==============================================================
+   AVISOS E ALERTAS NO MOBILE
+   ============================================================== */
+
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert,
+    div[id^="AdmissaoWidget_"] .alert {
+        width: 100%;
+        max-width: 100%;
+        min-height: 0 !important;
+
+        margin: 0 0 14px !important;
+        padding: 14px 38px 14px 54px !important;
+
+        font-size: 12px !important;
+        line-height: 1.45 !important;
+
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: normal;
+
+        text-align: left !important;
+    }
+
+    /*
+ * No mobile, o ícone fica alinhado ao início do aviso.
+ * Evita que fique perdido no centro de mensagens grandes.
+ */
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert>i,
+    div[id^="AdmissaoWidget_"] .alert>i {
+        left: 12px !important;
+        top: 14px !important;
+
+        width: 30px !important;
+        height: 30px !important;
+
+        margin: 0 !important;
+        transform: none !important;
+
+        font-size: 13px !important;
+    }
+
+    /* Título do aviso */
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert strong,
+    div[id^="AdmissaoWidget_"] .alert strong {
+        display: block !important;
+
+        margin: 0 0 3px !important;
+
+        font-size: 13px !important;
+        line-height: 1.35 !important;
+
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+    }
+
+    /* Texto principal do aviso */
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert p,
+    div[id^="AdmissaoWidget_"] .alert p {
+        display: block !important;
+
+        margin: 0 !important;
+
+        font-size: 12px !important;
+        line-height: 1.5 !important;
+
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+    }
+
+    /* Links longos não ultrapassam o aviso */
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert a,
+    div[id^="AdmissaoWidget_"] .alert a {
+        display: inline;
+        max-width: 100%;
+
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* Botão de fechar alinhado no topo */
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert .close,
+    div[id^="AdmissaoWidget_"] .alert .close {
+        top: 10px !important;
+        right: 10px !important;
+
+        transform: none !important;
+
+        font-size: 18px !important;
+        line-height: 1 !important;
+    }
+
+    /* Toasts gerados pelo FLUIGC.toast */
+    /* Toasts gerados pelo FLUIGC.toast no mobile */
+    .fluig-toast {
+        position: fixed !important;
+
+        left: 12px !important;
+        right: 12px !important;
+
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+
+        transform: none !important;
+
+        box-sizing: border-box !important;
+        z-index: 999999 !important;
+    }
+
+    /* Estrutura interna do aviso */
+    .fluig-toast .alert {
+        position: relative !important;
+
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+
+        margin: 0 !important;
+        padding: 14px 38px 14px 18px !important;
+
+        box-sizing: border-box !important;
+
+        font-size: 13px !important;
+        line-height: 1.45 !important;
+
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
+
+        border-radius: 12px !important;
+    }
+
+    /* Título do toast */
+    .fluig-toast .alert strong {
+        display: inline !important;
+
+        margin: 0 4px 0 0 !important;
+
+        font-size: 13px !important;
+        line-height: 1.45 !important;
+
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* Texto do toast */
+    .fluig-toast .alert p {
+        display: inline !important;
+
+        margin: 0 !important;
+
+        font-size: 13px !important;
+        line-height: 1.45 !important;
+
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* Botão de fechar */
+    .fluig-toast .alert .close {
+        position: absolute !important;
+
+        top: 10px !important;
+        right: 10px !important;
+
+        margin: 0 !important;
+        transform: none !important;
+
+        font-size: 18px !important;
+        line-height: 1 !important;
+    }
 }
 
 /* ========================================================================== 
@@ -651,6 +856,8 @@ div[id^="AdmissaoWidget_"] {
    ========================================================================== */
 .primeiro-link-grid {
     margin-top: 10px;
+    grid-template-columns: minmax(240px, 320px);
+    justify-content: center;
 }
 
 .primeiro-link-card {
@@ -777,7 +984,7 @@ div[id^="AdmissaoWidget_"] {
 
 .sidebar-header {
     padding: 16px 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     background: #1f2b39;
     font-weight: 700;
 }
@@ -801,7 +1008,7 @@ div[id^="AdmissaoWidget_"] {
 
 .candidato-info-block {
     margin-bottom: 18px;
-    background: rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 8px;
     padding: 14px;
 }
@@ -913,17 +1120,19 @@ div[id^="AdmissaoWidget_"] {
 
 /* Container Principal do Alerta */
 .fluig-style-guide .alert {
-    display: block !important; /* Mantém o texto como um parágrafo natural, sem quebrar o negrito */
+    display: block !important;
+    /* Mantém o texto como um parágrafo natural, sem quebrar o negrito */
     position: relative !important;
     color: var(--texto-padrao, #1f2937) !important;
     /* Padding igual em cima e embaixo (16px) garante que o texto fique centralizado */
-    padding: 16px 40px 16px 64px !important; 
+    padding: 16px 40px 16px 64px !important;
     border-radius: 12px !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
     text-shadow: none !important;
     line-height: 1.5 !important;
     text-align: left !important;
-    min-height: auto !important; /* Removemos a altura fixa para o card abraçar o texto */
+    min-height: auto !important;
+    /* Removemos a altura fixa para o card abraçar o texto */
 }
 
 /* Remove qualquer resquício da barra lateral antiga */
@@ -935,15 +1144,18 @@ div[id^="AdmissaoWidget_"] {
 .fluig-style-guide .alert i {
     position: absolute !important;
     left: 16px !important;
-    top: 50% !important; /* Empurra para o meio do card */
-    transform: translateY(-50%) !important; /* Corrige a matemática para ser o centro perfeito */
+    top: 50% !important;
+    /* Empurra para o meio do card */
+    transform: translateY(-50%) !important;
+    /* Corrige a matemática para ser o centro perfeito */
     width: 32px !important;
     height: 32px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-radius: 50% !important;
-    color: #ffffff !important; /* Ícone sempre branco */
+    color: #ffffff !important;
+    /* Ícone sempre branco */
     font-size: 14px !important;
     margin: 0 !important;
     z-index: 2 !important;
@@ -953,7 +1165,7 @@ div[id^="AdmissaoWidget_"] {
 .fluig-style-guide .alert strong {
     font-size: 14px !important;
     color: var(--texto-padrao, #111827) !important;
-    display: inline !important; 
+    display: inline !important;
     margin-right: 4px !important;
 }
 
@@ -966,7 +1178,8 @@ div[id^="AdmissaoWidget_"] {
 .fluig-style-guide .alert .close {
     position: absolute !important;
     top: 50% !important;
-    transform: translateY(-50%) !important; /* Centraliza o 'x' verticalmente também */
+    transform: translateY(-50%) !important;
+    /* Centraliza o 'x' verticalmente também */
     right: 16px !important;
     color: var(--texto-padrao) !important;
     opacity: 0.4 !important;
@@ -984,39 +1197,43 @@ div[id^="AdmissaoWidget_"] {
    ========================================== */
 
 /* INFORMAÇÃO (Azul) */
-.fluig-style-guide .alert-info { 
-    background-color: #eff6ff !important; 
-    border: 1px solid #bfdbfe !important; 
+.fluig-style-guide .alert-info {
+    background-color: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
 }
-.fluig-style-guide .alert-info i { 
-    background-color: var(--color-info, #3b82f6) !important; 
+
+.fluig-style-guide .alert-info i {
+    background-color: var(--color-info, #3b82f6) !important;
 }
 
 /* SUCESSO (Verde) */
-.fluig-style-guide .alert-success { 
-    background-color: #ecfdf5 !important; 
-    border: 1px solid #a7f3d0 !important; 
+.fluig-style-guide .alert-success {
+    background-color: #ecfdf5 !important;
+    border: 1px solid #a7f3d0 !important;
 }
-.fluig-style-guide .alert-success i { 
-    background-color: var(--color-success, #10b981) !important; 
+
+.fluig-style-guide .alert-success i {
+    background-color: var(--color-success, #10b981) !important;
 }
 
 /* AVISO (Amarelo/Laranja) */
-.fluig-style-guide .alert-warning { 
-    background-color: #fffbeb !important; 
-    border: 1px solid #fde68a !important; 
+.fluig-style-guide .alert-warning {
+    background-color: #fffbeb !important;
+    border: 1px solid #fde68a !important;
 }
-.fluig-style-guide .alert-warning i { 
-    background-color: var(--color-warning, #f59e0b) !important; 
+
+.fluig-style-guide .alert-warning i {
+    background-color: var(--color-warning, #f59e0b) !important;
 }
 
 /* ERRO (Vermelho) */
-.fluig-style-guide .alert-danger { 
-    background-color: #fef2f2 !important; 
-    border: 1px solid #fecaca !important; 
+.fluig-style-guide .alert-danger {
+    background-color: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
 }
-.fluig-style-guide .alert-danger i { 
-    background-color: var(--color-danger, #ef4444) !important; 
+
+.fluig-style-guide .alert-danger i {
+    background-color: var(--color-danger, #ef4444) !important;
 }
 
 /* ALERTA DE ABERTURA DE CONTA NA ETAPA 2 */
@@ -1074,7 +1291,8 @@ div[id^="AdmissaoWidget_"] {
 .nav-tabs {
     display: flex !important;
     width: 100% !important;
-    justify-content: space-between !important; /* Distribui na largura total */
+    justify-content: space-between !important;
+    /* Distribui na largura total */
     background: var(--bg-input) !important;
     padding: 6px !important;
     border-radius: 12px !important;
@@ -1082,12 +1300,13 @@ div[id^="AdmissaoWidget_"] {
     gap: 4px !important;
 }
 
-.nav-tabs > li {
-    flex: 1 !important; /* Faz cada aba ter o mesmo tamanho */
+.nav-tabs>li {
+    flex: 1 !important;
+    /* Faz cada aba ter o mesmo tamanho */
     text-align: center !important;
 }
 
-.nav-tabs > li > a {
+.nav-tabs>li>a {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1102,14 +1321,15 @@ div[id^="AdmissaoWidget_"] {
     transition: all 0.2s ease !important;
 }
 
-.nav-tabs > li.active > a {
-    background: #fff !important; /* Fundo branco para destacar */
+.nav-tabs>li.active>a {
+    background: #fff !important;
+    /* Fundo branco para destacar */
     color: var(--color-primary) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Efeito Pill suave na tab ativa (Prompt 1) */
-.nav-tabs > li.active > a::before {
+.nav-tabs>li.active>a::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -1185,18 +1405,18 @@ div[id^="AdmissaoWidget_"] .div-docs-dependente {
     align-items: stretch;
 }
 
-div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"] > [class*="col-"],
-div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"] > [class*="col-"] {
+div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"]>[class*="col-"],
+div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"]>[class*="col-"] {
     display: flex !important;
 }
 
-div[id^="AdmissaoWidget_"] .div-docs-dependente > [class*="col-"] {
+div[id^="AdmissaoWidget_"] .div-docs-dependente>[class*="col-"] {
     display: none;
 }
 
-div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"] > [class*="col-"] > .upload-box,
-div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"] > [class*="col-"] > .upload-box,
-div[id^="AdmissaoWidget_"] .div-docs-dependente > [class*="col-"] > .upload-box {
+div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"]>[class*="col-"]>.upload-box,
+div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"]>[class*="col-"]>.upload-box,
+div[id^="AdmissaoWidget_"] .div-docs-dependente>[class*="col-"]>.upload-box {
     width: 100%;
     height: 220px;
 }
@@ -1228,15 +1448,29 @@ div[id^="AdmissaoWidget_"] .upload-box .dep-file-btn {
     display: none;
     animation: fadeIn 0.3s ease;
 }
-.step-content.active { display: block; }
+
+.step-content.active {
+    display: block;
+}
+
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Comportamento Mobile */
 @media (max-width: 768px) {
-    .step-label { font-size: 10px; }
+    .step-label {
+        font-size: 10px;
+    }
+
     .custom-page-header {
         flex-direction: column;
         gap: 15px;
@@ -1257,5 +1491,1256 @@ div[id^="AdmissaoWidget_"] .upload-box .dep-file-btn {
     div[id^="AdmissaoWidget_"] .upload-box .dep-file-btn {
         font-size: 12px;
         padding: 7px 12px !important;
+    }
+}
+
+/* ==========================================================================
+   8. RESPONSIVIDADE - TABLETS E DISPOSITIVOS MÓVEIS
+   ========================================================================== */
+
+div[id^="AdmissaoWidget_"] {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+div[id^="AdmissaoWidget_"] *,
+div[id^="AdmissaoWidget_"] *::before,
+div[id^="AdmissaoWidget_"] *::after {
+    box-sizing: border-box;
+}
+
+div[id^="AdmissaoWidget_"] .container-fluid {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+div[id^="AdmissaoWidget_"] #form_main_container {
+    width: 100%;
+    max-width: 1000px !important;
+}
+
+.header-actions {
+    min-width: 0;
+    max-width: 46%;
+}
+
+.header-actions .header-glass-card {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.header-actions .header-glass-card span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.primeiro-link-grid {
+    grid-template-columns: minmax(240px, 320px);
+    justify-content: center;
+}
+
+.widget-nav-footer {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    gap: 12px;
+}
+
+.widget-nav-footer>[class*="col-"] {
+    float: none !important;
+}
+
+.widget-nav-logo {
+    max-height: 45px;
+    max-width: 100%;
+    height: auto;
+}
+
+/* Tablets em paisagem e telas compactas */
+@media (max-width: 1024px) {
+    div[id^="AdmissaoWidget_"] .container-fluid {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .custom-page-header,
+    .main-content-card {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .custom-page-header {
+        margin-top: 16px;
+        padding: 18px 22px !important;
+        gap: 18px;
+    }
+
+    .main-content-card {
+        margin: 12px auto 28px auto;
+    }
+
+    .modern-stepper-wrapper {
+        padding: 20px 0 10px 0 !important;
+    }
+
+    .stepper-container {
+        width: 100%;
+        max-width: 100%;
+        padding: 0 18px 10px !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scroll-behavior: smooth;
+        overscroll-behavior-x: contain;
+        touch-action: pan-x;
+    }
+
+    .stepper-container::-webkit-scrollbar {
+        height: 5px;
+    }
+
+    .stepper-container::-webkit-scrollbar-thumb {
+        background: rgba(88, 72, 157, 0.28);
+        border-radius: 999px;
+    }
+
+    .stepper-list {
+        width: max-content;
+        min-width: 760px;
+        justify-content: flex-start;
+    }
+
+    .step-item {
+        flex: 0 0 95px;
+        min-width: 95px;
+        scroll-snap-align: center;
+    }
+
+    .step-label {
+        max-width: 88px;
+        line-height: 1.25;
+        overflow-wrap: break-word;
+    }
+
+    .nav-tabs {
+        justify-content: flex-start !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scroll-snap-type: x proximity;
+    }
+
+    .nav-tabs>li {
+        flex: 0 0 auto !important;
+        scroll-snap-align: start;
+    }
+
+    .nav-tabs>li>a {
+        min-width: 118px;
+        white-space: nowrap;
+        position: relative;
+        z-index: 0;
+    }
+
+    div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"]>[class*="col-"],
+    div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"]>[class*="col-"],
+    div[id^="AdmissaoWidget_"] .div-docs-dependente>[class*="col-"] {
+        width: 50%;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .custom-modal-overlay .custom-modal-dialog {
+        width: min(960px, 96vw);
+        height: min(92vh, 92dvh);
+    }
+
+    .custom-modal-overlay .custom-modal-body {
+        flex-direction: column !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .custom-modal-overlay .viewer-sidebar {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-height: 230px;
+        flex: 0 0 auto !important;
+        overflow-y: auto;
+    }
+
+    .custom-modal-overlay .sidebar-content {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding: 12px !important;
+    }
+
+    .custom-modal-overlay .sidebar-section-title {
+        display: none;
+    }
+
+    .custom-modal-overlay .candidato-info-block {
+        min-width: 0;
+        margin: 0 !important;
+        padding: 10px !important;
+    }
+
+    .custom-modal-overlay .candidato-info-block p {
+        overflow-wrap: anywhere;
+    }
+
+    .custom-modal-overlay .viewer-main-content {
+        min-height: 0 !important;
+        flex: 1 1 auto !important;
+    }
+
+    .custom-modal-overlay .document-paper-shadow,
+    .custom-modal-overlay .custom-modal-body iframe {
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+}
+
+/* Tablets verticais e celulares grandes */
+@media (max-width: 768px) {
+    div[id^="AdmissaoWidget_"] .container-fluid {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .custom-page-header {
+        margin-top: 8px;
+        padding: 14px !important;
+        border-radius: 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .header-title {
+        width: 100%;
+        min-width: 0;
+        gap: 10px;
+    }
+
+    .header-logo-wrapper {
+        flex: 0 0 auto;
+        margin-right: 0 !important;
+        padding: 7px 9px !important;
+    }
+
+    .header-text-group {
+        min-width: 0;
+    }
+
+    .header-text-group h2 {
+        font-size: 16px !important;
+        letter-spacing: 0.6px;
+        overflow-wrap: anywhere;
+    }
+
+    .header-text-group .header-subtitle {
+        font-size: 9px;
+        letter-spacing: 1.4px;
+    }
+
+    .header-actions {
+        width: 100%;
+        max-width: none;
+    }
+
+    .header-actions .header-glass-card {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 10px 12px !important;
+    }
+
+    .main-content-card {
+        margin: 8px auto 20px auto;
+        border-radius: 10px !important;
+    }
+
+    .modern-stepper-wrapper {
+        padding-top: 16px !important;
+    }
+
+    .stepper-container {
+        padding: 0 12px 9px !important;
+        scroll-snap-type: x proximity;
+    }
+
+    .stepper-list {
+        min-width: max-content;
+    }
+
+    .stepper-list::before {
+        left: 44px;
+        right: 44px;
+    }
+
+    .step-item {
+        flex-basis: 88px;
+        min-width: 88px;
+    }
+
+    .step-indicator {
+        padding: 0 6px !important;
+    }
+
+    .step-label {
+        max-width: 78px;
+        font-size: 10px;
+        min-height: 25px;
+    }
+
+    div[id^="AdmissaoWidget_"] #form_main_container {
+        margin: 18px auto !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .section-title {
+        font-size: 18px !important;
+        line-height: 1.3;
+        padding: 10px 12px !important;
+        margin: 20px 0 18px 0 !important;
+        gap: 9px;
+    }
+
+    .section-title i {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+    }
+
+    .fluig-style-guide .panel-heading {
+        padding: 13px 15px !important;
+        font-size: 13px !important;
+        line-height: 1.35;
+    }
+
+    .fluig-style-guide .panel-body {
+        padding: 16px 15px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] #form_main_container .row {
+        margin-left: -7px;
+        margin-right: -7px;
+    }
+
+    div[id^="AdmissaoWidget_"] #form_main_container [class*="col-"] {
+        padding-left: 7px;
+        padding-right: 7px;
+    }
+
+    .fluig-style-guide .form-group {
+        margin-bottom: 16px;
+    }
+
+    .fluig-style-guide .form-control {
+        min-height: 44px;
+        padding: 10px 12px !important;
+        font-size: 16px !important;
+    }
+
+    .fluig-style-guide textarea.form-control {
+        min-height: 96px;
+    }
+
+    .fluig-style-guide .input-group {
+        width: 100%;
+    }
+
+    .fluig-style-guide .input-group-btn>.btn {
+        min-height: 44px;
+    }
+
+    .nav-tabs {
+        margin-bottom: 16px !important;
+        padding: 5px !important;
+    }
+
+    .nav-tabs>li>a {
+        min-width: 108px;
+        min-height: 42px;
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+    }
+
+    .document-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .primeiro-link-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .grid-card,
+    .primeiro-link-card {
+        min-height: 140px;
+        padding: 18px 14px;
+    }
+
+    .fluig-style-guide .alert {
+        padding: 14px 34px 14px 56px !important;
+        font-size: 13px;
+    }
+
+    .fluig-style-guide .alert i {
+        left: 12px !important;
+        width: 30px !important;
+        height: 30px !important;
+    }
+
+    .fluig-style-guide .btn {
+        min-height: 42px;
+        white-space: normal;
+    }
+
+    .fluig-style-guide .btn-xs {
+        min-height: 34px;
+    }
+
+    .assinatura-verificada-badge {
+        max-width: 100%;
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .foto-step-shell {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .foto-preview-circle {
+        width: 132px;
+        height: 132px;
+    }
+
+    .foto-action-card {
+        min-height: 150px;
+        padding: 20px 16px;
+    }
+
+    div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"]>[class*="col-"],
+    div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"]>[class*="col-"],
+    div[id^="AdmissaoWidget_"] .div-docs-dependente>[class*="col-"] {
+        width: 50%;
+    }
+
+    div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"]>[class*="col-"]>.upload-box,
+    div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"]>[class*="col-"]>.upload-box,
+    div[id^="AdmissaoWidget_"] .div-docs-dependente>[class*="col-"]>.upload-box,
+    .upload-box {
+        height: auto !important;
+        min-height: 185px;
+    }
+
+    .widget-nav-footer {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "back next"
+            "brand brand";
+        align-items: stretch !important;
+        gap: 10px;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+    }
+
+    .widget-nav-back,
+    .widget-nav-next,
+    .widget-nav-brand {
+        width: 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        text-align: initial !important;
+    }
+
+    .widget-nav-back {
+        grid-area: back;
+    }
+
+    .widget-nav-next {
+        grid-area: next;
+    }
+
+    .widget-nav-brand {
+        grid-area: brand;
+        text-align: center !important;
+        padding-top: 4px !important;
+    }
+
+    .widget-nav-back .btn,
+    .widget-nav-next .btn {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .widget-nav-logo {
+        max-height: 34px !important;
+    }
+
+    .custom-modal-overlay {
+        padding: 8px;
+    }
+
+    .custom-modal-overlay .custom-modal-dialog {
+        width: 100%;
+        height: calc(100vh - 16px);
+        height: calc(100dvh - 16px);
+    }
+
+    .custom-modal-header {
+        min-height: 54px;
+        height: auto;
+        padding: 8px 10px 8px 14px;
+    }
+
+    .custom-modal-title {
+        font-size: 14px;
+        line-height: 1.3;
+        padding-right: 8px;
+    }
+
+    .custom-modal-overlay .viewer-sidebar {
+        max-height: 210px;
+    }
+
+    .custom-modal-overlay .sidebar-header {
+        padding: 11px 12px;
+        font-size: 13px;
+    }
+
+    .custom-modal-overlay .sidebar-content {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 10px !important;
+    }
+
+    .custom-modal-overlay .sidebar-content .candidato-info-block:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .foto-camera-dialog {
+        width: 100%;
+        height: calc(100vh - 16px);
+        height: calc(100dvh - 16px);
+    }
+
+    .foto-camera-body {
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .foto-camera-preview-wrap {
+        max-height: 54dvh;
+    }
+
+    .foto-camera-footer {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    div[id^="AdmissaoWidget_"] .foto-step-actions.foto-step-actions-ios {
+        max-width: 100%;
+    }
+
+    div[id^="AdmissaoWidget_"] .foto-step-actions.foto-step-actions-ios .foto-action-card {
+        min-height: 150px;
+    }
+}
+
+/* Celulares */
+@media (max-width: 576px) {
+    .header-logo {
+        max-height: 26px !important;
+    }
+
+    .header-text-group h2 {
+        font-size: 14px !important;
+    }
+
+    .header-actions .header-glass-card span {
+        font-size: 12px !important;
+    }
+
+    .stepper-container {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    .step-item {
+        flex-basis: 82px;
+        min-width: 82px;
+    }
+
+    .step-label {
+        max-width: 72px;
+        font-size: 9px;
+    }
+
+    div[id^="AdmissaoWidget_"] #form_main_container {
+        padding-left: 9px !important;
+        padding-right: 9px !important;
+    }
+
+    .section-title {
+        font-size: 16px !important;
+    }
+
+    .fluig-style-guide .panel-heading {
+        padding: 12px !important;
+    }
+
+    .fluig-style-guide .panel-body {
+        padding: 14px 12px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] [id^="container_documentos_fixos_"]>[class*="col-"],
+    div[id^="AdmissaoWidget_"] [id^="container_documentos_dinamicos_"]>[class*="col-"],
+    div[id^="AdmissaoWidget_"] .div-docs-dependente>[class*="col-"] {
+        width: 100%;
+    }
+
+    .upload-box {
+        min-height: 170px;
+    }
+
+    .primeiro-link-alert {
+        line-height: 1.45 !important;
+    }
+
+    [id^="btn_gerar_assinar_primeiro_link_"] {
+        width: 100%;
+    }
+
+    .custom-modal-overlay {
+        padding: 0;
+    }
+
+    .custom-modal-overlay .custom-modal-dialog,
+    .foto-camera-dialog {
+        width: 100vw;
+        max-width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    .custom-modal-content {
+        border-radius: 0;
+    }
+
+    .custom-modal-overlay .viewer-sidebar {
+        max-height: 245px;
+    }
+
+    .custom-modal-overlay .sidebar-content {
+        grid-template-columns: 1fr;
+    }
+
+    .custom-modal-overlay .sidebar-content .candidato-info-block:last-child {
+        grid-column: auto;
+    }
+
+    .foto-step-title {
+        font-size: 20px;
+    }
+
+    .foto-step-subtitle {
+        font-size: 13px;
+    }
+
+    .foto-action-icon {
+        width: 62px;
+        height: 62px;
+    }
+
+    .foto-action-title {
+        font-size: 16px;
+    }
+}
+
+/* Celulares muito estreitos */
+@media (max-width: 380px) {
+    .custom-page-header {
+        padding: 12px 10px !important;
+    }
+
+    .header-title {
+        align-items: flex-start;
+    }
+
+    .header-logo-wrapper {
+        padding: 6px 7px !important;
+    }
+
+    .step-item {
+        flex-basis: 76px;
+        min-width: 76px;
+    }
+
+    .step-label {
+        max-width: 68px;
+    }
+
+    .widget-nav-footer {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "next"
+            "back"
+            "brand";
+    }
+
+    .fluig-style-guide .alert {
+        padding-right: 18px !important;
+    }
+}
+
+/* ==========================================================================
+   MOBILE APP - CAMPOS DIRETAMENTE NA TELA
+   ========================================================================== */
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+
+    div[id^="AdmissaoWidget_"] .stepper-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+    }
+
+    div[id^="AdmissaoWidget_"] .stepper-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    div[id^="AdmissaoWidget_"] .stepper-list {
+        width: max-content;
+        min-width: 100%;
+        justify-content: flex-start;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-item {
+        flex: 0 0 110px;
+        min-width: 110px;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs {
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs>li {
+        flex: 0 0 auto !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs>li>a {
+        min-width: 125px;
+        white-space: nowrap;
+    }
+}
+
+/* Celulares */
+@media (max-width: 768px) {
+
+    /* Fundo geral branco, semelhante a um aplicativo */
+    div[id^="AdmissaoWidget_"] {
+        background: #ffffff !important;
+        overflow-x: hidden;
+    }
+
+    div[id^="AdmissaoWidget_"]>.container-fluid {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        background: #ffffff !important;
+    }
+
+    /* Remove o grande painel que envolve stepper e formulário */
+    div[id^="AdmissaoWidget_"] .main-content-card {
+        width: 100%;
+        margin: 10px 0 24px !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .main-content-card:hover {
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* ==============================================================
+       NAVEGAÇÃO DAS ETAPAS
+       ============================================================== */
+
+    div[id^="AdmissaoWidget_"] .modern-stepper-wrapper {
+        position: relative;
+        margin: 0 0 18px !important;
+        padding: 14px 0 10px !important;
+        background: #ffffff !important;
+        border: 0 !important;
+        border-bottom: 1px solid #edf0f5 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* Texto "Etapa X de 8" preenchido pelo JavaScript */
+    div[id^="AdmissaoWidget_"] .modern-stepper-wrapper::before {
+        content:
+            "Etapa "
+            attr(data-current-step) " de "
+            attr(data-total-steps) "  •  "
+            attr(data-current-label);
+
+        display: block;
+        padding: 0 14px 12px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+    }
+
+    div[id^="AdmissaoWidget_"] .stepper-container {
+        width: 100%;
+        max-width: 100%;
+        padding: 3px 10px 8px !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+        scroll-snap-type: x proximity;
+        overscroll-behavior-x: contain;
+    }
+
+    div[id^="AdmissaoWidget_"] .stepper-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    div[id^="AdmissaoWidget_"] .stepper-list {
+        width: max-content;
+        min-width: max-content;
+        justify-content: flex-start;
+    }
+
+    div[id^="AdmissaoWidget_"] .stepper-list::before {
+        top: 16px;
+        left: 47px;
+        right: 47px;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-item {
+        flex: 0 0 94px;
+        min-width: 94px;
+        scroll-snap-align: center;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-item::after {
+        top: 16px;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-indicator {
+        padding: 0 7px !important;
+        background-color: #ffffff !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-icon {
+        width: 34px;
+        height: 34px;
+        background-color: #ffffff !important;
+        border: 2px solid #cbd5e1 !important;
+        color: #94a3b8 !important;
+        font-size: 13px;
+    }
+
+    /*
+     * Corrige o problema atual em que o !important do fundo
+     * transparente impede o círculo ativo de ficar preenchido.
+     */
+    div[id^="AdmissaoWidget_"] .step-item.active .step-icon,
+    div[id^="AdmissaoWidget_"] .step-item.completed .step-icon {
+        background-color: var(--color-primary) !important;
+        border-color: var(--color-primary) !important;
+        color: #ffffff !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-item.active .step-icon {
+        box-shadow: 0 0 0 5px rgba(142, 125, 214, 0.16) !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-label {
+        width: 86px;
+        max-width: 86px;
+        min-height: 30px;
+        margin-top: 9px;
+        color: #94a3b8;
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.25;
+        white-space: normal;
+        overflow-wrap: break-word;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-item.active .step-label {
+        color: var(--color-primary) !important;
+        font-weight: 800;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-item.completed .step-label {
+        color: #475569 !important;
+    }
+
+    /* ==============================================================
+       CONTEÚDO DIRETAMENTE NA TELA
+       ============================================================== */
+
+    div[id^="AdmissaoWidget_"] #form_main_container {
+        width: 100%;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 5px !important;
+        background: transparent !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-content {
+        width: 100%;
+        padding: 0 !important;
+        background: transparent !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .section-title {
+        margin: 8px 0 20px !important;
+        padding: 11px 12px !important;
+        border-radius: 5px 12px 12px 5px;
+        font-size: 18px !important;
+        line-height: 1.3;
+    }
+
+    div[id^="AdmissaoWidget_"] .section-title i {
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+    }
+
+    /* Remove painel visual das abas */
+    div[id^="AdmissaoWidget_"] .tab-content,
+    div[id^="AdmissaoWidget_"] .shadow-panel,
+    div[id^="AdmissaoWidget_"] [id^="tabContentDados_"] {
+        margin: 0 !important;
+        padding: 20px 3px 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* Remove cards/painéis internos e deixa os campos soltos na tela */
+    div[id^="AdmissaoWidget_"] .step-content .panel,
+    div[id^="AdmissaoWidget_"] .step-content .panel-default {
+        margin: 0 0 24px !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-content .panel:hover,
+    div[id^="AdmissaoWidget_"] .step-content .panel-default:hover {
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+
+    /*
+     * O título do painel continua existindo somente como separador
+     * entre grupos de campos.
+     */
+    div[id^="AdmissaoWidget_"] .step-content .panel-heading {
+        margin: 0 0 14px !important;
+        padding: 0 0 11px !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-bottom: 1px solid #e7eaf0 !important;
+        border-radius: 0 !important;
+        color: #334155 !important;
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-content .panel-body {
+        padding: 0 !important;
+        background: transparent !important;
+    }
+
+    /* Menos espaço lateral nas linhas Bootstrap */
+    div[id^="AdmissaoWidget_"] #form_main_container .row {
+        margin-left: -5px !important;
+        margin-right: -5px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] #form_main_container [class*="col-"] {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .form-group {
+        margin-bottom: 18px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .form-control {
+        min-height: 48px;
+        padding: 11px 14px !important;
+        border-radius: 10px !important;
+        font-size: 16px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] textarea.form-control {
+        min-height: 105px;
+    }
+
+    /* ==============================================================
+       ABAS NO FORMATO DE APLICATIVO
+       ============================================================== */
+
+    div[id^="AdmissaoWidget_"] .nav-tabs {
+        display: flex !important;
+        width: 100% !important;
+        margin: 0 !important;
+
+        padding: 6px 8px 18px !important;
+
+        gap: 8px !important;
+
+        justify-content: flex-start !important;
+        flex-wrap: nowrap !important;
+
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+        scroll-snap-type: x proximity;
+        scroll-padding-inline: 8px;
+        overscroll-behavior-x: contain;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs>li {
+        float: none !important;
+        flex: 0 0 auto !important;
+        min-width: auto;
+        margin: 0 !important;
+        text-align: center !important;
+        scroll-snap-align: center;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs>li>a {
+        position: relative;
+        z-index: 1;
+
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+
+        min-width: 112px;
+        min-height: 44px;
+        margin: 0 !important;
+        padding: 10px 14px !important;
+
+        background: #f4f6fa !important;
+        border: 1px solid #edf0f5 !important;
+        border-radius: 11px !important;
+
+        color: #55606d !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        line-height: 1.2;
+        white-space: nowrap;
+
+        box-shadow: none !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs>li.active>a,
+    div[id^="AdmissaoWidget_"] .nav-tabs>li.active>a:hover,
+    div[id^="AdmissaoWidget_"] .nav-tabs>li.active>a:focus {
+        background: var(--color-primary) !important;
+        border-color: var(--color-primary) !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 10px rgba(88, 72, 157, 0.22) !important;
+    }
+
+    /* Remove o segundo fundo aplicado anteriormente na aba ativa */
+    div[id^="AdmissaoWidget_"] .nav-tabs>li.active>a::before {
+        display: none !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs>li.aba-visitada:not(.active)>a {
+        background: #f4f1ff !important;
+        border-color: #e5defd !important;
+        color: var(--color-primary-dark) !important;
+    }
+
+    /*
+     * Botão de próxima aba em largura total,
+     * semelhante ao botão inferior do aplicativo de referência.
+     */
+    div[id^="AdmissaoWidget_"] [data-next-tab] {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 100% !important;
+        min-height: 48px;
+        margin-top: 12px !important;
+        padding: 12px 16px !important;
+        border-radius: 11px !important;
+        font-size: 14px !important;
+    }
+
+    /* ==============================================================
+       NAVEGAÇÃO ENTRE AS ETAPAS
+       ============================================================== */
+
+    div[id^="AdmissaoWidget_"] .widget-nav-footer {
+        display: grid !important;
+        grid-template-columns: minmax(100px, 0.75fr) minmax(150px, 1.25fr);
+        gap: 10px;
+        align-items: stretch !important;
+        margin: 0 !important;
+        padding: 14px 0 calc(12px + env(safe-area-inset-bottom)) !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .widget-nav-back,
+    div[id^="AdmissaoWidget_"] .widget-nav-next {
+        float: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .widget-nav-brand {
+        display: none !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .widget-nav-back .btn,
+    div[id^="AdmissaoWidget_"] .widget-nav-next .btn {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 48px;
+        margin: 0 !important;
+        border-radius: 11px !important;
+        white-space: normal;
+    }
+}
+
+@media (max-width: 420px) {
+
+    .fluig-toast {
+        left: 8px !important;
+        right: 8px !important;
+    }
+
+    .fluig-toast .alert {
+        padding: 12px 34px 12px 14px !important;
+
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+
+        border-radius: 10px !important;
+    }
+
+    .fluig-toast .alert strong,
+    .fluig-toast .alert p {
+        font-size: 12px !important;
+    }
+
+    div[id^="AdmissaoWidget_"]>.container-fluid {
+        padding-left: 7px !important;
+        padding-right: 7px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-item {
+        flex-basis: 88px;
+        min-width: 88px;
+    }
+
+    div[id^="AdmissaoWidget_"] .step-label {
+        width: 80px;
+        max-width: 80px;
+        font-size: 9px;
+    }
+
+    div[id^="AdmissaoWidget_"] .nav-tabs>li>a {
+        min-width: 104px;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .widget-nav-footer {
+        grid-template-columns: 1fr 1.4fr;
+    }
+
+    /* Avisos em celulares estreitos */
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert,
+    div[id^="AdmissaoWidget_"] .alert {
+        padding: 12px 34px 12px 48px !important;
+
+        font-size: 11px !important;
+        line-height: 1.45 !important;
+
+        border-radius: 10px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert>i,
+    div[id^="AdmissaoWidget_"] .alert>i {
+        left: 10px !important;
+        top: 12px !important;
+
+        width: 28px !important;
+        height: 28px !important;
+
+        font-size: 12px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert strong,
+    div[id^="AdmissaoWidget_"] .alert strong {
+        font-size: 12px !important;
+    }
+
+    div[id^="AdmissaoWidget_"] .fluig-style-guide .alert p,
+    div[id^="AdmissaoWidget_"] .alert p {
+        font-size: 11px !important;
     }
 }

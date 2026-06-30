@@ -40,6 +40,8 @@
         var that = this;
         var $div = $("#AdmissaoWidget_" + this.instanceId);
 
+        this.garantirCardsFiliacaoFixos();
+        this.sincronizarFiliacaoComCardsFixos();
         this.mostrarLoading(true);
 
         // ==========================================================
@@ -52,18 +54,21 @@
         this.idOrigem = urlParams.get('id_origem');
 
         // INJEÇÃO DE CAMPOS OCULTOS PARA ESTADO DAS ASSINATURAS (F5)
-        if ($("#tae_proposta_iddoc_" + this.instanceId).length === 0) {
-            var inps = '<input type="hidden" id="tae_proposta_iddoc_' + this.instanceId + '">' +
-                '<input type="hidden" id="tae_proposta_status_' + this.instanceId + '">' +
-                '<input type="hidden" id="tae_proposta_link_' + this.instanceId + '">' +
+        if ($("#tae_lgpd_iddoc_" + this.instanceId).length === 0) {
+            var inps =
                 '<input type="hidden" id="tae_lgpd_iddoc_' + this.instanceId + '">' +
                 '<input type="hidden" id="tae_lgpd_status_' + this.instanceId + '">' +
                 '<input type="hidden" id="tae_lgpd_link_' + this.instanceId + '">';
-            $("#AdmissaoWidget_" + this.instanceId).find("#form_main_container").append(inps);
+
+            $("#AdmissaoWidget_" + this.instanceId)
+                .find("#form_main_container")
+                .append(inps);
         }
 
         this.iniciarListeners($div);
+        this.ajustarCapturaFotoPorDispositivo();
         this.atualizarBotoes();
+        this.atualizarNavegacaoEtapasResponsiva(this.passoAtual);
         this.carregarPlanosBeneficios();
 
         // Fluxo Inicial
@@ -84,7 +89,7 @@
 
         // Ouvinte do botão único do Primeiro Link
         $div.on('click', '#btn_gerar_assinar_primeiro_link_' + this.instanceId, function () {
-            that.gerarEAssinarPrimeiroLink($(this));
+            that.gerarEAssinarLGPD($(this));
         });
 
         $div.on('click', '.primeiro-link-card', function () {
@@ -191,10 +196,13 @@
 
         // 7. Benefícios
         setVal("cand_vt_opcao", "Não Opto");
-        setVal("cand_ps_opcao", "Não Opto");
+        setVal("cand_ps_opcao", "Não");
+        setVal("cand_ps_dependentes_opcao", "Não");
 
         console.log(" Mock aplicado com sucesso! Todos os campos obrigatórios foram preenchidos.");
         FLUIGC.toast({ title: 'Mock Carregado', message: 'Dados de teste preenchidos com sucesso via Console.', type: 'success' });
+
+        this.restaurarFiliacaoDosCamposLegados();
     },
 
     // =========================================================================
@@ -359,18 +367,12 @@
                             that.jsonPrimeiroLinkCarregado = jsonPrimeiroLink || "{}";
 
                             // 2. Extraímos os IDs de dentro do Cofre (ou do campo direto como fallback)
-                            that.idPdfProposta = (cofrePrimeiro["kit_proposta_admissao"] && cofrePrimeiro["kit_proposta_admissao"].id) ? cofrePrimeiro["kit_proposta_admissao"].id : getVal("id_pdf_kit_proposta_admissao");
 
                             that.idPdfLGPD = (cofrePrimeiro["kit_lgpd_admissao"] && cofrePrimeiro["kit_lgpd_admissao"].id) ? cofrePrimeiro["kit_lgpd_admissao"].id : getVal("id_pdf_kit_lgpd_admissao");
 
                             // ========================================================
                             // RECUPERA OS ESTADOS DO COFRE PARA OS HIDDEN INPUTS (F5 SEGURO)
                             // ========================================================
-                            if (cofrePrimeiro["kit_proposta_admissao"]) {
-                                $("#tae_proposta_iddoc_" + that.instanceId).val(cofrePrimeiro["kit_proposta_admissao"].idDocTae || "");
-                                $("#tae_proposta_status_" + that.instanceId).val(cofrePrimeiro["kit_proposta_admissao"].status || "");
-                                $("#tae_proposta_link_" + that.instanceId).val(cofrePrimeiro["kit_proposta_admissao"].linkAssinaturaTae || "");
-                            }
                             if (cofrePrimeiro["kit_lgpd_admissao"]) {
                                 $("#tae_lgpd_iddoc_" + that.instanceId).val(cofrePrimeiro["kit_lgpd_admissao"].idDocTae || "");
                                 $("#tae_lgpd_status_" + that.instanceId).val(cofrePrimeiro["kit_lgpd_admissao"].status || "");
@@ -384,52 +386,32 @@
                             var jsonAssCand = getVal("jsonAssCand") || "{}";
                             var assCand = that.parseJsonSeguroCand(jsonAssCand, {});
 
-                            var statusPropAtual = $("#tae_proposta_status_" + that.instanceId).val();
-                            var statusLgpdAtual = $("#tae_lgpd_status_" + that.instanceId).val();
-
-                            if (!statusPropAtual && assCand.proposta && String(assCand.proposta.status || "").toLowerCase().indexOf("assinado") > -1) {
-                                $("#tae_proposta_status_" + that.instanceId).val("assinado");
-                                $("#tae_proposta_iddoc_" + that.instanceId).val(assCand.proposta.detalhe || "");
-                            }
-
-                            if (!statusLgpdAtual && assCand.lgpd && String(assCand.lgpd.status || "").toLowerCase().indexOf("assinado") > -1) {
-                                $("#tae_lgpd_status_" + that.instanceId).val("assinado");
-                                $("#tae_lgpd_iddoc_" + that.instanceId).val(assCand.lgpd.detalhe || "");
-                            }
+                            var statusLgpdAtual =
+                                $("#tae_lgpd_status_" + that.instanceId).val();
 
                             if (
-                                $("#tae_proposta_status_" + that.instanceId).val() === "assinado" &&
-                                $("#tae_lgpd_status_" + that.instanceId).val() === "assinado"
+                                !statusLgpdAtual &&
+                                assCand.lgpd &&
+                                String(assCand.lgpd.status || "")
+                                    .toLowerCase()
+                                    .indexOf("assinado") > -1
                             ) {
-                                that.previewDocsPrimeiroLink.manifesto = "Manifesto_Assinatura.pdf";
+                                $("#tae_lgpd_status_" + that.instanceId).val("assinado");
+                                $("#tae_lgpd_iddoc_" + that.instanceId)
+                                    .val(assCand.lgpd.detalhe || "");
+                            }
 
+                            if ($("#tae_lgpd_status_" + that.instanceId).val() === "assinado") {
                                 setTimeout(function () {
                                     that.atualizarCartoesPrimeiroLink();
-
-                                    if (typeof that.restaurarUIAssinaturas === "function") {
-                                        that.restaurarUIAssinaturas();
-                                    }
+                                    that.restaurarUIAssinaturas();
                                 }, 300);
                             }
                             // ========================================================
 
                             console.log("[DEBUG] Documentos recuperados do Cofre JSON:", {
-                                Proposta: that.idPdfProposta,
                                 LGPD: that.idPdfLGPD
                             });
-
-                            // CARTA PROPOSTA
-                            if (that.idPdfProposta) {
-                                that.obterBase64GED(that.idPdfProposta, function (base64) {
-                                    var srcPdf = "data:application/pdf;base64," + base64;
-                                    that.previewDocsPrimeiroLink.proposta = base64;
-                                    that.atualizarCartoesPrimeiroLink();
-                                    $("#pdf_viewer_proposta_" + that.instanceId).attr("src", srcPdf).show();
-                                    $("#msg_carregando_proposta_" + that.instanceId).hide();
-                                });
-                            } else {
-                                $("#msg_carregando_proposta_" + that.instanceId).html("<p class='text-danger'>Documento da proposta não encontrado.</p>");
-                            }
 
                             if (!that.idPdfLGPD) {
                                 $("#msg_carregando_lgpd_" + that.instanceId).html("<p class='text-danger'>Termo LGPD não encontrado.</p>");
@@ -442,12 +424,12 @@
                                     $("#msg_carregando_lgpd_" + that.instanceId).hide();
                                 });
                             }
-                            if (that.idPdfProposta && that.idPdfLGPD) {
+                            if (that.idPdfLGPD) {
                                 $("#btn_gerar_assinar_primeiro_link_" + that.instanceId)
                                     .show()
                                     .prop("disabled", true)
                                     .addClass("disabled")
-                                    .attr("title", "Abra a Carta Proposta e o Termo LGPD antes de assinar.");
+                                    .attr("title", "Abra o Termo LGPD antes de assinar.");
                             }
                             // =========================================================
 
@@ -463,13 +445,13 @@
                             };
 
                             var passoSalvoFluig = getVal("cppassoatualcandidato");
+                            that.qtdDependentesPersistidos = parseInt(getVal("cpQtdLinhas") || "0", 10) || 0;
 
-                            var statusPropCarregado = $("#tae_proposta_status_" + that.instanceId).val();
-                            var statusLgpdCarregado = $("#tae_lgpd_status_" + that.instanceId).val();
+                            var statusLgpdCarregado =
+                                $("#tae_lgpd_status_" + that.instanceId).val();
 
                             if (
                                 (!passoSalvoFluig || passoSalvoFluig === "1") &&
-                                statusPropCarregado === "assinado" &&
                                 statusLgpdCarregado === "assinado"
                             ) {
                                 passoSalvoFluig = "2";
@@ -532,6 +514,8 @@
                                     "cand_data_admissao_": ["FUN_ADMISSAO"],
                                     "cand_secao_": ["FUN_SECAO_IDDESC_AD"],
                                     "cand_funcao_": ["FUN_IDDESCFUN"],
+                                    "cand_funcao_codigo_": ["FUN_FUNCAO", "FUN_IDDESCFUN"],
+                                    "cand_codcoligada_": ["FUN_EMPRESA", "CODCOLIGADA"],
                                     "cand_salario_": ["FUN_VLRSALARIO"],
                                     "cand_turno_": ["FUN_IDDESCTURN"],
                                     "cand_possui_deficiencia_": ["txtPossuiDeficiencia"],
@@ -713,8 +697,25 @@
                                 var $selectPlanoPS = $("#cand_ps_tipo_plano_" + that.instanceId);
 
                                 if (opcaoSaudeSalva) {
-                                    $selectPS.val(opcaoSaudeSalva).trigger("change");
-                                    selecionarSelectPorValorOuTexto($selectPlanoPS, planoSaudeSalvo);
+                                    var opcaoSaudeNormalizada = String(opcaoSaudeSalva || "").trim();
+
+                                    if (that.isOpcaoPlanoSaudeOptante(opcaoSaudeNormalizada)) {
+                                        opcaoSaudeNormalizada = "Sim";
+                                    } else if (opcaoSaudeNormalizada) {
+                                        opcaoSaudeNormalizada = "Não";
+                                    }
+
+                                    if (planoSaudeSalvo) {
+                                        var codigoPlanoPendente = String(planoSaudeSalvo || "").trim();
+
+                                        if (codigoPlanoPendente.indexOf(" - ") > -1) {
+                                            codigoPlanoPendente = codigoPlanoPendente.split(" - ")[0].trim();
+                                        }
+
+                                        $selectPlanoPS.attr("data-valor-pendente", codigoPlanoPendente);
+                                    }
+
+                                    $selectPS.val(opcaoSaudeNormalizada).trigger("change");
                                 } else {
                                     $selectPS.val("");
                                     $("#div_ps_detalhes_" + that.instanceId).hide();
@@ -782,29 +783,55 @@
 
                                 var isEstagio = (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio");
 
-                                if (nomeMae && !isEstagio) {
+                                if (nomeMae || nomePai) {
                                     setTimeout(function () {
-                                        var $cards = $("#container_dependentes_" + that.instanceId).find(".dependente-card");
-                                        if ($cards.length > 0) {
-                                            var $cardMae = $cards.first();
-                                            $cardMae.find(".dep-parentesco").val("Mae").trigger("change");
-                                            $cardMae.find(".dep-nome").val(nomeMae).prop("readonly", true);
-                                            if (nascMae) {
-                                                var pM = nascMae.split('/');
-                                                $cardMae.find(".dep-nasc").val((pM.length == 3) ? pM[2] + "-" + pM[1] + "-" + pM[0] : nascMae).prop("readonly", true);
+                                        if (nomeMae) {
+                                            var $cardMae = that.obterCardFiliacao("mae");
+
+                                            if ($cardMae.length && !$cardMae.find(".dep-nome").val()) {
+                                                $cardMae.find(".dep-nome").val(nomeMae);
+                                                $cardMae.find(".dep-cpf").val(getVal("TxtCPFDep2"));
+                                                $cardMae.find(".dep-est-civil")
+                                                    .val(getVal("txtEstCivilDepen2"));
+
+                                                if (nascMae) {
+                                                    var pM = nascMae.split("/");
+
+                                                    $cardMae.find(".dep-nasc").val(
+                                                        pM.length === 3
+                                                            ? pM[2] + "-" + pM[1] + "-" + pM[0]
+                                                            : nascMae
+                                                    );
+                                                }
+
+                                                $cardMae.find(".dep-sexo").val("Feminino");
                                             }
-                                            $cardMae.find(".dep-sexo").val("Feminino").prop("readonly", true).css({ "pointer-events": "none", "background-color": "#eee" });
                                         }
+
                                         if (nomePai) {
-                                            that.adicionarDependente("Pai", false);
-                                            var $cardPai = $("#container_dependentes_" + that.instanceId).find(".dependente-card").last();
-                                            $cardPai.find(".dep-parentesco").val("Pai").trigger("change");
-                                            $cardPai.find(".dep-nome").val(nomePai).prop("readonly", true);
-                                            if (nascPai) {
-                                                var pP = nascPai.split('/');
-                                                $cardPai.find(".dep-nasc").val((pP.length == 3) ? pP[2] + "-" + pP[1] + "-" + pP[0] : nascPai).prop("readonly", true);
+                                            var $cardPai = that.obterCardFiliacao("pai");
+
+                                            if ($cardPai.length && !$cardPai.find(".dep-nome").val()) {
+                                                $cardPai.find(".dep-nome").val(nomePai);
+                                                $cardPai.find(".dep-cpf").val(getVal("TxtCPFDep3"));
+                                                $cardPai.find(".dep-est-civil")
+                                                    .val(getVal("txtEstCivilDepen3"));
+
+                                                if (nascPai) {
+                                                    var pP = nascPai.split("/");
+
+                                                    $cardPai.find(".dep-nasc").val(
+                                                        pP.length === 3
+                                                            ? pP[2] + "-" + pP[1] + "-" + pP[0]
+                                                            : nascPai
+                                                    );
+                                                }
+
+                                                $cardPai.find(".dep-sexo").val("Masculino");
                                             }
                                         }
+
+                                        that.sincronizarFiliacaoComCardsFixos();
                                     }, 600);
                                 }
 
@@ -829,28 +856,80 @@
                                 var estadoLocal = that.lerRascunhoLocalSeguro();
 
                                 var passoDoFluig = parseInt(passoSalvoFluig || "0", 10);
-                                var passoDoJson = estadoPersistidoFluig && estadoPersistidoFluig.passo
-                                    ? parseInt(estadoPersistidoFluig.passo, 10)
-                                    : 0;
-                                var passoDoLocal = estadoLocal && estadoLocal.passo
-                                    ? parseInt(estadoLocal.passo, 10)
-                                    : 0;
 
-                                // Se o localStorage estiver mais avançado que o Fluig, restaura ele também.
+                                var passoDoJson =
+                                    estadoPersistidoFluig && estadoPersistidoFluig.passo
+                                        ? parseInt(estadoPersistidoFluig.passo, 10)
+                                        : 0;
+
+                                var passoDoLocal =
+                                    estadoLocal && estadoLocal.passo
+                                        ? parseInt(estadoLocal.passo, 10)
+                                        : 0;
+
+                                function normalizarPassoPersistido(passo, versao) {
+                                    passo = parseInt(passo || "0", 10);
+                                    versao = parseInt(versao || "0", 10);
+
+                                    if (isNaN(passo)) {
+                                        return 0;
+                                    }
+
+                                    if (isNaN(versao)) {
+                                        versao = 0;
+                                    }
+
+                                    // Na versão antiga:
+                                    // passo 4 era Dependentes;
+                                    // passo 5 era Filiação.
+                                    if (
+                                        versao < 2 &&
+                                        (passo === 4 || passo === 5)
+                                    ) {
+                                        passo = 4;
+                                    }
+
+                                    // Estágio não pode abrir a etapa de Dependentes.
+                                    if (isEstagio && passo === 5) {
+                                        passo = 4;
+                                    }
+
+                                    return passo;
+                                }
+
+                                passoDoFluig = normalizarPassoPersistido(
+                                    passoDoFluig,
+                                    versaoFluig
+                                );
+
+                                passoDoJson = normalizarPassoPersistido(
+                                    passoDoJson,
+                                    versaoFluig
+                                );
+
+                                passoDoLocal = normalizarPassoPersistido(
+                                    passoDoLocal,
+                                    versaoLocal
+                                );
+
+                                // Se o localStorage estiver mais avançado que o Fluig,
+                                // restaura também os dados locais.
                                 if (estadoLocal && passoDoLocal > passoDoFluig) {
-                                    console.warn("[LocalStorage] Fluig está atrasado. Restaurando rascunho local mais recente.", {
-                                        passoFluig: passoDoFluig,
-                                        passoLocal: passoDoLocal
-                                    });
+                                    console.warn(
+                                        "[LocalStorage] Fluig está atrasado. Restaurando rascunho local mais recente.",
+                                        {
+                                            passoFluig: passoDoFluig,
+                                            passoLocal: passoDoLocal
+                                        }
+                                    );
 
                                     that.restaurarRascunhoLocal();
                                 }
 
-                                // Usa o maior passo conhecido.
                                 var maiorPassoConhecido = Math.max(
-                                    isNaN(passoDoFluig) ? 0 : passoDoFluig,
-                                    isNaN(passoDoJson) ? 0 : passoDoJson,
-                                    isNaN(passoDoLocal) ? 0 : passoDoLocal
+                                    passoDoFluig,
+                                    passoDoJson,
+                                    passoDoLocal
                                 );
 
                                 if (maiorPassoConhecido > 0) {
@@ -859,26 +938,60 @@
 
                                 if (passoSalvoFluig) {
                                     var pInt = parseInt(passoSalvoFluig, 10);
-                                    var statusPropSalvo = $("#tae_proposta_status_" + that.instanceId).val();
-                                    var statusLgpdSalvo = $("#tae_lgpd_status_" + that.instanceId).val();
+
+                                    // Identifica se o estado salvo já pertence à nova ordem das etapas.
+                                    var versaoFluig =
+                                        estadoPersistidoFluig &&
+                                        parseInt(estadoPersistidoFluig.versao || "0", 10);
+
+                                    var versaoLocal =
+                                        estadoLocal &&
+                                        parseInt(estadoLocal.versao || "0", 10);
+
+                                    var jornadaNormalizada = String(that.jornadaAdmissao || "")
+                                        .toLowerCase()
+                                        .normalize("NFD")
+                                        .replace(/[\u0300-\u036f]/g, "")
+                                        .trim();
+
+                                    var isEstagio =
+                                        jornadaNormalizada === "estagio" ||
+                                        jornadaNormalizada === "estagiario";
+
+                                    var statusLgpdSalvo =
+                                        $("#tae_lgpd_status_" + that.instanceId).val();
 
                                     if (!isNaN(pInt)) {
-                                        if (pInt === 1 && statusPropSalvo === "assinado" && statusLgpdSalvo === "assinado") {
+                                        if (
+                                            pInt === 1 &&
+                                            statusLgpdSalvo === "assinado"
+                                        ) {
                                             pInt = 2;
-                                        } else if (pInt === 2 && (statusPropSalvo !== "assinado" || statusLgpdSalvo !== "assinado")) {
+                                        } else if (
+                                            pInt === 2 &&
+                                            statusLgpdSalvo !== "assinado"
+                                        ) {
                                             pInt = 1;
                                         }
                                     }
 
-                                    if (!isNaN(pInt) && pInt > 1 && pInt <= that.totalPassos) {
+                                    if (
+                                        !isNaN(pInt) &&
+                                        pInt > 1 &&
+                                        pInt <= that.totalPassos
+                                    ) {
                                         setTimeout(function () {
                                             that.irParaPasso(pInt);
+
                                             FLUIGC.toast({
-                                                title: 'Bem-vindo(a) de volta!',
-                                                message: 'Retomando seu preenchimento a partir do Passo ' + pInt + '.',
-                                                type: 'info'
+                                                title: "Bem-vindo(a) de volta!",
+                                                message:
+                                                    "Retomando seu preenchimento a partir do Passo " +
+                                                    pInt +
+                                                    ".",
+                                                type: "info"
                                             });
-                                        }, 500); // Delay suave para esperar a UI terminar de renderizar
+                                        }, 500);
                                     }
                                 }
                                 that.liberarAutosaveFluigComDelay("carregarDadosIniciais");
@@ -1072,10 +1185,40 @@
             texto.indexOf("optante") > -1;
     },
 
-    carregarPlanosPorDataset: function (datasetName, selectId, placeholder, callbackFinal) {
+    obterCodigoFuncaoPlanoSaude: function () {
+        var id = this.instanceId;
+
+        var codFuncao = $("#cand_funcao_codigo_" + id).val() || "";
+        var funcaoTexto = $("#cand_funcao_" + id).val() || "";
+
+        codFuncao = String(codFuncao || "").trim();
+        funcaoTexto = String(funcaoTexto || "").trim();
+
+        if (codFuncao.indexOf(" - ") > -1) {
+            codFuncao = codFuncao.split(" - ")[0].trim();
+        }
+
+        if (!codFuncao && funcaoTexto.indexOf(" - ") > -1) {
+            codFuncao = funcaoTexto.split(" - ")[0].trim();
+        }
+
+        if (!codFuncao && funcaoTexto) {
+            codFuncao = funcaoTexto;
+        }
+
+        return codFuncao;
+    },
+
+    carregarPlanosPorDataset: function (datasetName, selectId, placeholder, constraintsExtras, callbackFinal) {
         var that = this;
         var $select = $("#" + selectId + "_" + that.instanceId);
 
+        if (typeof constraintsExtras === "function") {
+            callbackFinal = constraintsExtras;
+            constraintsExtras = [];
+        }
+
+        constraintsExtras = constraintsExtras || [];
         callbackFinal = typeof callbackFinal === "function" ? callbackFinal : function () { };
 
         if (!$select.length) {
@@ -1090,8 +1233,21 @@
 
         var payload = {
             name: datasetName,
-            constraints: []
+            constraints: constraintsExtras
         };
+
+        that._controleRequisicoesPlanos = that._controleRequisicoesPlanos || {};
+
+        var chaveRequisicao = selectId + "_" + that.instanceId;
+        var tokenRequisicao = new Date().getTime() + "_" + Math.random();
+
+        that._controleRequisicoesPlanos[chaveRequisicao] = tokenRequisicao;
+
+        console.log("[Planos] Chamando dataset:", datasetName);
+        console.log("[Planos] Select destino:", selectId);
+        console.log("[Planos] Token requisição:", tokenRequisicao);
+        console.log("[Planos] Constraints enviadas:", JSON.stringify(constraintsExtras));
+        console.log("[Planos] Payload completo:", payload);
 
         $.ajax({
             url: url,
@@ -1109,6 +1265,33 @@
                         ? res.content.values
                         : [];
 
+                    if (
+                        that._controleRequisicoesPlanos &&
+                        that._controleRequisicoesPlanos[chaveRequisicao] !== tokenRequisicao
+                    ) {
+                        console.warn(
+                            "[Planos] Resposta antiga ignorada:",
+                            datasetName,
+                            "select:",
+                            selectId,
+                            "token:",
+                            tokenRequisicao
+                        );
+                        return;
+                    }
+
+                    console.log("[Planos] Retorno dataset:", datasetName, res);
+                    console.log("[Planos] Quantidade retornada:", valores.length);
+
+                    if (valores.length > 0) {
+                        console.log("[Planos] Primeiro registro retornado:", valores[0]);
+                    }
+
+                    $select.empty();
+                    $select.append('<option value="">' + (placeholder || "Selecione o plano...") + '</option>');
+
+                    var planosAdicionados = {};
+
                     for (var i = 0; i < valores.length; i++) {
                         var item = valores[i] || {};
 
@@ -1122,8 +1305,34 @@
 
                         if (!codigo || !descricao) continue;
 
-                        // Não mostra a opção "000000 - NAO OPTANTE" no campo de seleção.
                         if (codigo === "000000") continue;
+
+                        var chavePlano = codigo + "||" + descricao;
+
+                        if (planosAdicionados[chavePlano]) {
+                            console.warn("[Planos] Plano duplicado ignorado na widget:", chavePlano);
+                            continue;
+                        }
+
+                        var jaExisteNoSelect = false;
+
+                        $select.find("option").each(function () {
+                            var $opt = $(this);
+                            var optCodigo = String($opt.val() || "").trim();
+                            var optDescricao = String($opt.attr("data-descricao") || $opt.text() || "").trim();
+
+                            if (optCodigo === codigo && optDescricao === descricao) {
+                                jaExisteNoSelect = true;
+                                return false;
+                            }
+                        });
+
+                        if (jaExisteNoSelect) {
+                            console.warn("[Planos] Plano duplicado já existente no select ignorado:", chavePlano);
+                            continue;
+                        }
+
+                        planosAdicionados[chavePlano] = true;
 
                         $select.append(
                             '<option value="' + codigo + '" data-descricao="' + descricao.replace(/"/g, "&quot;") + '">' +
@@ -1136,6 +1345,10 @@
                     if (valorPendente) {
                         $select.val(valorPendente);
                         $select.removeAttr("data-valor-pendente");
+
+                        if ($select.val()) {
+                            $select.trigger("change");
+                        }
                     }
                 } catch (e) {
                     console.warn("[Planos] Erro ao carregar opções do dataset " + datasetName + ":", e);
@@ -1163,23 +1376,12 @@
         console.log("[Planos] Iniciando carregamento sequencial dos planos.");
 
         that.carregarPlanosPorDataset(
-            "ds_irho_planoSaude",
-            "cand_ps_tipo_plano",
-            "Selecione o plano de saúde...",
+            "ds_irho_planoOdonto",
+            "cand_po_tipo_plano",
+            "Selecione o plano odontológico...",
             function () {
-                console.log("[Planos] Plano de saúde finalizado. Aguardando para carregar odonto.");
-
-                setTimeout(function () {
-                    that.carregarPlanosPorDataset(
-                        "ds_irho_planoOdonto",
-                        "cand_po_tipo_plano",
-                        "Selecione o plano odontológico...",
-                        function () {
-                            that.planosBeneficiosCarregando = false;
-                            console.log("[Planos] Carregamento sequencial concluído.");
-                        }
-                    );
-                }, 300);
+                that.planosBeneficiosCarregando = false;
+                console.log("[Planos] Carregamento inicial de odonto concluído.");
             }
         );
     },
@@ -1247,91 +1449,36 @@
                 });
             }
 
-            if (estado.dependentes && estado.dependentes.length > 0) {
-                var $containerDeps = $("#container_dependentes_" + that.instanceId);
-                $containerDeps.empty();
+            var dependentesPersistidos = estado.dependentes || [];
 
-                estado.dependentes.forEach(function (depData, index) {
-                    var parentesco = depData["dep-parentesco"] || "";
+            // Deve ser chamada até quando o array estiver vazio,
+            // pois a função também limpa cards e valores anteriores.
+            that.restaurarDependentesPersistidos(dependentesPersistidos);
 
-                    that.adicionarDependente(parentesco, index === 0 && parentesco === "Mae");
-
-                    var $card = $div.find(".dependente-card").last();
-
-                    for (var classKey in depData) {
-                        if (!depData.hasOwnProperty(classKey)) continue;
-                        if (classKey.indexOf("-name") > -1) continue;
-
-                        var valor = depData[classKey];
-                        var $campo = $card.find("." + classKey);
-
-                        if (!$campo.length) continue;
-                        if ($campo.attr("type") === "file") continue;
-
-                        if ($campo.attr("type") === "checkbox") {
-                            $campo.prop("checked", !!valor);
-                        } else {
-                            $campo.val(valor || "");
-                        }
-
-                        if (classKey.indexOf("dep-base64-") === 0 && valor === "[ENVIADO_PROCESSO]") {
-                            var nomeArquivo = depData[classKey + "-name"] || "Documento recuperado";
-                            $campo.attr("data-filename", nomeArquivo);
-
-                            (function ($hiddenAtual, nomeAtual) {
-                                setTimeout(function () {
-                                    that.atualizarVisualDocumentoDependenteSucesso($hiddenAtual, nomeAtual);
-                                }, 400);
-                            })($campo, nomeArquivo);
-                        }
-                    }
-
-                    try {
-                        $card.find(".dep-parentesco").trigger("change");
-                        $card.find(".dep-nasc").trigger("change");
-                        $card.find(".dep-possui-deficiencia").trigger("change");
-
-                        setTimeout(function () {
-                            try {
-                                that.atualizarVisibilidadeDocsDependente($card);
-                            } catch (eDocs) {
-                                console.warn("[Dependentes] Erro ao aplicar regra visual dos documentos:", eDocs);
-                            }
-
-                            for (var ckDoc in depData) {
-                                if (depData.hasOwnProperty(ckDoc) && ckDoc.indexOf("dep-base64-") === 0 && depData[ckDoc] === "[ENVIADO_PROCESSO]") {
-                                    var $cH = $card.find("." + ckDoc);
-
-                                    if ($cH.length > 0) {
-                                        that.atualizarVisualDocumentoDependenteSucesso(
-                                            $cH,
-                                            depData[ckDoc + "-name"] || "Documento já salvo"
-                                        );
-                                    }
-                                }
-                            }
-                        }, 600);
-                    } catch (eTrigger) {
-                        console.warn("[Dependentes] Erro ao disparar regras do dependente:", eTrigger);
-                    }
-                });
-
-                if (typeof that.atualizarOpcoesPlanoSaude === "function") {
-                    that.atualizarOpcoesPlanoSaude();
-                }
-
-                if (typeof that.restaurarSelecaoPlanoSaude === "function") {
-                    that.restaurarSelecaoPlanoSaude(estado.depsPS || []);
-                }
-
-                if (typeof that.atualizarDependentesOdonto === "function") {
-                    that.atualizarDependentesOdonto();
-                }
-
-                if (typeof that.restaurarSelecaoPlanoOdonto === "function") {
-                    that.restaurarSelecaoPlanoOdonto(estado.depsPO || []);
-                }
+            if (dependentesPersistidos.length > 0) {
+                that.qtdDependentesPersistidos = Math.max(
+                    that.qtdDependentesPersistidos || 0,
+                    dependentesPersistidos.length
+                );
             }
+
+            if (typeof that.atualizarOpcoesPlanoSaude === "function") {
+                that.atualizarOpcoesPlanoSaude();
+            }
+
+            if (typeof that.restaurarSelecaoPlanoSaude === "function") {
+                that.restaurarSelecaoPlanoSaude(estado.depsPS || []);
+            }
+
+            if (typeof that.atualizarDependentesOdonto === "function") {
+                that.atualizarDependentesOdonto();
+            }
+
+            if (typeof that.restaurarSelecaoPlanoOdonto === "function") {
+                that.restaurarSelecaoPlanoOdonto(estado.depsPO || []);
+            }
+
+            that.restaurarFiliacaoDosCamposLegados();
 
             if (estado.documentosGerais) {
                 setTimeout(function () {
@@ -1458,6 +1605,267 @@
         return String(idCompleto || "").replace("_" + this.instanceId, "");
     },
 
+    garantirCardsFiliacaoFixos: function () {
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var $mae = $div.find('.dependente-card[data-filiacao="mae"]');
+
+        if (!$mae.length || $div.find('.dependente-card[data-filiacao="pai"]').length) return;
+
+        var $pai = $mae.clone(false, false);
+        $pai
+            .attr({
+                "data-filiacao": "pai",
+                "data-uuid": "pai_fixa",
+                "data-opcional": "true"
+            })
+            .removeAttr("data-obrigatorio");
+        $pai.find("input[type='text'], textarea").val("");
+        $pai.find("input[type='hidden']").val("");
+        $pai.find(
+            ".dep-possui-deficiencia, " +
+            ".dep-tipo-deficiencia"
+        ).val("");
+
+        $pai.find(
+            ".dep-irrf, " +
+            ".dep-pensao"
+        ).val("Nao");
+        $pai.find(".panel").css("border-left-color", "#1eaad9");
+        $pai.find(".panel-heading").css("background-color", "#f9f9f9");
+        $pai.find(".panel-title").css("color", "").html('<i class="flaticon flaticon-person icon-sm"></i> Dados do Pai (Opcional)');
+        $pai.find(".dep-parentesco").html('<option value="Pai" selected>Pai</option>');
+        $pai.find(".dep-sexo").html('<option value="Masculino" selected>Masculino</option>');
+
+        $pai.find(".dep-est-civil").html(
+            '<option value="">Selecione...</option>' +
+            '<option value="Solteiro">Solteiro</option>' +
+            '<option value="Casado">Casado</option>' +
+            '<option value="Divorciado">Divorciado</option>' +
+            '<option value="Viuvo">Viúvo</option>' +
+            '<option value="Uniao Estavel">União Estável</option>'
+        ).val("");
+
+        $pai.find(".dep-nome").attr("placeholder", "Nome do pai");
+        $pai.find(".div-dep-tipo-deficiencia, .div-inc-irrf, .div-inc-pensao").hide();
+        $div.find("#container_filiacao_" + this.instanceId).append($pai);
+    },
+
+    obterCardFiliacao: function (tipo) {
+        return $("#AdmissaoWidget_" + this.instanceId)
+            .find('.dependente-card[data-filiacao="' + tipo + '"]')
+            .first();
+    },
+
+    cardFiliacaoTemConteudo: function ($card) {
+        if (!$card || !$card.length) return false;
+
+        var camposRelevantes = [
+            ".dep-nome", ".dep-cpf", ".dep-est-civil", ".dep-nasc", ".dep-rg",
+            ".dep-possui-deficiencia", ".dep-tipo-deficiencia", ".dep-obs",
+            ".dep-irrf", ".dep-pensao", ".dep-data-uniao", ".dep-mae-nome",
+            ".dep-mae-cpf", ".dep-mae-rg", ".dep-mae-nasc", ".dep-mae-est-civil"
+        ];
+
+        for (var i = 0; i < camposRelevantes.length; i++) {
+            var $campo = $card.find(camposRelevantes[i]);
+            if (!$campo.length) continue;
+
+            var classe = camposRelevantes[i];
+            var valor = String($campo.val() || "").trim();
+
+            // Valores padrão não caracterizam um pai/dependente iniciado.
+            if ((classe === ".dep-irrf" || classe === ".dep-pensao") && valor === "Nao") continue;
+            if (classe === ".dep-est-civil" && !$card.attr("data-filiacao") && valor === "Solteiro") continue;
+            if (valor !== "") return true;
+        }
+
+        if (!$card.attr("data-filiacao")) {
+            return String($card.find(".dep-parentesco").val() || "").trim() !== "" ||
+                String($card.find(".dep-sexo").val() || "").trim() !== "";
+        }
+
+        return false;
+    },
+
+    obterCardsDependentesPersistiveis: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var $cards = $();
+        var $mae = that.obterCardFiliacao("mae");
+        var $pai = that.obterCardFiliacao("pai");
+
+        if ($mae.length) $cards = $cards.add($mae);
+        if (that.cardFiliacaoTemConteudo($pai)) $cards = $cards.add($pai);
+
+        $div.find("#container_dependentes_" + that.instanceId + " .dependente-card").each(function () {
+            if (that.cardFiliacaoTemConteudo($(this))) $cards = $cards.add(this);
+        });
+
+        return $cards;
+    },
+
+    sincronizarFiliacaoComCardsFixos: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+
+        function sincronizar(tipo, prefixo, sexoPadrao) {
+            var $card = that.obterCardFiliacao(tipo);
+
+            if (!$card.length) return;
+
+            var cardTemConteudo =
+                tipo !== "pai" ||
+                that.cardFiliacaoTemConteudo($card);
+
+            if (!cardTemConteudo) {
+                $div.find("#cand_" + prefixo + "_nome_" + that.instanceId).val("");
+                $div.find("#cand_" + prefixo + "_est_civil_" + that.instanceId).val("");
+                $div.find("#cand_" + prefixo + "_sexo_" + that.instanceId).val("");
+                $div.find("#cand_" + prefixo + "_cpf_" + that.instanceId).val("");
+                $div.find("#cand_" + prefixo + "_nasc_" + that.instanceId).val("");
+                return;
+            }
+
+            $div.find("#cand_" + prefixo + "_nome_" + that.instanceId)
+                .val($card.find(".dep-nome").val() || "");
+
+            $div.find("#cand_" + prefixo + "_est_civil_" + that.instanceId)
+                .val($card.find(".dep-est-civil").val() || "");
+
+            $div.find("#cand_" + prefixo + "_sexo_" + that.instanceId)
+                .val($card.find(".dep-sexo").val() || sexoPadrao);
+
+            $div.find("#cand_" + prefixo + "_cpf_" + that.instanceId)
+                .val($card.find(".dep-cpf").val() || "");
+
+            $div.find("#cand_" + prefixo + "_nasc_" + that.instanceId)
+                .val($card.find(".dep-nasc").val() || "");
+        }
+
+        sincronizar("mae", "mae", "Feminino");
+        sincronizar("pai", "pai", "Masculino");
+    },
+
+    restaurarFiliacaoDosCamposLegados: function () {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+
+        function preencherSeVazio(tipo, prefixo, sexoPadrao) {
+            var $card = that.obterCardFiliacao(tipo);
+            var jaPreenchido = $card.find(".dep-nome").val() || $card.find(".dep-cpf").val() || $card.find(".dep-nasc").val();
+            if (!$card.length || jaPreenchido) return;
+
+            $card.find(".dep-nome").val($div.find("#cand_" + prefixo + "_nome_" + that.instanceId).val() || "");
+            $card.find(".dep-est-civil").val($div.find("#cand_" + prefixo + "_est_civil_" + that.instanceId).val() || "");
+            $card.find(".dep-sexo").val($div.find("#cand_" + prefixo + "_sexo_" + that.instanceId).val() || sexoPadrao);
+            $card.find(".dep-cpf").val($div.find("#cand_" + prefixo + "_cpf_" + that.instanceId).val() || "");
+            $card.find(".dep-nasc").val($div.find("#cand_" + prefixo + "_nasc_" + that.instanceId).val() || "");
+        }
+
+        preencherSeVazio("mae", "mae", "Feminino");
+        preencherSeVazio("pai", "pai", "Masculino");
+        that.sincronizarFiliacaoComCardsFixos();
+    },
+
+    preencherCardDependente: function ($card, dados) {
+        var that = this;
+        dados = dados || {};
+
+        for (var classKey in dados) {
+            if (!dados.hasOwnProperty(classKey) || classKey.indexOf("-name") > -1) continue;
+            var $campo = $card.find("." + classKey);
+            if (!$campo.length || $campo.attr("type") === "file") continue;
+
+            if ($campo.attr("type") === "checkbox") $campo.prop("checked", !!dados[classKey]);
+            else $campo.val(dados[classKey] || "");
+
+            if (classKey.indexOf("dep-base64-") === 0 && (dados[classKey] === "[ENVIADO_PROCESSO]" || dados[classKey] === "[ANEXO DO PROCESSO]")) {
+                $campo.attr("data-filename", dados[classKey + "-name"] || "Documento recuperado");
+            }
+        }
+
+        $card.find(".dep-parentesco, .dep-nasc, .dep-possui-deficiencia").trigger("change");
+        that.atualizarVisibilidadeIncidenciasDependente($card);
+        that.atualizarDadosMaeFilho($card);
+        that.atualizarDataUniaoDependente($card);
+    },
+
+    restaurarDependentesPersistidos: function (dependentes) {
+        var that = this;
+        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var $container = $div.find("#container_dependentes_" + this.instanceId);
+
+        that.garantirCardsFiliacaoFixos();
+        $container.empty();
+
+        function limparCardFiliacao($card, parentesco, sexo) {
+            if (!$card || !$card.length) return;
+
+            $card.find("input[type='text'], input[type='hidden'], textarea").val("");
+
+            $card.find(
+                ".dep-est-civil, " +
+                ".dep-possui-deficiencia, " +
+                ".dep-tipo-deficiencia"
+            ).val("");
+
+            $card.find(".dep-irrf, .dep-pensao").val("Nao");
+
+            $card.find(".dep-parentesco").val(parentesco);
+            $card.find(".dep-sexo").val(sexo);
+
+            $card.find(
+                ".div-dep-tipo-deficiencia, " +
+                ".div-inc-irrf, " +
+                ".div-inc-pensao"
+            ).hide();
+        }
+
+        limparCardFiliacao(
+            that.obterCardFiliacao("mae"),
+            "Mae",
+            "Feminino"
+        );
+
+        limparCardFiliacao(
+            that.obterCardFiliacao("pai"),
+            "Pai",
+            "Masculino"
+        );
+
+        (dependentes || []).forEach(function (depData) {
+            var parentesco = depData["dep-parentesco"] || "";
+            var $card;
+
+            if (parentesco === "Mae") {
+                $card = that.obterCardFiliacao("mae");
+            } else if (parentesco === "Pai") {
+                $card = that.obterCardFiliacao("pai");
+            } else {
+                that.adicionarDependente(parentesco, false);
+                $card = $container.find(".dependente-card").last();
+            }
+
+            that.preencherCardDependente($card, depData);
+
+            if (!$card.attr("data-filiacao")) {
+                that.atualizarVisibilidadeDocsDependente($card);
+            }
+
+            $card.find(".dep-base64-cpf, .dep-base64-rgf, .dep-base64-rgv, .dep-base64-certnasc, .dep-base64-vacina").each(function () {
+                var $campo = $(this);
+                var classes = ($campo.attr("class") || "").split(/\s+/);
+                for (var i = 0; i < classes.length; i++) {
+                    if (classes[i].indexOf("dep-base64-") === 0 && (depData[classes[i]] === "[ENVIADO_PROCESSO]" || depData[classes[i]] === "[ANEXO DO PROCESSO]")) {
+                        that.atualizarVisualDocumentoDependenteSucesso($campo, depData[classes[i] + "-name"] || "Documento já salvo");
+                    }
+                }
+            });
+        });
+
+        that.sincronizarFiliacaoComCardsFixos();
+    },
+
     montarCamposWidgetJson: function () {
         var that = this;
         var $div = $("#AdmissaoWidget_" + this.instanceId);
@@ -1512,9 +1920,11 @@
 
     montarDependentesWidgetJson: function () {
         var dadosDependentes = [];
-        var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var that = this;
 
-        $div.find(".dependente-card").each(function () {
+        that.sincronizarFiliacaoComCardsFixos();
+
+        that.obterCardsDependentesPersistiveis().each(function () {
             var $card = $(this);
             var objDep = {};
 
@@ -1686,27 +2096,18 @@
     montarStatusAssinaturasCand: function () {
         var id = this.instanceId;
 
-        var statusProposta = $("#tae_proposta_status_" + id).val() || "Pendente";
-        var statusLgpd = $("#tae_lgpd_status_" + id).val() || "Pendente";
+        var statusLgpd =
+            $("#tae_lgpd_status_" + id).val() || "Pendente";
 
-        var propostaAssinada = statusProposta === "assinado";
-        var lgpdAssinado = statusLgpd === "assinado";
+        var lgpdAssinado =
+            statusLgpd === "assinado";
 
         return {
-            proposta: {
-                nome: "Carta Proposta",
-                status: propostaAssinada ? "Assinado" : statusProposta,
-                detalhe: $("#tae_proposta_iddoc_" + id).val() || ""
-            },
             lgpd: {
                 nome: "Termo LGPD",
                 status: lgpdAssinado ? "Assinado" : statusLgpd,
-                detalhe: $("#tae_lgpd_iddoc_" + id).val() || ""
-            },
-            manifesto: {
-                nome: "Manifesto de Assinatura",
-                status: propostaAssinada && lgpdAssinado ? "Gerado/Anexado" : "Aguardando assinaturas",
-                detalhe: propostaAssinada && lgpdAssinado ? "Manifesto_Assinatura.pdf" : ""
+                detalhe:
+                    $("#tae_lgpd_iddoc_" + id).val() || ""
             }
         };
     },
@@ -1770,7 +2171,7 @@
         }
 
         var estadoWidget = {
-            versao: 1,
+            versao: 2,
             passo: passo,
             campos: this.montarCamposWidgetJson(),
             dependentes: this.montarDependentesWidgetJson(),
@@ -1892,6 +2293,8 @@
         var that = this;
         if (that.bloqueioRestauracaoAtivo) return;
 
+        that.sincronizarFiliacaoComCardsFixos();
+
         var $div = $("#AdmissaoWidget_" + this.instanceId);
         try {
             var dadosCampos = {};
@@ -1928,7 +2331,7 @@
             var depsSelecionadosPO = that.montarSelecionadosPlanoOdontoJson();
 
             var dadosDependentes = [];
-            $div.find(".dependente-card").each(function () {
+            that.obterCardsDependentesPersistiveis().each(function () {
                 var $card = $(this); var objDep = {};
                 $card.find("input, select").each(function () {
                     var className = $(this).attr("class");
@@ -1949,8 +2352,14 @@
             });
 
             var estado = {
-                passo: this.passoAtual, campos: dadosCampos, dependentes: dadosDependentes,
-                rotasVT: dadosRotasVT, depsPS: depsSelecionadosPS, depsPO: depsSelecionadosPO, timestamp: new Date().getTime()
+                versao: 2,
+                passo: this.passoAtual,
+                campos: dadosCampos,
+                dependentes: dadosDependentes,
+                rotasVT: dadosRotasVT,
+                depsPS: depsSelecionadosPS,
+                depsPO: depsSelecionadosPO,
+                timestamp: new Date().getTime()
             };
             localStorage.setItem(this.getKeyStorage(), JSON.stringify(estado));
         } catch (e) { console.warn("Erro ao salvar local:", e); }
@@ -2036,57 +2445,19 @@
                 });
             }
 
-            if (estado.dependentes && estado.dependentes.length > 0) {
-                $("#container_dependentes_" + that.instanceId).empty();
-                estado.dependentes.forEach(function (depData, index) {
-                    var obrigatorio = (index === 0);
-                    that.adicionarDependente(depData['dep-parentesco'] || "", obrigatorio);
-                    var $ultimoCard = $div.find(".dependente-card").last();
+            var dependentesLocais = estado.dependentes || [];
 
-                    for (var classKey in depData) {
-                        if (classKey.indexOf("-name") > -1) continue;
-                        var $campo = $ultimoCard.find("." + classKey);
-                        if ($campo.length) {
-                            if ($campo.attr("type") === "file") continue;
+            // Mesmo vazio, precisa limpar o estado visual anterior.
+            that.restaurarDependentesPersistidos(dependentesLocais);
 
-                            if ($campo.attr("type") === "checkbox") {
-                                $campo.prop("checked", depData[classKey]);
-                            } else {
-                                $campo.val(depData[classKey]);
-                            }
-
-                            if (classKey.indexOf("dep-base64-") === 0 && depData[classKey] === "[ENVIADO_PROCESSO]") {
-                                $campo.attr("data-filename", depData[classKey + "-name"] || "Documento Recuperado");
-                            }
-                        }
-                    }
-
-                    if (depData['dep-nome'] && depData['dep-cpf'] && depData['dep-nasc']) {
-                        $ultimoCard.find(".dep-nome").prop("readonly", true);
-                        $ultimoCard.find(".dep-nasc").prop("readonly", true);
-                    }
-
-                    $ultimoCard.find(".dep-parentesco").trigger('change');
-                    $ultimoCard.find(".dep-nasc").trigger("change");
-                    $ultimoCard.find(".dep-possui-deficiencia").trigger("change");
-
-                    setTimeout(function () {
-                        for (var ckDoc in depData) {
-                            if (ckDoc.indexOf("dep-base64-") === 0 && depData[ckDoc] === "[ENVIADO_PROCESSO]") {
-                                var $cH = $ultimoCard.find("." + ckDoc);
-                                if ($cH.length > 0) {
-                                    that.atualizarVisualDocumentoDependenteSucesso($cH, depData[ckDoc + "-name"]);
-                                }
-                            }
-                        }
-                    }, 500);
-                });
-            } else {
-                var isEstagio = (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio");
-                if ($div.find(".dependente-card").length === 0 && !isEstagio) {
-                    that.adicionarDependente("Mae", true);
-                }
+            if (dependentesLocais.length > 0) {
+                that.qtdDependentesPersistidos = Math.max(
+                    that.qtdDependentesPersistidos || 0,
+                    dependentesLocais.length
+                );
             }
+
+            that.restaurarFiliacaoDosCamposLegados();
 
             // =========================================================================
             // Atraso cirúrgico de 1 segundo para garantir que triggers
@@ -2119,7 +2490,33 @@
             }, 1000);
 
             if (estado.passo) {
-                setTimeout(function () { that.irParaPasso(estado.passo); }, 500);
+                var passoLocalRestaurado = parseInt(estado.passo, 10);
+                var versaoLocalRestaurada = parseInt(estado.versao || "0", 10);
+
+                var jornadaNormalizada = String(that.jornadaAdmissao || "")
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .trim();
+
+                var isEstagio =
+                    jornadaNormalizada === "estagio" ||
+                    jornadaNormalizada === "estagiario";
+
+                if (
+                    versaoLocalRestaurada < 2 &&
+                    (passoLocalRestaurado === 4 || passoLocalRestaurado === 5)
+                ) {
+                    passoLocalRestaurado = 4;
+                }
+
+                if (isEstagio && passoLocalRestaurado === 5) {
+                    passoLocalRestaurado = 4;
+                }
+
+                setTimeout(function () {
+                    that.irParaPasso(passoLocalRestaurado);
+                }, 500);
             }
 
         } catch (e) {
@@ -2276,6 +2673,11 @@
             }, 800);
         });
 
+        $div.on("input change", '.dependente-card[data-filiacao] input, .dependente-card[data-filiacao] select, .dependente-card[data-filiacao] textarea', function () {
+            that.sincronizarFiliacaoComCardsFixos();
+            AdmissaoObrigatoriedade.atualizarAsteriscos(that);
+        });
+
         $div.on('change blur', '#cand_sexo_' + that.instanceId +
             ', #cand_cnh_possuo_' + that.instanceId +
             ', #cand_estado_civil_' + that.instanceId +
@@ -2340,7 +2742,7 @@
 
                 if ($inputTipoPlano.find("option").length <= 1) {
                     that.carregarPlanosPorDataset(
-                        "ds_irho_retornaPlanoOdonto",
+                        "ds_irho_planoOdonto",
                         "cand_po_tipo_plano",
                         "Selecione o plano odontológico..."
                     );
@@ -2353,10 +2755,10 @@
                 $divPlanos.slideUp();
                 $divDependentes.slideUp();
 
-                // Não exibe 000000 no select, mas o getDadosFormulario gravará 000000.
                 $inputTipoPlano.val("");
-
-                $("#container_dependentes_odonto_" + that.instanceId).find("input[type='checkbox']").prop("checked", false);
+                $("#container_dependentes_odonto_" + that.instanceId)
+                    .find("input[type='checkbox']")
+                    .prop("checked", false);
             }
         });
 
@@ -2401,8 +2803,14 @@
 
         this.marcarAbaComoVisitada('tab_pessoais_' + this.instanceId);
         $div.find('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-            var targetId = $(e.target).attr("href").replace("#", "");
-            that.marcarAbaComoVisitada(targetId); that.salvarRascunhoLocal();
+            var $abaAtiva = $(e.target);
+
+            var targetId =
+                ($abaAtiva.attr("href") || "").replace("#", "");
+
+            that.marcarAbaComoVisitada(targetId);
+            that.salvarRascunhoLocal();
+            that.centralizarAbaAtivaResponsiva($abaAtiva);
         });
 
         // REGRA DE PARENTESCO E SALÁRIO FAMÍLIA
@@ -2412,8 +2820,8 @@
             var $campoSexo = $card.find(".dep-sexo");
             // var $divSalarioFamilia = $card.find(".div-salario-familia");
 
-            if (valor === "Mae") {
-                $campoSexo.val("Feminino").prop("readonly", true).css({ "pointer-events": "none", "background-color": "#eee" }).attr("tabindex", "-1");
+            if (valor === "Mae" || valor === "Pai") {
+                $campoSexo.val(valor === "Mae" ? "Feminino" : "Masculino").prop("readonly", true).css({ "pointer-events": "none", "background-color": "#eee" }).attr("tabindex", "-1");
             } else {
                 $campoSexo.prop("readonly", false).css({ "pointer-events": "auto", "background-color": "#fff" }).removeAttr("tabindex");
             }
@@ -2764,34 +3172,122 @@
             // IDs exatos baseados no seu HTML
             var $divPlanos = $("#div_ps_planos_" + that.instanceId);
             var $inputTipoPlano = $("#cand_ps_tipo_plano_" + that.instanceId);
+            var $divOpcaoDependentes = $("#div_ps_dependentes_opcao_" + that.instanceId);
 
             // Aqui estava o erro! O ID correto é div_ps_detalhes_
             var $divDependentes = $("#div_ps_detalhes_" + that.instanceId);
 
             if (that.isOpcaoPlanoSaudeOptante(valor)) {
                 $divPlanos.slideDown();
-                $divDependentes.slideDown();
 
-                if ($inputTipoPlano.find("option").length <= 1) {
-                    that.carregarPlanosPorDataset(
-                        "ds_irho_retornaPlanoSaude",
-                        "cand_ps_tipo_plano",
-                        "Selecione o plano de saúde..."
-                    );
+                $divOpcaoDependentes.hide();
+                $divDependentes.hide();
+                $("#cand_ps_dependentes_opcao_" + that.instanceId).val("");
+                $("#container_dependentes_plano_" + that.instanceId)
+                    .find("input[type='checkbox']")
+                    .prop("checked", false);
+
+                var codFuncaoPlano = that.obterCodigoFuncaoPlanoSaude();
+                var codColigadaPlano = $("#cand_codcoligada_" + that.instanceId).val() || "";
+
+                console.log("[Plano Saúde por Função] Iniciando busca de planos.");
+                console.log("[Plano Saúde por Função] cand_funcao_codigo:", $("#cand_funcao_codigo_" + that.instanceId).val());
+                console.log("[Plano Saúde por Função] cand_funcao_texto:", $("#cand_funcao_" + that.instanceId).val());
+                console.log("[Plano Saúde por Função] codFuncaoPlano final:", codFuncaoPlano);
+                console.log("[Plano Saúde por Função] codColigadaPlano:", codColigadaPlano);
+
+                if (!codFuncaoPlano) {
+                    $inputTipoPlano
+                        .empty()
+                        .append('<option value="">Função não carregada. Atualize a página ou acione o RH.</option>');
+
+                    FLUIGC.toast({
+                        title: "Atenção",
+                        message: "Não foi possível identificar a função para buscar o plano de saúde.",
+                        type: "warning"
+                    });
+
+                    return;
                 }
 
-                if (typeof that.atualizarOpcoesPlanoSaude === "function") {
-                    that.atualizarOpcoesPlanoSaude();
-                }
+                $inputTipoPlano
+                    .empty()
+                    .append('<option value="">Carregando planos disponíveis para sua função...</option>');
+
+                that.carregarPlanosPorDataset(
+                    "ds_irho_retornaPlanoSaudePorFuncao",
+                    "cand_ps_tipo_plano",
+                    "Selecione o plano de saúde...",
+                    [
+                        {
+                            "_field": "CODFUNCAO",
+                            "_initialValue": codFuncaoPlano,
+                            "_finalValue": codFuncaoPlano,
+                            "_type": 1,
+                            "_likeSearch": false
+                        },
+                        {
+                            "_field": "CODCOLIGADA",
+                            "_initialValue": codColigadaPlano,
+                            "_finalValue": codColigadaPlano,
+                            "_type": 1,
+                            "_likeSearch": false
+                        }
+                    ]
+                );
             } else {
                 $divPlanos.slideUp();
+                $divOpcaoDependentes.slideUp();
                 $divDependentes.slideUp();
 
-                // Não exibe 000000 no select, mas o getDadosFormulario gravará 000000.
                 $inputTipoPlano.val("");
-                $("#container_dependentes_plano_" + that.instanceId).find("input[type='checkbox']").prop("checked", false);
+                $("#cand_ps_dependentes_opcao_" + that.instanceId).val("");
+
+                $("#container_dependentes_plano_" + that.instanceId)
+                    .find("input[type='checkbox']")
+                    .prop("checked", false);
             }
         });
+
+        $div.off("change", "#cand_ps_tipo_plano_" + this.instanceId)
+            .on("change", "#cand_ps_tipo_plano_" + this.instanceId, function () {
+                var valorPlano = $(this).val();
+
+                var $divOpcaoDependentes = $("#div_ps_dependentes_opcao_" + that.instanceId);
+                var $divDependentes = $("#div_ps_detalhes_" + that.instanceId);
+
+                if (valorPlano) {
+                    $divOpcaoDependentes.slideDown();
+                } else {
+                    $divOpcaoDependentes.slideUp();
+                    $divDependentes.slideUp();
+
+                    $("#cand_ps_dependentes_opcao_" + that.instanceId).val("");
+                    $("#container_dependentes_plano_" + that.instanceId)
+                        .find("input[type='checkbox']")
+                        .prop("checked", false);
+                }
+            });
+
+        $div.off("change", "#cand_ps_dependentes_opcao_" + this.instanceId)
+            .on("change", "#cand_ps_dependentes_opcao_" + this.instanceId, function () {
+                var valor = $(this).val();
+                var $divDependentes = $("#div_ps_detalhes_" + that.instanceId);
+
+                if (that.isOpcaoPlanoSaudeOptante(valor)) {
+                    $divDependentes.slideDown();
+
+                    if (typeof that.atualizarOpcoesPlanoSaude === "function") {
+                        that.atualizarOpcoesPlanoSaude();
+                    }
+                } else {
+                    $divDependentes.slideUp();
+
+                    $("#container_dependentes_plano_" + that.instanceId)
+                        .find("input[type='checkbox']")
+                        .prop("checked", false);
+                }
+            });
 
         // Gatilho de Naturalidade
         $div.on('change', '#cand_estado_natal_' + that.instanceId, function () {
@@ -2803,9 +3299,20 @@
             that.carregarMunicipios($(this).val(), 'cand_cidade_' + that.instanceId);
         });
 
-        $div.on('click', '#btn_abrir_camera_' + that.instanceId, function () {
-            that.abrirModalFoto();
-        });
+        $div.on(
+            "click",
+            "#btn_abrir_camera_" + that.instanceId,
+            function () {
+                if (that.isDispositivoIOS()) {
+                    $("#file_cand_foto_" + that.instanceId)
+                        .trigger("click");
+
+                    return;
+                }
+
+                that.abrirModalFoto();
+            }
+        );
 
         $div.on('click', '#btn_capturar_foto_' + that.instanceId, function () {
             that.capturarFotoModal();
@@ -2950,7 +3457,9 @@
                 fields: [
                     { label: "Nome", id: "cand_nomeCompleto", col: 6 }, { label: "CPF", id: "cand_cpf", col: 3 }, { label: "Nascimento", id: "cand_nascimento", col: 3 },
                     { label: "Email", id: "cand_email", col: 6 }, { label: "Celular", id: "cand_celular", col: 3 }, { label: "Estado Civil", id: "cand_estado_civil", col: 3 },
-                    { label: "RG", id: "cand_rg", col: 3 }, { label: "Órgão/UF", id: "cand_rg_orgao", col: 3 }, { label: "Mãe", id: "cand_nome_mae_resumo", col: 6 }
+                    { label: "RG", id: "cand_rg", col: 3 }, { label: "Órgão/UF", id: "cand_rg_orgao", col: 3 },
+                    { label: "Mãe", id: "cand_nome_mae_resumo", col: 6 },
+                    { label: "Pai", id: "cand_nome_pai_resumo", col: 6 }
                 ]
             },
             {
@@ -2997,6 +3506,11 @@
                 var valor = "";
                 if (field.id === "cand_nome_mae_resumo") {
                     valor = $("#AdmissaoWidget_" + id).find("#cand_mae_nome_" + id).val() || '<span class="text-danger small">Não informado</span>';
+                } else if (field.id === "cand_nome_pai_resumo") {
+                    valor = $("#AdmissaoWidget_" + id)
+                        .find("#cand_pai_nome_" + id)
+                        .val() ||
+                        '<span class="text-muted small">Não informado</span>';
                 } else {
                     valor = v(field.id);
                 }
@@ -3060,6 +3574,8 @@
     getDadosFormulario: function () {
         var that = this;
         var $div = $("#AdmissaoWidget_" + this.instanceId);
+
+        that.sincronizarFiliacaoComCardsFixos();
 
         function formatarDataBR(dataUS) {
             if (!dataUS || dataUS.indexOf("-") === -1) return dataUS;
@@ -3151,6 +3667,10 @@
         //     .replace(/[\u0300-\u036f]/g, "");
 
         // var ctpsFisicaSelecionada = tipoCtpsNormalizado.indexOf("fis") > -1;
+
+        var paiTemConteudo = that.cardFiliacaoTemConteudo(
+            that.obterCardFiliacao("pai")
+        );
 
         // MONTAGEM DO JSON QUE VAI PARA O FLUIG
         var dadosCandidato = {
@@ -3282,14 +3802,20 @@
 
             "txtNomDepen3": $div.find("#cand_pai_nome_" + that.instanceId).val(),
             "txtEstCivilDepen3": $div.find("#cand_pai_est_civil_" + that.instanceId).val(),
-            "txtSexoDepen3": ($div.find("#cand_pai_sexo_" + that.instanceId).val() === "Feminino") ? "F" : "M",
+
+            "txtSexoDepen3": paiTemConteudo
+                ? (
+                    $div.find("#cand_pai_sexo_" + that.instanceId).val() === "Feminino"
+                        ? "F"
+                        : "M"
+                )
+                : "",
+
             "txtDtNascDepen3": formatarDataBR($div.find("#cand_pai_nasc_" + that.instanceId).val()),
             "TxtCPFDep3": $div.find("#cand_pai_cpf_" + that.instanceId).val(),
 
             "cand_foto_nome": $div.find("#cand_foto_nome_" + that.instanceId).val() || "",
             "cand_foto_base64": $div.find("#cand_foto_base64_" + that.instanceId).val() || "",
-            "carta_assinada_nome": $div.find("#carta_assinada_nome_" + that.instanceId).val() || "",
-            "carta_assinada_base64": $div.find("#carta_assinada_base64_" + that.instanceId).val() || "",
             "termo_lgpd_assinada_nome": $div.find("#termo_lgpd_assinada_nome_" + that.instanceId).val() || "",
             "termo_lgpd_assinada_base64": $div.find("#termo_lgpd_assinada_base64_" + that.instanceId).val() || ""
         };
@@ -3377,7 +3903,7 @@
 
         var deps = [];
         var countDeps = 0;
-        $div.find(".dependente-card").each(function () {
+        that.obterCardsDependentesPersistiveis().each(function () {
             countDeps++;
             var i = countDeps;
             var $card = $(this);
@@ -3479,6 +4005,26 @@
 
             deps.push({ nome: $card.find(".dep-nome").val() });
         });
+
+        var camposDependente = [
+            "txtNomDepen", "txtParentescoDepen", "cpDataNascimentoDep", "TxtCPFDep",
+            "txtEstadoCivilDepen", "txtEstCivilCodDepen", "txtSexoDepen", "TxtRgDep",
+            "TxtObsDep", "cpDataUniaoDep", "TxtNomeMaeDep", "TxtCPFMaeDep",
+            "TxtRgMaeDep", "cpDataNascMaeDep", "TxtEstCivilMaeDep",
+            "TxtPossuiDeficienciaDep", "TxtTipoDeficienciaDep", "TxtIncIRRF",
+            "TxtIncMedica", "TxtIncINSS", "TxtIncPensao", "TxtIncOdonto",
+            "cpDataInclusaoAMDep", "cpPlanoAMDep", "cpPlanoAMDepCod",
+            "cpDataInclusaoAODep", "cpPlanoAODep", "cpPlanoAODepCod",
+            "TxtIncSalFamilia", "txtOficioPensaoNome", "txtOficioPensaoBase64"
+        ];
+        var quantidadeAnterior = that.qtdDependentesPersistidos || 0;
+        for (var indiceLimpeza = countDeps + 1; indiceLimpeza <= quantidadeAnterior; indiceLimpeza++) {
+            for (var campoLimpeza = 0; campoLimpeza < camposDependente.length; campoLimpeza++) {
+                dadosCandidato[camposDependente[campoLimpeza] + "___" + indiceLimpeza] = "";
+            }
+        }
+        dadosCandidato["cpQtdLinhas"] = String(countDeps);
+        that.qtdDependentesPersistidos = countDeps;
         dadosCandidato["json_dependentes"] = JSON.stringify(deps);
 
         return dadosCandidato;
@@ -3643,7 +4189,6 @@
 
         var dadosPersistencia = that.obterDadosParaPersistencia(opcoes || {});
         dadosPersistencia["cand_foto_nome"] = $("#cand_foto_nome_" + that.instanceId).val() || "";
-        dadosPersistencia["carta_assinada_nome"] = $("#carta_assinada_nome_" + that.instanceId).val() || "";
         dadosPersistencia["termo_lgpd_assinada_nome"] = $("#termo_lgpd_assinada_nome_" + that.instanceId).val() || "";
 
         var fotoBase64 = $("#cand_foto_base64_" + that.instanceId).val() || "";
@@ -3653,7 +4198,6 @@
             delete dadosPersistencia["cand_foto_base64"];
         }
 
-        delete dadosPersistencia["carta_assinada_base64"];
         delete dadosPersistencia["termo_lgpd_assinada_base64"];
 
         that.soapUpdateCardData(that.documentIdFicha, dadosPersistencia, function (resposta) {
@@ -3746,17 +4290,16 @@
         var textoOriginal = btn.html();
 
         if (window.ignorarValidacao !== true) {
-            var statusProp = $("#tae_proposta_status_" + that.instanceId).val();
-            var statusLgpd = $("#tae_lgpd_status_" + that.instanceId).val();
+            var statusLgpd =
+                $("#tae_lgpd_status_" + that.instanceId).val();
 
-            var assinaturaOk = statusProp === "assinado" && statusLgpd === "assinado";
-
-            if (!assinaturaOk) {
+            if (statusLgpd !== "assinado") {
                 FLUIGC.toast({
-                    title: 'Atenção',
-                    message: 'A Carta Proposta e o Termo LGPD precisam estar assinados antes do envio.',
-                    type: 'warning'
+                    title: "Atenção",
+                    message: "O Termo LGPD precisa estar assinado antes do envio.",
+                    type: "warning"
                 });
+
                 return;
             }
         }
@@ -3809,28 +4352,19 @@
 
         var dadosCandidato = this.getDadosFormulario();
 
-        delete dadosCandidato["carta_assinada_base64"];
         delete dadosCandidato["termo_lgpd_assinada_base64"];
 
-        dadosCandidato["carta_assinada_nome"] = $("#carta_assinada_nome_" + that.instanceId).val() || "Carta Proposta assinada via manifesto";
-        dadosCandidato["termo_lgpd_assinada_nome"] = $("#termo_lgpd_assinada_nome_" + that.instanceId).val() || "Termo LGPD assinado via manifesto";
+        dadosCandidato["termo_lgpd_assinada_nome"] =
+            $("#termo_lgpd_assinada_nome_" + that.instanceId).val() ||
+            "Termo LGPD assinado";
 
         dadosCandidato["cpPassoAtualCandidato"] = String(that.totalPassos);
         dadosCandidato["jsonAssCand"] = JSON.stringify({
-            proposta: {
-                nome: "Carta Proposta",
-                status: "Assinado",
-                detalhe: $("#tae_proposta_iddoc_" + that.instanceId).val() || ""
-            },
             lgpd: {
                 nome: "Termo LGPD",
                 status: "Assinado",
-                detalhe: $("#tae_lgpd_iddoc_" + that.instanceId).val() || ""
-            },
-            manifesto: {
-                nome: "Manifesto de Assinatura",
-                status: "Gerado/Anexado",
-                detalhe: "Manifesto_Assinatura.pdf"
+                detalhe:
+                    $("#tae_lgpd_iddoc_" + that.instanceId).val() || ""
             }
         });
 
@@ -3868,7 +4402,7 @@
                 dadosCandidato[nomeCampo + "_base64"] = "[ANEXO DO PROCESSO]";
             }
         }
-        $div.find(".dependente-card").each(function (index) {
+        that.obterCardsDependentesPersistiveis().each(function (index) {
             var nomePensao = $(this).find(".dep-pensao-anexo-nome").val();
             if (nomePensao) {
                 dadosCandidato["txtOficioPensaoNome___" + (index + 1)] = nomePensao;
@@ -3927,7 +4461,6 @@
 
         // Mantém apenas nomes/status leves
         dados["cand_foto_nome"] = $("#cand_foto_nome_" + that.instanceId).val() || "";
-        dados["carta_assinada_nome"] = $("#carta_assinada_nome_" + that.instanceId).val() || "";
         dados["termo_lgpd_assinada_nome"] = $("#termo_lgpd_assinada_nome_" + that.instanceId).val() || "";
 
         dados["cpPassoAtualCandidato"] = String(passoAtual || this.passoAtual);
@@ -3961,8 +4494,8 @@
 
             var proximo = that.passoAtual + 1;
 
-            if (proximo === 4 && (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio")) {
-                proximo = 5;
+            if (proximo === 5 && (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio")) {
+                proximo = 6;
             }
 
             var dados = this.montarDadosFormularioLeve(proximo);
@@ -3996,8 +4529,8 @@
         if (this.passoAtual > 1) {
             var anterior = this.passoAtual - 1;
 
-            if (anterior === 4 && (this.jornadaAdmissao === "Estagio" || this.jornadaAdmissao === "Estágio")) {
-                anterior = 3;
+            if (anterior === 5 && (this.jornadaAdmissao === "Estagio" || this.jornadaAdmissao === "Estágio")) {
+                anterior = 4;
             }
 
             var that = this;
@@ -4022,25 +4555,38 @@
         var that = this;
         var $d = $("#AdmissaoWidget_" + this.instanceId);
 
+        if ((that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio") && Number(p) === 5) {
+            // O passo 5 é Dependentes e fica oculto para estágio. Estados antigos
+            // que apontavam para o antigo passo 5 retornam para Filiação.
+            p = 4;
+        }
+
         console.log("[DEBUG LGPD] Mudando para o passo: " + p);
 
-        $d.find('.step-item').removeClass('active completed');
-        for (var i = 1; i < p; i++) $d.find('.step-item[data-step="' + i + '"]').addClass('completed');
-        $d.find('.step-item[data-step="' + p + '"]').addClass('active');
-        $d.find('.step-content').removeClass('active');
+        $d.find(".step-item").removeClass("active completed");
+
+        for (var i = 1; i < p; i++) {
+            $d.find('.step-item[data-step="' + i + '"]')
+                .addClass("completed");
+        }
+
+        $d.find('.step-item[data-step="' + p + '"]')
+            .addClass("active");
+
+        that.atualizarNavegacaoEtapasResponsiva(p);
+
+        $d.find(".step-content").removeClass("active");
         $d.find('.step-content[data-step-content="' + p + '"]').addClass('active');
 
         // ====== CARREGAMENTO SOB DEMANDA DO PRIMEIRO LINK (PASSO 1) ======
         if (p === 1 || p === "1") {
+            var lgpdJaAssinada =
+                $("#tae_lgpd_status_" + that.instanceId).val() === "assinado";
 
-            var propJaAssinada = $("#tae_proposta_status_" + that.instanceId).val() === "assinado";
-            var lgpdJaAssinada = $("#tae_lgpd_status_" + that.instanceId).val() === "assinado";
-
-            if (propJaAssinada && lgpdJaAssinada) {
-                console.log("[Assinatura] Primeiro link já assinado. Exibindo etapa 1 sem recarregar PDFs do GED.");
-
-                $d.find("#msg_carregando_proposta_" + that.instanceId).hide();
-                $d.find("#msg_carregando_lgpd_" + that.instanceId).hide();
+            if (lgpdJaAssinada) {
+                console.log(
+                    "[Assinatura] Termo LGPD já assinado. Restaurando a etapa 1."
+                );
 
                 if (typeof that.atualizarCartoesPrimeiroLink === "function") {
                     that.atualizarCartoesPrimeiroLink();
@@ -4049,62 +4595,24 @@
                 if (typeof that.restaurarUIAssinaturas === "function") {
                     that.restaurarUIAssinaturas();
                 }
-
-                this.passoAtual = p;
-                this.atualizarBotoes();
-                $('html,body').animate({ scrollTop: $d.offset().top - 60 }, 'fast');
-                return;
-            }
-
-            var $iframeProp = $d.find("#pdf_viewer_proposta_" + that.instanceId);
-            var srcPropAtual = $iframeProp.attr("src");
-
-            if (that.idPdfProposta && !srcPropAtual) {
-                that.obterBase64GED(that.idPdfProposta, function (base64) {
-                    if (base64) {
-                        $iframeProp.attr("src", that.base64ToBlobUrl(base64, 'application/pdf')).show();
-                        $d.find("#msg_carregando_proposta_" + that.instanceId).hide();
-                    }
-                });
-            }
-
-            var $iframeLgpd = $d.find("#pdf_viewer_lgpd_" + that.instanceId);
-            var srcAtual = $iframeLgpd.attr("src");
-
-            if (that.idPdfLGPD && !srcAtual) {
-                that.obterBase64GED(that.idPdfLGPD, function (base64) {
-
-                    if (base64) {
-                        // SOLUÇÃO: Converter o Base64 pesado para um arquivo virtual (Blob)
-                        var byteCharacters = atob(base64);
-                        var byteArrays = [];
-
-                        // Fatiar em pedaços de 512 bytes para não travar a memória
-                        for (var offset = 0; offset < byteCharacters.length; offset += 512) {
-                            var slice = byteCharacters.slice(offset, offset + 512);
-                            var byteNumbers = new Array(slice.length);
-                            for (var i = 0; i < slice.length; i++) {
-                                byteNumbers[i] = slice.charCodeAt(i);
-                            }
-                            var byteArray = new Uint8Array(byteNumbers);
-                            byteArrays.push(byteArray);
+            } else if (
+                that.idPdfLGPD &&
+                !that.previewDocsPrimeiroLink.lgpd
+            ) {
+                that.obterBase64GED(
+                    that.idPdfLGPD,
+                    function (base64) {
+                        if (!base64) {
+                            console.error(
+                                "[LGPD] Não foi possível carregar o documento."
+                            );
+                            return;
                         }
 
-                        // Cria o arquivo virtual PDF
-                        var blob = new Blob(byteArrays, { type: 'application/pdf' });
-
-                        // Gera um link interno do navegador (ex: blob:http://seufluig.com/...)
-                        var blobUrl = URL.createObjectURL(blob);
-
-                        // Injeta o link super leve no iframe
-                        $iframeLgpd.attr("src", blobUrl).show();
-
-                        $d.find("#msg_carregando_lgpd_" + that.instanceId).hide();
-
-                    } else {
-                        console.error("[DEBUG LGPD] ERRO: Base64 veio vazio do servidor!");
+                        that.previewDocsPrimeiroLink.lgpd = base64;
+                        that.atualizarCartoesPrimeiroLink();
                     }
-                });
+                );
             }
         }
         // ========================================================
@@ -4113,7 +4621,7 @@
             this.aplicarRegrasVisuaisPorJornada();
         }
 
-        if (p === 5) this.preencherFiliacaoViaDependentes();
+        if (Number(p) === 4) this.preencherFiliacaoViaDependentes();
 
         if (p === 6) {
             this.atualizarOpcoesPlanoSaude();
@@ -4130,19 +4638,151 @@
         $('html,body').animate({ scrollTop: $d.offset().top - 60 }, 'fast');
     },
 
+    atualizarNavegacaoEtapasResponsiva: function (passo) {
+        var that = this;
+
+        var $widget =
+            $("#AdmissaoWidget_" + that.instanceId);
+
+        var $wrapper =
+            $widget.find(".modern-stepper-wrapper");
+
+        var $container =
+            $widget.find(".stepper-container");
+
+        var $etapa =
+            $widget.find(
+                '.step-item[data-step="' + passo + '"]'
+            );
+
+        if (!$etapa.length) {
+            return;
+        }
+
+        var nomeEtapa =
+            String($etapa.find(".step-label").text() || "").trim();
+
+        $wrapper
+            .attr("data-current-step", passo)
+            .attr("data-total-steps", that.totalPassos)
+            .attr("data-current-label", nomeEtapa);
+
+        if (
+            !window.matchMedia ||
+            !window.matchMedia("(max-width: 1024px)").matches ||
+            !$container.length
+        ) {
+            return;
+        }
+
+        setTimeout(function () {
+            var container = $container.get(0);
+            var etapa = $etapa.get(0);
+
+            if (!container || !etapa) {
+                return;
+            }
+
+            var destino =
+                etapa.offsetLeft -
+                (
+                    (
+                        container.clientWidth -
+                        etapa.offsetWidth
+                    ) / 2
+                );
+
+            destino = Math.max(0, destino);
+
+            if (typeof container.scrollTo === "function") {
+                container.scrollTo({
+                    left: destino,
+                    behavior: "smooth"
+                });
+            } else {
+                $container
+                    .stop(true)
+                    .animate(
+                        {
+                            scrollLeft: destino
+                        },
+                        250
+                    );
+            }
+        }, 80);
+    },
+
+    centralizarAbaAtivaResponsiva: function ($abaAtiva) {
+        if (
+            !window.matchMedia ||
+            !window.matchMedia("(max-width: 1024px)").matches ||
+            !$abaAtiva ||
+            !$abaAtiva.length
+        ) {
+            return;
+        }
+
+        var $menuAbas =
+            $abaAtiva.closest(".nav-tabs");
+
+        var $itemAba =
+            $abaAtiva.closest("li");
+
+        if (!$menuAbas.length || !$itemAba.length) {
+            return;
+        }
+
+        setTimeout(function () {
+            var menu = $menuAbas.get(0);
+            var item = $itemAba.get(0);
+
+            if (!menu || !item) {
+                return;
+            }
+
+            var destino =
+                item.offsetLeft -
+                (
+                    (
+                        menu.clientWidth -
+                        item.offsetWidth
+                    ) / 2
+                );
+
+            destino = Math.max(0, destino);
+
+            if (typeof menu.scrollTo === "function") {
+                menu.scrollTo({
+                    left: destino,
+                    behavior: "smooth"
+                });
+            } else {
+                $menuAbas
+                    .stop(true)
+                    .animate(
+                        {
+                            scrollLeft: destino
+                        },
+                        250
+                    );
+            }
+        }, 60);
+    },
+
     atualizarBotoes: function () { var $d = $("#AdmissaoWidget_" + this.instanceId); $d.find("[data-nav-back]").prop("disabled", this.passoAtual === 1); if (this.passoAtual === this.totalPassos) { $d.find("[data-nav-next]").hide(); $d.find("[data-finish]").show(); } else { $d.find("[data-nav-next]").show(); $d.find("[data-finish]").hide(); } },
 
     validarPasso: function (p) {
         if (p === 1 || p === "1") {
-            var statusProp = $("#tae_proposta_status_" + this.instanceId).val();
-            var statusLgpd = $("#tae_lgpd_status_" + this.instanceId).val();
+            var statusLgpd =
+                $("#tae_lgpd_status_" + this.instanceId).val();
 
-            if (statusProp !== "assinado" || statusLgpd !== "assinado") {
+            if (statusLgpd !== "assinado") {
                 FLUIGC.toast({
-                    title: 'Atenção',
-                    message: 'Assine a Carta Proposta e o Termo LGPD antes de avançar.',
-                    type: 'warning'
+                    title: "Atenção",
+                    message: "Assine o Termo LGPD antes de avançar.",
+                    type: "warning"
                 });
+
                 return false;
             }
 
@@ -4479,7 +5119,15 @@
             that.atualizarDataUniaoDependente($card);
         }, 350);
     },
-    removerDependente: function (el) { $(el).closest('.dependente-card').fadeOut(function () { $(this).remove(); }); },
+    removerDependente: function (el) {
+        var that = this;
+        $(el).closest('.dependente-card').fadeOut(function () {
+            $(this).remove();
+            that.atualizarOpcoesPlanoSaude();
+            if (typeof that.atualizarDependentesOdonto === "function") that.atualizarDependentesOdonto();
+            that.salvarRascunhoLocal();
+        });
+    },
     abrirSelecaoArquivo: function (el) { $("#" + $(el).attr("data-trigger-upload")).trigger('click'); },
 
     adicionarRotaVT: function (trajetoPreDefinido) {
@@ -4531,7 +5179,17 @@
             var json = localStorage.getItem(that.getKeyStorage());
             if (json) {
                 var estado = JSON.parse(json);
-                if (estado.depsPS) { estado.depsPS.forEach(function (nome) { if (jaMarcados.indexOf(nome) === -1) jaMarcados.push(nome); }); }
+                if (estado.depsPS) {
+                    estado.depsPS.forEach(function (item) {
+                        var nome = typeof item === "string"
+                            ? item
+                            : (item && item.nome ? item.nome : "");
+
+                        if (nome && jaMarcados.indexOf(nome) === -1) {
+                            jaMarcados.push(nome);
+                        }
+                    });
+                }
             }
         } catch (e) { }
 
@@ -4733,6 +5391,99 @@
         return "Foto_Candidato_" + new Date().getTime() + ".jpg";
     },
 
+    isDispositivoIOS: function () {
+        var userAgent =
+            navigator.userAgent ||
+            navigator.vendor ||
+            "";
+
+        var platform =
+            navigator.platform ||
+            "";
+
+        var isIOSClassico =
+            /iPad|iPhone|iPod/i.test(userAgent);
+
+        /*
+         * Em versões mais recentes do iPadOS, o Safari pode
+         * se identificar como Macintosh.
+         */
+        var isIPadOS =
+            platform === "MacIntel" &&
+            navigator.maxTouchPoints &&
+            navigator.maxTouchPoints > 1;
+
+        return isIOSClassico || isIPadOS;
+    },
+
+    ajustarCapturaFotoPorDispositivo: function () {
+        var that = this;
+
+        var $widget =
+            $("#AdmissaoWidget_" + that.instanceId);
+
+        var $cardCamera =
+            $("#btn_abrir_camera_" + that.instanceId);
+
+        var $inputFoto =
+            $("#file_cand_foto_" + that.instanceId);
+
+        var $cardUpload =
+            $widget.find(
+                '[data-trigger-upload="file_cand_foto_' +
+                that.instanceId +
+                '"]'
+            );
+
+        var $containerAcoes =
+            $cardUpload.closest(".foto-step-actions");
+
+        var $subtitulo =
+            $widget.find(
+                "#tab_foto_" +
+                that.instanceId +
+                " .foto-step-subtitle"
+            );
+
+        if (!that.isDispositivoIOS()) {
+            return;
+        }
+
+        $widget.addClass("dispositivo-ios");
+
+        /*
+         * Oculta somente a câmera personalizada.
+         * O upload convencional continua disponível.
+         */
+        $cardCamera
+            .hide()
+            .prop("disabled", true)
+            .attr("aria-hidden", "true");
+
+        $containerAcoes
+            .addClass("foto-step-actions-ios");
+
+        /*
+         * Não adicionar capture="user" no iPhone.
+         * Mantém o seletor nativo do iOS.
+         */
+        $inputFoto.removeAttr("capture");
+
+        $cardUpload
+            .find(".foto-action-title")
+            .text("Enviar foto");
+
+        $cardUpload
+            .find(".foto-action-desc")
+            .text(
+                "Selecione uma foto já salva na galeria do seu iPhone."
+            );
+
+        $subtitulo.text(
+            "Escolha uma foto de rosto que já esteja salva na galeria do aparelho."
+        );
+    },
+
     pararCameraFoto: function () {
         var video = $("#video_camera_" + this.instanceId)[0];
         if (this.cameraFotoStream) {
@@ -4762,7 +5513,19 @@
 
     abrirModalFoto: function () {
         var that = this;
-        var video = $("#video_camera_" + that.instanceId)[0];
+
+        /*
+         * No iOS, usa o seletor nativo em vez do getUserMedia.
+         */
+        if (that.isDispositivoIOS()) {
+            $("#file_cand_foto_" + that.instanceId)
+                .trigger("click");
+
+            return;
+        }
+
+        var video =
+            $("#video_camera_" + that.instanceId)[0];
 
         that.fotoCapturadaDataUrl = "";
         that.fotoCapturadaBase64 = "";
@@ -5027,117 +5790,100 @@
     restaurarUIAssinaturas: function () {
         var that = this;
 
-        // --- CARTA PROPOSTA ---
-        var idProp = $("#tae_proposta_iddoc_" + that.instanceId).val();
-        var statusProp = $("#tae_proposta_status_" + that.instanceId).val();
-        var linkProp = $("#tae_proposta_link_" + that.instanceId).val();
-        var b64Prop = $("#carta_assinada_base64_" + that.instanceId).val();
-
-        if (statusProp === "aguardando" && idProp) {
-            $("#container_gerar_proposta_" + that.instanceId).hide();
-            var htmlPainel = '<div class="alert alert-info text-center" style="padding:30px; border: 2px dashed #31708f; border-radius: 8px;">';
-            htmlPainel += '<h3><i class="flaticon flaticon-email icon-md"></i> Verifique o seu E-mail</h3>';
-            htmlPainel += '<p style="font-size: 16px;">Enviámos o código de segurança para assinar a Carta Proposta.</p>';
-            if (linkProp) htmlPainel += '<a href="' + linkProp + '" target="_blank" class="btn btn-warning btn-lg mt-20 mb-20" style="display:inline-block; font-weight: bold;"><i class="flaticon flaticon-document-check"></i> Abrir Página de Assinatura</a>';
-            htmlPainel += '</div>';
-            $("#container_assinatura_tae_" + that.instanceId).html(htmlPainel).show();
-            that.criarBotaoVerificarAssinatura(idProp);
-        } else if (statusProp === "assinado" && b64Prop) {
-            $("#container_gerar_proposta_" + that.instanceId).hide();
-            that.exibirPDFPropostaAssinada(b64Prop);
-        } else if (statusProp === "assinado" && !b64Prop) {
-            $("#container_gerar_proposta_" + that.instanceId).hide();
-            $("#container_assinatura_tae_" + that.instanceId).html('<div class="alert alert-info text-center" style="padding:20px;"><i class="flaticon flaticon-refresh icon-spin icon-lg"></i><br>Recuperando PDF assinado da Proposta...</div>').show();
-        }
-
-        // --- TERMO LGPD ---
         var idLgpd = $("#tae_lgpd_iddoc_" + that.instanceId).val();
         var statusLgpd = $("#tae_lgpd_status_" + that.instanceId).val();
         var linkLgpd = $("#tae_lgpd_link_" + that.instanceId).val();
-        var b64Lgpd = $("#termo_lgpd_assinada_base64_" + that.instanceId).val();
+        var b64Lgpd =
+            $("#termo_lgpd_assinada_base64_" + that.instanceId).val();
 
         if (statusLgpd === "aguardando" && idLgpd) {
             $("#container_gerar_lgpd_" + that.instanceId).hide();
-            var htmlPainelLGPD = '<div class="alert alert-info text-center" style="padding:30px; border: 2px dashed #31708f; border-radius: 8px;">';
-            htmlPainelLGPD += '<h3><i class="flaticon flaticon-email icon-md"></i> Verifique o seu E-mail</h3>';
-            htmlPainelLGPD += '<p style="font-size: 16px;">Enviámos o código de segurança para assinar o Termo LGPD.</p>';
-            if (linkLgpd) htmlPainelLGPD += '<a href="' + linkLgpd + '" target="_blank" class="btn btn-warning btn-lg mt-20 mb-20" style="display:inline-block; font-weight: bold;"><i class="flaticon flaticon-document-check"></i> Abrir Página de Assinatura</a>';
+
+            var htmlPainelLGPD =
+                '<div class="alert alert-info text-center">' +
+                '<h3>Verifique o seu e-mail</h3>' +
+                '<p>Enviamos o código de segurança para assinar o Termo LGPD.</p>';
+
+            if (linkLgpd) {
+                htmlPainelLGPD +=
+                    '<a href="' + linkLgpd + '" target="_blank" ' +
+                    'class="btn btn-warning btn-lg">' +
+                    'Abrir Página de Assinatura</a>';
+            }
+
             htmlPainelLGPD += '</div>';
-            $("#container_assinatura_tae_lgpd_" + that.instanceId).html(htmlPainelLGPD).show();
+
+            $("#container_assinatura_tae_lgpd_" + that.instanceId)
+                .html(htmlPainelLGPD)
+                .show();
+
             that.criarBotaoVerificarAssinaturaLGPD(idLgpd);
         } else if (statusLgpd === "assinado" && b64Lgpd) {
             $("#container_gerar_lgpd_" + that.instanceId).hide();
             that.exibirPDFLGPDAssinada(b64Lgpd);
-        } else if (statusLgpd === "assinado" && !b64Lgpd) {
-            $("#container_gerar_lgpd_" + that.instanceId).hide();
-            $("#container_assinatura_tae_lgpd_" + that.instanceId).html('<div class="alert alert-info text-center" style="padding:20px;"><i class="flaticon flaticon-refresh icon-spin icon-lg"></i><br>Recuperando PDF assinado do LGPD...</div>').show();
         }
 
-        var assinaturaCompleta = (statusProp === "assinado" && statusLgpd === "assinado");
+        $("#status_assinatura_verificada_" + that.instanceId)
+            .toggle(statusLgpd === "assinado");
 
-        $("#btn_gerar_assinar_primeiro_link_" + that.instanceId)
-            .show()
-            .prop("disabled", true)
-            .addClass("disabled")
-            .attr("title", "Abra a Carta Proposta e o Termo LGPD antes de assinar.");
-
-        $("#status_assinatura_verificada_" + that.instanceId).toggle(assinaturaCompleta);
-        $("#btn_gerar_assinar_" + that.instanceId).hide();
-        $("#btn_gerar_assinar_lgpd_" + that.instanceId).hide();
         that.atualizarCartoesPrimeiroLink();
     },
 
     atualizarCartoesPrimeiroLink: function () {
-        var $d = $("#AdmissaoWidget_" + this.instanceId);
+        var statusLgpd =
+            $("#tae_lgpd_status_" + this.instanceId).val();
 
-        var statusProp = $("#tae_proposta_status_" + this.instanceId).val();
-        var statusLgpd = $("#tae_lgpd_status_" + this.instanceId).val();
+        var b64Lgpd =
+            $("#termo_lgpd_assinada_base64_" + this.instanceId).val();
 
-        var b64Prop = $("#carta_assinada_base64_" + this.instanceId).val();
-        var b64Lgpd = $("#termo_lgpd_assinada_base64_" + this.instanceId).val();
+        var previewLgpd =
+            this.previewDocsPrimeiroLink.lgpd;
 
-        var previewProp = this.previewDocsPrimeiroLink.proposta;
-        var previewLgpd = this.previewDocsPrimeiroLink.lgpd;
-        var previewManifesto = this.previewDocsPrimeiroLink.manifesto || this.manifestoPdfDataUri;
+        var assinaturaVerificada =
+            statusLgpd === "assinado";
 
-        var propostaAssinada = statusProp === "assinado";
-        var lgpdAssinada = statusLgpd === "assinado";
-        var assinaturaVerificada = propostaAssinada && lgpdAssinada;
+        var lgpdDisponivel =
+            assinaturaVerificada ||
+            !!b64Lgpd ||
+            !!previewLgpd ||
+            !!this.idPdfLGPD;
 
-        var propostaOk = propostaAssinada || !!b64Prop || !!previewProp || !!this.idPdfProposta;
-        var lgpdOk = lgpdAssinada || !!b64Lgpd || !!previewLgpd || !!this.idPdfLGPD;
+        $("#card_status_lgpd_" + this.instanceId)
+            .text(lgpdDisponivel ? "Ver arquivo" : "Carregando...");
 
-        // O manifesto depende da assinatura verificada, não necessariamente dos base64s em tela.
-        var manifestoOk = assinaturaVerificada || !!previewManifesto;
+        var abriuLgpd =
+            this.primeiroLinkDocsAbertos &&
+            this.primeiroLinkDocsAbertos.lgpd === true;
 
-        $("#card_status_proposta_" + this.instanceId).text(propostaOk ? "Ver arquivo" : "Carregando...");
-        $("#card_status_lgpd_" + this.instanceId).text(lgpdOk ? "Ver arquivo" : "Carregando...");
-        $("#card_status_manifesto_" + this.instanceId).text(manifestoOk ? "Assinado" : "Aguardando assinatura");
+        var podeAssinar =
+            !assinaturaVerificada &&
+            lgpdDisponivel &&
+            abriuLgpd;
 
-        $d.find(".primeiro-link-card.manifesto-card").toggleClass("locked", !manifestoOk);
-        $d.find(".primeiro-link-card.manifesto-card").toggleClass("assinado", manifestoOk);
-
-        var abriuProposta = this.primeiroLinkDocsAbertos && this.primeiroLinkDocsAbertos.proposta === true;
-        var abriuLgpd = this.primeiroLinkDocsAbertos && this.primeiroLinkDocsAbertos.lgpd === true;
-        var podeAssinar = !assinaturaVerificada && propostaOk && lgpdOk && abriuProposta && abriuLgpd;
-
-        var $btnAssinarPrimeiroLink = $("#btn_gerar_assinar_primeiro_link_" + this.instanceId);
+        var $btn =
+            $("#btn_gerar_assinar_primeiro_link_" + this.instanceId);
 
         if (assinaturaVerificada) {
-            $btnAssinarPrimeiroLink
+            $btn
                 .hide()
                 .prop("disabled", true)
                 .removeClass("disabled")
                 .removeAttr("title");
         } else {
-            $btnAssinarPrimeiroLink
+            $btn
                 .show()
                 .prop("disabled", !podeAssinar)
                 .toggleClass("disabled", !podeAssinar)
-                .attr("title", podeAssinar ? "" : "Abra a Carta Proposta e o Termo LGPD antes de assinar.");
+                .attr(
+                    "title",
+                    podeAssinar
+                        ? ""
+                        : "Abra o Termo LGPD antes de assinar."
+                );
         }
 
-        $("#status_assinatura_verificada_" + this.instanceId).toggle(assinaturaVerificada);
+        $("#status_assinatura_verificada_" + this.instanceId)
+            .toggle(assinaturaVerificada);
     },
 
     abrirDocumentoPrimeiroLink: function (tipoDoc) {
@@ -5186,12 +5932,15 @@
                 return;
             }
         } else if (tipoDoc === "manifesto") {
-            var statusProp = $("#tae_proposta_status_" + that.instanceId).val();
             var statusLgpd = $("#tae_lgpd_status_" + that.instanceId).val();
-            var b64Prop = $("#carta_assinada_base64_" + that.instanceId).val();
             var b64Lgpd = $("#termo_lgpd_assinada_base64_" + that.instanceId).val();
-            if (statusProp !== "assinado" || statusLgpd !== "assinado" || !b64Prop || !b64Lgpd) {
-                FLUIGC.toast({ title: "Atenção", message: "O manifesto fica disponível após assinar a Carta Proposta e o LGPD.", type: "warning" });
+            if (statusLgpd !== "assinado") {
+                FLUIGC.toast({
+                    title: "Atenção",
+                    message: "O Termo LGPD precisa estar assinado antes do envio.",
+                    type: "warning"
+                });
+
                 return;
             }
             titulo = "Manifesto de Assinatura";
@@ -6052,20 +6801,59 @@
     },
 
     avancarAba: function (el) {
-        var $d = $("#AdmissaoWidget_" + this.instanceId);
+        var that = this;
+        var $d = $("#AdmissaoWidget_" + that.instanceId);
         var t = $(el).attr("data-next-tab");
 
-        // Seleciona a aba que está ativa no momento do clique
+        // Seleciona a aba que está ativa no momento do clique.
         var $abaAtual = $d.find(".tab-pane.active");
 
-        // Valida apenas os campos da aba atual antes de trocar
-        if (!AdmissaoObrigatoriedade.validarAba($abaAtual, this)) {
+        // Valida somente os campos da aba atual antes de avançar.
+        if (!AdmissaoObrigatoriedade.validarAba($abaAtual, that)) {
             return false;
         }
 
         if (t) {
-            $d.find('a[href="' + t + '"]').tab('show');
-            this.marcarAbaComoVisitada(t.replace("#", ""));
+            var $linkAbaDestino =
+                $d.find('a[href="' + t + '"]');
+
+            var $menuAbas =
+                $d.find("#tabMenuDados_" + that.instanceId);
+
+            /*
+             * Aguarda o Bootstrap concluir a troca da aba antes
+             * de calcular a posição e mover a página.
+             */
+            $linkAbaDestino.one("shown.bs.tab", function () {
+                setTimeout(function () {
+                    var $referenciaRolagem =
+                        $menuAbas.length
+                            ? $menuAbas
+                            : $d.find(t);
+
+                    if (!$referenciaRolagem.length) {
+                        return;
+                    }
+
+                    var topoDestino =
+                        $referenciaRolagem.offset().top - 70;
+
+                    $("html, body")
+                        .stop(true)
+                        .animate(
+                            {
+                                scrollTop: Math.max(0, topoDestino)
+                            },
+                            300
+                        );
+                }, 50);
+            });
+
+            $linkAbaDestino.tab("show");
+
+            that.marcarAbaComoVisitada(
+                t.replace("#", "")
+            );
         }
     },
 
@@ -6073,74 +6861,7 @@
     verificarTodasAbasVisitadas: function (silent) { var abas = ['tab_pessoais_', 'tab_endereco_', 'tab_contratacao_', 'tab_bancarios_', 'tab_emergencia_', 'tab_outros_docs_', 'tab_foto_']; for (var i = 0; i < abas.length; i++) { if (!this.abasVisitadas[abas[i] + this.instanceId]) { if (!silent) { $('a[href="#' + abas[i] + this.instanceId + '"]').tab('show'); FLUIGC.toast({ title: 'Atenção', message: 'Verifique a aba pendente.', type: 'info' }); } return false; } } return true; },
 
     preencherFiliacaoViaDependentes: function () {
-        var that = this;
-        var $div = $("#AdmissaoWidget_" + this.instanceId);
-
-        var isEstagio = (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio");
-
-        if (!isEstagio) {
-            // 1. Bloqueia e limpa os campos por padrão (serão preenchidos apenas se existirem dependentes)
-            $div.find("#cand_mae_nome_" + that.instanceId).val("").prop("readonly", true);
-            $div.find("#cand_mae_est_civil_" + that.instanceId).val("").css({ "pointer-events": "none", "background-color": "#eee" }).prop("disabled", true);
-            $div.find("#cand_mae_sexo_" + that.instanceId).val("Feminino").css({ "pointer-events": "none", "background-color": "#eee" }).prop("disabled", true);
-            $div.find("#cand_mae_cpf_" + that.instanceId).val("").prop("readonly", true);
-            $div.find("#cand_mae_nasc_" + that.instanceId).val("").prop("readonly", true);
-
-            $div.find("#cand_pai_nome_" + that.instanceId).val("").prop("readonly", true);
-            $div.find("#cand_pai_est_civil_" + that.instanceId).val("").css({ "pointer-events": "none", "background-color": "#eee" }).prop("disabled", true);
-            $div.find("#cand_pai_sexo_" + that.instanceId).val("Masculino").css({ "pointer-events": "none", "background-color": "#eee" }).prop("disabled", true);
-            $div.find("#cand_pai_cpf_" + that.instanceId).val("").prop("readonly", true);
-            $div.find("#cand_pai_nasc_" + that.instanceId).val("").prop("readonly", true);
-
-            $div.find("#alerta_filiacao_" + that.instanceId).html('<i class="flaticon flaticon-info"></i> Os dados de filiação são exibidos automaticamente com base nos dependentes cadastrados na etapa anterior.');
-        } else {
-            // Se for Estágio, não existe aba de dependentes, portanto a filiação fica 100% livre!
-            $div.find("#cand_mae_nome_" + that.instanceId).prop("readonly", false);
-            $div.find("#cand_mae_est_civil_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" }).prop("disabled", false);
-            $div.find("#cand_mae_sexo_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" }).prop("disabled", false);
-            $div.find("#cand_mae_cpf_" + that.instanceId).prop("readonly", false);
-            $div.find("#cand_mae_nasc_" + that.instanceId).prop("readonly", false);
-
-            $div.find("#cand_pai_nome_" + that.instanceId).prop("readonly", false);
-            $div.find("#cand_pai_est_civil_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" }).prop("disabled", false);
-            $div.find("#cand_pai_sexo_" + that.instanceId).css({ "pointer-events": "auto", "background-color": "#fff" }).prop("disabled", false);
-            $div.find("#cand_pai_cpf_" + that.instanceId).prop("readonly", false);
-            $div.find("#cand_pai_nasc_" + that.instanceId).prop("readonly", false);
-            $div.find("#alerta_filiacao_" + that.instanceId).html('<i class="flaticon flaticon-info"></i> Preencha os dados de seus pais abaixo.');
-            return;
-        }
-
-        // 2. Varre a lista de dependentes (Apenas para CLT)
-        $div.find(".dependente-card").each(function () {
-            var parentesco = $(this).find(".dep-parentesco").val();
-            var nome = $(this).find(".dep-nome").val();
-            var estCivil = $(this).find(".dep-est-civil").val();
-            var cpf = $(this).find(".dep-cpf").val();
-            var nasc = $(this).find(".dep-nasc").val();
-            var sexo = $(this).find(".dep-sexo").val();
-
-            if (parentesco === "Mae") {
-                // Só espelha e bloqueia na Filiação se o candidato realmente tiver digitado o NOME nos dependentes
-                if (nome && nome.trim() !== "") {
-                    $div.find("#cand_mae_nome_" + that.instanceId).val(nome);
-                    if (estCivil) $div.find("#cand_mae_est_civil_" + that.instanceId).val(estCivil);
-                    if (sexo) $div.find("#cand_mae_sexo_" + that.instanceId).val(sexo);
-                    if (cpf) $div.find("#cand_mae_cpf_" + that.instanceId).val(cpf);
-                    if (nasc) $div.find("#cand_mae_nasc_" + that.instanceId).val(nasc);
-                }
-            }
-
-            if (parentesco === "Pai") {
-                // Só espelha e bloqueia na Filiação se o candidato realmente tiver digitado o NOME nos dependentes
-                if (nome && nome.trim() !== "") {
-                    $div.find("#cand_pai_nome_" + that.instanceId).val(nome);
-                    if (estCivil) $div.find("#cand_pai_est_civil_" + that.instanceId).val(estCivil);
-                    if (sexo) $div.find("#cand_pai_sexo_" + that.instanceId).val(sexo);
-                    if (cpf) $div.find("#cand_pai_cpf_" + that.instanceId).val(cpf);
-                    if (nasc) $div.find("#cand_pai_nasc_" + that.instanceId).val(nasc);
-                }
-            }
-        });
+        this.sincronizarFiliacaoComCardsFixos();
     },
 
     carregarTiposSanguineos: function (tentativas) {
@@ -6403,7 +7124,7 @@
         var $painelPlanoSaude = $div.find("#cand_ps_opcao_" + that.instanceId).closest(".panel");
 
         // ABA DE DEPENDENTES INTEIRA (Passo 5) no topo da tela
-        var $abaDependentes = $div.find('.step-item[data-step="4"]');
+        var $abaDependentes = $div.find('.step-item[data-step="5"]');
 
         // 2. Mapeia TODOS os campos exclusivos de Estágio na aba de Formação
         var $camposEstagio = $div.find(

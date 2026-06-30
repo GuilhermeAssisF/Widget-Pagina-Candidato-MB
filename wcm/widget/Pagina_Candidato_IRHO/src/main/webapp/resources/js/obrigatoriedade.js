@@ -135,10 +135,10 @@ var AdmissaoObrigatoriedade = {
         });
 
         // O Passo 4 (Dependentes) tem classes genéricas em vez de IDs, tratamos a parte:
-        var isCLT = (widget.jornadaAdmissao !== "Estagio" && widget.jornadaAdmissao !== "Estágio");
-        if (isCLT) {
-            $div.find(".dependente-card").each(function () {
+        $div.find(".dependente-card").each(function () {
                 var $card = $(this);
+                var tipoFiliacao = $card.attr("data-filiacao") || "";
+                if (tipoFiliacao === "pai" && !widget.cardFiliacaoTemConteudo($card)) return;
                 [
                     "dep-parentesco",
                     "dep-nome",
@@ -226,8 +226,7 @@ var AdmissaoObrigatoriedade = {
                         }
                     });
                 }
-            });
-        }
+        });
     },
 
     // 3. FUNÇÃO TRAVA: Verifica se os campos obrigatórios estão preenchidos na hora de avançar
@@ -259,7 +258,7 @@ var AdmissaoObrigatoriedade = {
         $target.find(".upload-box").css("border", "").removeClass("shake");
 
         // 1. VALIDAÇÃO DE CAMPOS MAPEADOS (Passos 3, 4, 6, 7)
-        if (!passo || [2, 3, 5, 6].indexOf(passo) > -1) {
+        if (!passo || [2, 3, 6].indexOf(Number(passo)) > -1) {
             var keys = Object.keys(regras);
             for (var i = 0; i < keys.length; i++) {
                 var id = keys[i];
@@ -282,13 +281,16 @@ var AdmissaoObrigatoriedade = {
         }
 
         // 2. VALIDAÇÃO DOS DEPENDENTES (Passo 4)
-        if (valid && (passo == 4 || (!passo && $target.find(".dependente-card").length > 0))) {
-            var isCLT = (widget.jornadaAdmissao !== "Estagio" && widget.jornadaAdmissao !== "Estágio");
+        if (valid && (passo == 4 || passo == 5 || (!passo && $target.find(".dependente-card").length > 0))) {
             var $cards = $target.find(".dependente-card");
 
-            if (isCLT && $cards.length > 0) {
+            if ($cards.length > 0) {
                 $cards.each(function (index) {
                     var $card = $(this);
+                    var tipoFiliacao = $card.attr("data-filiacao") || "";
+
+                    if (tipoFiliacao === "pai" && !widget.cardFiliacaoTemConteudo($card)) return true;
+                    if (passo == 5 && (widget.jornadaAdmissao === "Estagio" || widget.jornadaAdmissao === "Estágio")) return true;
                     // Lista de classes obrigatórias nos cards
                     var obgDeps = [
                         { cls: "dep-parentesco", nome: "Parentesco" },
