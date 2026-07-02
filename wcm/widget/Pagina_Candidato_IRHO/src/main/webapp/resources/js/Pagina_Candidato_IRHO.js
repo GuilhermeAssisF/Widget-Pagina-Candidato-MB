@@ -14,6 +14,9 @@
     autosaveFluigLiberado: false,
     jornadaAdmissao: "",
     nomeFilial: "",
+    regraPlanoSaude: null,
+    planoSaudeCarregando: false,
+    tokenPlanoSaudeAutomatico: null,
     idPdfProposta: null,
     idPdfLGPD: null,
     previewDocsPrimeiroLink: {
@@ -47,7 +50,6 @@
         // ==========================================================
         // SOLUÇÃO OAUTH: Atraso de milissegundos para gerar assinaturas únicas
         // ==========================================================
-        setTimeout(function () { that.carregarTiposSanguineos(); }, 50);
         setTimeout(function () { that.carregarNacionalidades(); }, 150);
 
         var urlParams = new URLSearchParams(window.location.search);
@@ -340,6 +342,8 @@
                                 }
                             }
 
+                            that.dadosPublicosCandidato = rLower;
+
                             // 2. FUNÇÃO INFALÍVEL: Aceita múltiplos campos (Fallbacks)
                             // VERSÃO BLINDADA DA FUNÇÃO GETVAL
                             function getVal(keys) {
@@ -469,17 +473,6 @@
 
                                 that.aplicarRegrasVisuaisPorJornada();
 
-                                var filialUpper = that.nomeFilial.toUpperCase();
-                                var textoPlano = "Consulte o RH para saber os valores da mensalidade do plano para sua filial.";
-
-                                if (filialUpper.indexOf("LAJINHA") > -1 || filialUpper.indexOf("BREJETUBA") > -1 || filialUpper.indexOf("PARAGUACU") > -1 || filialUpper.indexOf("PARAGUAÇU") > -1 || filialUpper.indexOf("CAMPINA VERDE") > -1) {
-                                    textoPlano = "Valor mensal fixo de mensalidade de <strong>R$ 330,61</strong> por dependente.";
-                                } else if (filialUpper.indexOf("SERVICOS LTDA") > -1 || filialUpper.indexOf("SERVIÇOS LTDA") > -1 || filialUpper.indexOf("BRASIL") > -1) {
-                                    textoPlano = "Valor mensal fixo de mensalidade de <strong>R$ 394,58</strong> por dependente.";
-                                }
-
-                                $("#texto_custo_plano_" + that.instanceId).html(textoPlano);
-
                                 // 3. MAPEAMENTO GERAL INVERTIDO (Widget -> Dataset)
                                 var map = {
                                     "cand_nomeCompleto_": ["txtNomeColaborador", "txtNomeSocial", "cpNomeSolicitante"],
@@ -491,7 +484,6 @@
                                     "cand_estado_natal_": ["ESTADO"],
                                     "cand_estado_civil_": ["txtEstadoCivil", "FUN_ESTADOCIV_DESC_AD"],
                                     "cand_raca_": ["CORRACA"],
-                                    "cand_tipo_sanguineo_": ["TipoSanguineo"],
                                     "cand_rg_": ["TxtRg"],
                                     "cand_rg_uf_": ["UFCARTIDENTIDADE"],
                                     "cand_rg_orgao_": ["ORGAOCARTIDENTIDADE"],
@@ -554,7 +546,6 @@
                                     "cand_reg_prof_orgao_": ["Reg_Prof_Orgao"],
                                     "cand_reg_prof_uf_": ["Reg_Prof_UF"],
                                     "cand_reg_prof_num_": ["Reg_Prof_Num"],
-                                    "cand_passaporte_num_": ["Passaporte_Num"],
                                     "cand_grau_instrucao_": ["txtEscolaridade", "FUN_CODGINRAI_DESC_AD"],
                                     "cand_ano_conclusao_": ["txtAnoConclusao"],
                                     "cand_curso_": ["txtNomeCurso"],
@@ -576,9 +567,6 @@
                                     "cand_vt_empresa_": ["TxtVtEmpresa"],
                                     "cand_vt_valor_": ["TxtVtValorTarifa"],
                                     "cand_ps_opcao_": ["TxtIncPlanoSaudeOpcao"],
-                                    "cand_ps_tipo_dep_": ["TxtIncPlanoSaudeTipoDep"],
-                                    "cand_ps_qtd_conjuge_": ["TxtIncPlanoSaudeQtdConjuge"],
-                                    "cand_ps_qtd_filhos_": ["TxtIncPlanoSaudeQtdFilhos"],
                                     "cand_po_opcao_": ["TxtIncPlanoOdontoOpcao", "cand_odonto_opcao"],
                                     "cand_po_tipo_plano_": ["TxtIncPlanoOdontoTipoCod", "TxtIncPlanoOdontoTipo"]
                                 };
@@ -690,36 +678,8 @@
                                     });
                                 }
 
-                                var opcaoSaudeSalva = getVal("TxtIncPlanoSaudeOpcao");
-                                var planoSaudeSalvo = getVal(["TxtIncPlanoSaudeTipoCod", "TxtIncPlanoSaudeTipo"]);
-
-                                var $selectPS = $("#cand_ps_opcao_" + that.instanceId);
-                                var $selectPlanoPS = $("#cand_ps_tipo_plano_" + that.instanceId);
-
-                                if (opcaoSaudeSalva) {
-                                    var opcaoSaudeNormalizada = String(opcaoSaudeSalva || "").trim();
-
-                                    if (that.isOpcaoPlanoSaudeOptante(opcaoSaudeNormalizada)) {
-                                        opcaoSaudeNormalizada = "Sim";
-                                    } else if (opcaoSaudeNormalizada) {
-                                        opcaoSaudeNormalizada = "Não";
-                                    }
-
-                                    if (planoSaudeSalvo) {
-                                        var codigoPlanoPendente = String(planoSaudeSalvo || "").trim();
-
-                                        if (codigoPlanoPendente.indexOf(" - ") > -1) {
-                                            codigoPlanoPendente = codigoPlanoPendente.split(" - ")[0].trim();
-                                        }
-
-                                        $selectPlanoPS.attr("data-valor-pendente", codigoPlanoPendente);
-                                    }
-
-                                    $selectPS.val(opcaoSaudeNormalizada).trigger("change");
-                                } else {
-                                    $selectPS.val("");
-                                    $("#div_ps_detalhes_" + that.instanceId).hide();
-                                    $("#div_ps_custos_" + that.instanceId).hide();
+                                if (typeof that.consultarRegraAssistenciaMedica === "function") {
+                                    that.consultarRegraAssistenciaMedica();
                                 }
 
                                 var opcaoOdontoSalva = getVal(["TxtIncPlanoOdontoOpcao", "cand_odonto_opcao"]);
@@ -742,9 +702,7 @@
                                     { de: ["DTEmPrimCNH"], para: "cand_cnh_data_primeira_" },
                                     { de: ["DTEMISSAOCNH"], para: "cand_cnh_data_emissao_" },
                                     { de: ["DtCERTIFRESERV"], para: "cand_reservista_data_emissao_" },
-                                    { de: ["Reg_Prof_Emissao"], para: "cand_reg_prof_emissao_" },
-                                    { de: ["Passaporte_Emissao"], para: "cand_passaporte_emissao_" },
-                                    { de: ["Passaporte_Validade"], para: "cand_passaporte_validade_" }
+                                    { de: ["Reg_Prof_Emissao"], para: "cand_reg_prof_emissao_" }
                                 ];
 
                                 for (var i = 0; i < camposData.length; i++) {
@@ -781,7 +739,7 @@
                                 var nomePai = getVal("txtNomDepen3");
                                 var nascPai = getVal("txtDtNascDepen3");
 
-                                var isEstagio = (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio");
+                                var isEstagio = that.isJornadaEstagio();
 
                                 if (nomeMae || nomePai) {
                                     setTimeout(function () {
@@ -926,6 +884,8 @@
                                     that.restaurarRascunhoLocal();
                                 }
 
+                                that.aplicarRegrasVisuaisPorJornada();
+
                                 var maiorPassoConhecido = Math.max(
                                     passoDoFluig,
                                     passoDoJson,
@@ -948,15 +908,7 @@
                                         estadoLocal &&
                                         parseInt(estadoLocal.versao || "0", 10);
 
-                                    var jornadaNormalizada = String(that.jornadaAdmissao || "")
-                                        .toLowerCase()
-                                        .normalize("NFD")
-                                        .replace(/[\u0300-\u036f]/g, "")
-                                        .trim();
-
-                                    var isEstagio =
-                                        jornadaNormalizada === "estagio" ||
-                                        jornadaNormalizada === "estagiario";
+                                    var isEstagio = that.isJornadaEstagio();
 
                                     var statusLgpdSalvo =
                                         $("#tae_lgpd_status_" + that.instanceId).val();
@@ -1209,6 +1161,985 @@
         return codFuncao;
     },
 
+    isJornadaEstagio: function () {
+        var dados = this.dadosPublicosCandidato || {};
+        var texto = [
+            this.jornadaAdmissao,
+            dados["cpjornadaadmissaodescricao"],
+            dados["cptipocontrato"],
+            dados["zoomtipofuncionario"],
+            dados["codtipofuncionario"]
+        ].join(" ").toLowerCase();
+
+        try {
+            texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        } catch (e) { }
+
+        texto = $.trim(texto);
+
+        return texto.indexOf("estagio") > -1 || texto.indexOf("estagiario") > -1;
+    },
+
+    obterTipoContratacao: function () {
+        var dados = this.dadosPublicosCandidato || {};
+        var fontes = [
+            this.jornadaAdmissao,
+            dados["cpjornadaadmissao"],
+            dados["cpjornadaadmissaodescricao"],
+            dados["cptipocontrato"],
+            dados["zoomtipofuncionario"],
+            dados["codtipofuncionario"]
+        ];
+        var texto = fontes.join(" ").toLowerCase();
+
+        try {
+            texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        } catch (e) { }
+
+        texto = $.trim(texto);
+
+        if (texto.indexOf("estagio") > -1 || texto.indexOf("estagiario") > -1) return "Estagiário";
+        if (texto.indexOf("aprendiz") > -1) return "Aprendiz";
+        if (texto.indexOf("associado") > -1) return "Associado";
+
+        return "CLT";
+    },
+
+    obterTipoContratacaoPlanoSaude: function () {
+        return this.obterTipoContratacao();
+    },
+
+    normalizarTextoAssistenciaMedica: function (valor) {
+        var texto = String(valor || "").toLowerCase();
+
+        try {
+            texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        } catch (e) { }
+
+        texto = texto.replace(/\s+/g, " ");
+
+        return $.trim(texto);
+    },
+
+    limparSelecaoDependentesPlanoSaude: function () {
+        var id = this.instanceId;
+
+        $("#cand_ps_dependentes_opcao_" + id).val("");
+        $("#div_ps_dependentes_opcao_" + id).hide();
+        $("#div_ps_detalhes_" + id).hide();
+        $("#container_dependentes_plano_" + id)
+            .find("input[type='checkbox']")
+            .prop("checked", false);
+    },
+
+    definirSelectPlanoSaudeAutomatico: function (codigo, descricao) {
+        var $select = $("#cand_ps_tipo_plano_" + this.instanceId);
+
+        if (!$select.length) return;
+
+        $select.empty();
+        $("<option>")
+            .val(codigo || "")
+            .attr("data-descricao", descricao || "")
+            .text(descricao || "")
+            .prop("selected", true)
+            .appendTo($select);
+    },
+
+    atualizarCardPlanoSaudeAutomatico: function (dados) {
+        dados = dados || {};
+
+        var id = this.instanceId;
+        var $card = $("#card_plano_saude_preselecionado_" + id);
+
+        if (!$card.length) return;
+
+        $card
+            .toggleClass("sem-plano", dados.status === "sem-plano")
+            .toggleClass("erro-plano", dados.status === "erro");
+
+        $card.find(".plano-saude-auto-grid").toggle(dados.status !== "sem-plano" && dados.status !== "erro");
+
+        $("#status_plano_saude_" + id).text(dados.statusTexto || "Regra aplicada");
+        $("#nome_plano_saude_" + id).text(dados.nome || "Plano não disponível");
+        $("#origem_plano_saude_" + id).text(dados.origem || "Função no RM Totvs");
+        $("#custeio_titular_plano_saude_" + id).text(dados.custeioTitular || "-");
+        $("#custeio_dependente_plano_saude_" + id).text(dados.custeioDependente || "-");
+        $("#valores_plano_saude_" + id).text(dados.valores || "Integração pendente");
+        $("#mensagem_plano_saude_" + id).text(dados.mensagem || "");
+    },
+
+    formatarMoedaPlanoSaude: function (valor) {
+        var original = valor;
+        var texto = valor === undefined || valor === null ? "" : String(valor).trim();
+
+        if (!texto) return "";
+
+        texto = texto.replace(/[^\d,.-]/g, "");
+
+        if (texto.indexOf(",") > -1 && texto.indexOf(".") > -1) {
+            texto = texto.replace(/\./g, "").replace(",", ".");
+        } else if (texto.indexOf(",") > -1) {
+            texto = texto.replace(",", ".");
+        }
+
+        var numero = parseFloat(texto);
+
+        if (isNaN(numero)) {
+            return String(original || "");
+        }
+
+        return numero.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL"
+        });
+    },
+
+    formatarVigenciaPlanoSaude: function (inicio, fim) {
+        function formatarData(valor) {
+            var texto = String(valor || "").trim();
+
+            if (!texto) return "";
+
+            var matchBr = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+            if (matchBr) return matchBr[1] + "/" + matchBr[2] + "/" + matchBr[3];
+
+            var matchIso = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (matchIso) return matchIso[3] + "/" + matchIso[2] + "/" + matchIso[1];
+
+            var matchCompacto = texto.match(/^(\d{4})(\d{2})(\d{2})$/);
+            if (matchCompacto) return matchCompacto[3] + "/" + matchCompacto[2] + "/" + matchCompacto[1];
+
+            return texto.split(" ")[0];
+        }
+
+        var dataInicio = formatarData(inicio);
+        var dataFim = formatarData(fim);
+
+        if (dataInicio && dataFim) return dataInicio + " a " + dataFim;
+        if (dataInicio) return "A partir de " + dataInicio;
+        if (dataFim) return "Até " + dataFim;
+
+        return "";
+    },
+
+    renderizarValoresPlanoSaude: function (valores, codigoPlano, estado) {
+        var id = this.instanceId;
+        var $box = $("#planoSaudeValores_" + id);
+        var $conteudo = $("#planoSaudeValoresConteudo_" + id);
+
+        if (!$box.length || !$conteudo.length) return;
+
+        valores = valores || [];
+        estado = estado || "";
+
+        $conteudo.empty();
+        $box.show();
+
+        function mensagem(classe, texto) {
+            $("#valores_plano_saude_" + id).text(texto);
+            $conteudo.html('<div class="plano-saude-valores-msg ' + classe + '">' + texto + '</div>');
+        }
+
+        function escaparHtml(valor) {
+            return String(valor || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function primeiroValorDisponivel() {
+            for (var i = 0; i < arguments.length; i++) {
+                var valor = arguments[i];
+                if (valor !== undefined && valor !== null && String(valor).trim() !== "") {
+                    return valor;
+                }
+            }
+
+            return "";
+        }
+
+        if (estado === "carregando") {
+            mensagem("carregando", "Consultando valores vigentes...");
+            return;
+        }
+
+        if (estado === "nao-aplicavel") {
+            mensagem("info", "Valores não aplicáveis para esta contratação.");
+            return;
+        }
+
+        var registrosValidos = [];
+        var possuiErro = false;
+
+        for (var i = 0; i < valores.length; i++) {
+            var item = valores[i] || {};
+
+            if (item.ERROR) {
+                possuiErro = true;
+                console.warn("[Assistência Médica - Valores] Dataset retornou erro:", item.ERROR);
+                continue;
+            }
+
+            if (String(item.CODPLANO || codigoPlano || "").trim()) {
+                registrosValidos.push(item);
+            }
+        }
+
+        if (possuiErro && registrosValidos.length === 0) {
+            mensagem("erro", "Não foi possível carregar os valores vigentes neste momento.");
+            return;
+        }
+
+        if (registrosValidos.length === 0) {
+            mensagem("info", "Valores vigentes não encontrados para este plano.");
+            return;
+        }
+
+        var primeiro = registrosValidos[0] || {};
+        var tipoValor = this.normalizarTextoAssistenciaMedica(primeiro.TIPO_VALOR);
+        var codTabela = this.normalizarTextoAssistenciaMedica(primeiro.CODTABCALC);
+        var textoPlano = this.normalizarTextoAssistenciaMedica([
+            codigoPlano,
+            primeiro.CODPLANO,
+            primeiro.DESC_PLANO,
+            primeiro.DESC_TABELA
+        ].join(" "));
+        var isFaixaEtaria =
+            tipoValor === "faixa_etaria" ||
+            codTabela.indexOf("unm") === 0 ||
+            textoPlano.indexOf("unimed") > -1 ||
+            textoPlano.indexOf("unimax") > -1;
+
+        if (isFaixaEtaria) {
+            var htmlTabela = '<div class="plano-saude-valores-titulo">Valores vigentes por faixa etária</div>' +
+                '<div class="table-responsive">' +
+                '<table class="table table-condensed plano-saude-valores-tabela">' +
+                '<thead><tr><th>Faixa etária</th><th>Valor</th><th>Vigência</th></tr></thead><tbody>';
+
+            $("#valores_plano_saude_" + id).text("Tabela por faixa etária");
+
+            registrosValidos.forEach(function (item) {
+                var faixa = item.DESC_FAIXA ||
+                    (
+                        String(item.FAIXA_ETARIA_INICIAL || "").trim() ||
+                            String(item.FAIXA_ETARIA_FINAL || "").trim()
+                            ? String(item.FAIXA_ETARIA_INICIAL || "0").trim() + " a " + String(item.FAIXA_ETARIA_FINAL || item.LIMITESUPERIOR || "").trim() + " anos"
+                            : "Faixa " + String(item.NROFAIXA || "").trim()
+                    );
+                var valor = this.formatarMoedaPlanoSaude(primeiroValorDisponivel(item.VALOR, item.VALOR_DEPENDENTE, item.VALOR_TITULAR));
+                var vigencia = this.formatarVigenciaPlanoSaude(item.INICIOVIGENCIA, item.FINALVIGENCIA);
+
+                htmlTabela += '<tr>' +
+                    '<td>' + escaparHtml(faixa) + '</td>' +
+                    '<td>' + escaparHtml(valor || "-") + '</td>' +
+                    '<td>' + escaparHtml(vigencia || "-") + '</td>' +
+                    '</tr>';
+            }, this);
+
+            htmlTabela += '</tbody></table></div>';
+            $conteudo.html(htmlTabela);
+            return;
+        }
+
+        var valorPlano = primeiroValorDisponivel(primeiro.VALOR, primeiro.VALOR_TITULAR, primeiro.VALOR_DEPENDENTE);
+        var vigenciaPlano = this.formatarVigenciaPlanoSaude(primeiro.INICIOVIGENCIA, primeiro.FINALVIGENCIA);
+        var descricaoPlano = primeiro.DESC_PLANO || primeiro.DESC_TABELA || "Plano de saúde";
+        var valorFormatado = this.formatarMoedaPlanoSaude(valorPlano);
+
+        $("#valores_plano_saude_" + id).text(valorFormatado || "Valor vigente disponível");
+
+        $conteudo.html(
+            '<div class="plano-saude-valores-titulo">Valores vigentes</div>' +
+            '<div class="plano-saude-valores-card">' +
+            '<small>Plano</small>' +
+            '<strong>' + escaparHtml(descricaoPlano) + '</strong>' +
+            '<span>' + escaparHtml(valorFormatado || "-") + '</span>' +
+            '<em>Vigência: ' + escaparHtml(vigenciaPlano || "-") + '</em>' +
+            '</div>'
+        );
+    },
+
+    consultarValoresPlanoSaudeVigente: function (codigoPlano, codColigada) {
+        var that = this;
+
+        codigoPlano = String(codigoPlano || "").trim();
+        codColigada = String(codColigada || "").trim();
+
+        if (!codColigada) {
+            codColigada = $("#cand_codcoligada_" + that.instanceId).val() || "";
+        }
+
+        if (!codColigada && typeof that.obterContextoAssistenciaMedica === "function") {
+            codColigada = (that.obterContextoAssistenciaMedica() || {}).coligada || "";
+        }
+
+        if (!codigoPlano || codigoPlano === "000000") {
+            that.renderizarValoresPlanoSaude([], codigoPlano, "nao-aplicavel");
+            return;
+        }
+
+        if (!codColigada) {
+            console.warn("[Assistência Médica - Valores] Coligada não identificada para consultar valores.");
+            that.renderizarValoresPlanoSaude([], codigoPlano, "");
+            return;
+        }
+
+        that.renderizarValoresPlanoSaude([], codigoPlano, "carregando");
+
+        var url = WCMAPI.getServerURL() + "/api/public/ecm/dataset/datasets";
+        var payload = {
+            name: "ds_irho_valoresPlanoSaudeVigente",
+            constraints: [
+                {
+                    "_field": "CODCOLIGADA",
+                    "_initialValue": codColigada,
+                    "_finalValue": codColigada,
+                    "_type": 1
+                },
+                {
+                    "_field": "CODPLANO",
+                    "_initialValue": codigoPlano,
+                    "_finalValue": codigoPlano,
+                    "_type": 1
+                }
+            ]
+        };
+
+        console.log("[Assistência Médica - Valores] Consultando valores:", {
+            codigoPlano: codigoPlano,
+            codColigada: codColigada
+        });
+
+        $.ajax({
+            url: url,
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(payload),
+            headers: {
+                "Authorization": that.getOAuthHeader(url, "POST").Authorization
+            },
+            success: function (res) {
+                var valores = res && res.content && res.content.values ? res.content.values : [];
+
+                console.log("[Assistência Médica - Valores] Registros retornados:", valores.length);
+
+                that.renderizarValoresPlanoSaude(valores, codigoPlano);
+            },
+            error: function (xhr, status, error) {
+                console.warn("[Assistência Médica - Valores] Falha ao consultar valores vigentes:", error);
+                that.renderizarValoresPlanoSaude([{ ERROR: String(error || "Erro ao consultar valores") }], codigoPlano);
+            }
+        });
+    },
+
+    renderizarPlanoSaudeIndisponivel: function (mensagem, status) {
+        var id = this.instanceId;
+        var tipoContratacao = this.obterTipoContratacaoPlanoSaude();
+
+        $("#cand_ps_opcao_" + id).val("Não");
+        this.definirSelectPlanoSaudeAutomatico("000000", "NAO OPTANTE");
+        this.limparSelecaoDependentesPlanoSaude();
+
+        this.regraPlanoSaude = {
+            disponivel: false,
+            codigoPlano: "000000",
+            descricaoPlano: "NAO OPTANTE",
+            idDescPlano: "000000 - NAO OPTANTE",
+            origemRegra: "Assistência médica automática - Fase 1",
+            tipoContratacao: tipoContratacao,
+            custeioTitular: "",
+            custeioDependente: "",
+            mensagem: mensagem || "Plano de saúde não disponível para esta contratação."
+        };
+
+        this.atualizarCardPlanoSaudeAutomatico({
+            status: status || "sem-plano",
+            statusTexto: "Plano não disponível",
+            nome: "Sem plano de saúde disponível",
+            origem: "Tipo de contratação",
+            custeioTitular: "-",
+            custeioDependente: "-",
+            valores: "Não aplicável",
+            mensagem: this.regraPlanoSaude.mensagem
+        });
+
+        this.renderizarValoresPlanoSaude([], "000000", "nao-aplicavel");
+
+        console.log("[Assistência Médica] Regra aplicada:", this.regraPlanoSaude);
+    },
+
+    renderizarPlanoSaudeAutomatico: function (plano, metadados) {
+        plano = plano || {};
+        metadados = metadados || {};
+
+        var id = this.instanceId;
+        var codigo = String(plano.CODIGO || "").trim();
+        var descricao = String(plano.DESCRICAO || "").trim();
+        var tipoContratacao = this.obterTipoContratacaoPlanoSaude();
+        var mensagem = metadados.mensagem || "Plano definido automaticamente pela função cadastrada no RM Totvs.";
+        var origemRegra = metadados.origemRegra || "Função no RM Totvs via ds_irho_retornaPlanoSaudePorFuncao";
+        var origemVisual = metadados.origemVisual || "Função no RM Totvs";
+        var custeioTitular = metadados.custeioTitular || (tipoContratacao === "Associado" ? "Conforme modalidade de associado" : "100% empresa");
+        var custeioDependente = metadados.custeioDependente || "100% colaborador";
+
+        if (tipoContratacao === "Associado" && !metadados.mensagem) {
+            mensagem = "Regra específica de Associado MBE/MBMC pendente de campo fonte confiável; nesta fase foi aplicado o plano retornado por função.";
+        }
+
+        $("#cand_ps_opcao_" + id).val("Sim");
+        this.definirSelectPlanoSaudeAutomatico(codigo, descricao);
+        $("#div_ps_dependentes_opcao_" + id).slideDown();
+
+        if (this.depsPlanoSaudePersistidos && this.depsPlanoSaudePersistidos.length > 0) {
+            $("#cand_ps_dependentes_opcao_" + id).val("Sim");
+            $("#div_ps_detalhes_" + id).show();
+        }
+
+        this.regraPlanoSaude = {
+            disponivel: true,
+            codigoPlano: codigo,
+            descricaoPlano: descricao,
+            idDescPlano: codigo + " - " + descricao,
+            origemRegra: origemRegra,
+            tipoContratacao: tipoContratacao,
+            custeioTitular: custeioTitular,
+            custeioDependente: custeioDependente,
+            mensagem: mensagem
+        };
+
+        this.atualizarCardPlanoSaudeAutomatico({
+            status: "ok",
+            statusTexto: "Pré-selecionado",
+            nome: descricao,
+            origem: origemVisual,
+            custeioTitular: this.regraPlanoSaude.custeioTitular,
+            custeioDependente: this.regraPlanoSaude.custeioDependente,
+            valores: "Integração pendente",
+            mensagem: mensagem
+        });
+
+        this.consultarValoresPlanoSaudeVigente(
+            codigo,
+            metadados.codColigada || $("#cand_codcoligada_" + id).val() || ""
+        );
+
+        console.log("[Assistência Médica] Regra aplicada:", this.regraPlanoSaude);
+
+        if (typeof this.atualizarOpcoesPlanoSaude === "function") {
+            this.atualizarOpcoesPlanoSaude();
+        }
+
+        if (
+            this.depsPlanoSaudePersistidos &&
+            this.depsPlanoSaudePersistidos.length > 0 &&
+            typeof this.restaurarSelecaoPlanoSaude === "function"
+        ) {
+            this.restaurarSelecaoPlanoSaude(this.depsPlanoSaudePersistidos);
+        }
+    },
+
+    consultarPlanoSaudeAutomatico: function (metadados) {
+        var that = this;
+        metadados = metadados || {};
+
+        var id = that.instanceId;
+
+        if (that.isJornadaEstagio()) {
+            that.renderizarPlanoSaudeIndisponivel("Plano de saúde não disponível para esta modalidade de contratação.", "sem-plano");
+            return;
+        }
+
+        var codFuncaoPlano = that.obterCodigoFuncaoPlanoSaude();
+        var codColigadaPlano = $("#cand_codcoligada_" + id).val() || "";
+
+        if (!codFuncaoPlano) {
+            that.renderizarPlanoSaudeIndisponivel("Função ainda não carregada. O plano será definido quando a admissão possuir função válida.", "erro");
+            return;
+        }
+
+        that.planoSaudeCarregando = true;
+        var tokenRequisicao = new Date().getTime() + "_" + Math.random();
+        that.tokenPlanoSaudeAutomatico = tokenRequisicao;
+
+        that.atualizarCardPlanoSaudeAutomatico({
+            status: "carregando",
+            statusTexto: "Consultando regra...",
+            nome: "Buscando plano pela função",
+            origem: metadados.origemVisual || "Função no RM Totvs",
+            custeioTitular: metadados.custeioTitular || "100% empresa",
+            custeioDependente: metadados.custeioDependente || "100% colaborador",
+            valores: "Integração pendente",
+            mensagem: "Consultando ds_irho_retornaPlanoSaudePorFuncao."
+        });
+
+        var url = WCMAPI.getServerURL() + "/api/public/ecm/dataset/datasets";
+        var payload = {
+            name: "ds_irho_retornaPlanoSaudePorFuncao",
+            constraints: [
+                {
+                    "_field": "CODFUNCAO",
+                    "_initialValue": codFuncaoPlano,
+                    "_finalValue": codFuncaoPlano,
+                    "_type": 1
+                },
+                {
+                    "_field": "CODCOLIGADA",
+                    "_initialValue": codColigadaPlano,
+                    "_finalValue": codColigadaPlano,
+                    "_type": 1
+                }
+            ]
+        };
+
+        console.log("[Assistência Médica] Dataset chamado:", payload);
+
+        $.ajax({
+            url: url,
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(payload),
+            headers: {
+                "Authorization": that.getOAuthHeader(url, "POST").Authorization
+            },
+            success: function (res) {
+                if (that.tokenPlanoSaudeAutomatico !== tokenRequisicao) {
+                    console.warn("[Assistência Médica] Resposta antiga ignorada.");
+                    return;
+                }
+
+                var valores = res && res.content && res.content.values ? res.content.values : [];
+                var planoElegivel = null;
+
+                for (var i = 0; i < valores.length; i++) {
+                    var item = valores[i] || {};
+                    var codigo = String(item.CODIGO || "").trim();
+                    var descricao = String(item.DESCRICAO || "").trim();
+
+                    if (item.ERROR) {
+                        console.warn("[Assistência Médica] ds_irho_retornaPlanoSaudePorFuncao retornou erro:", item.ERROR);
+                        continue;
+                    }
+
+                    if (codigo && descricao && codigo !== "000000") {
+                        planoElegivel = item;
+                        break;
+                    }
+                }
+
+                if (!planoElegivel) {
+                    that.renderizarPlanoSaudeIndisponivel("Nenhum plano de saúde elegível foi retornado para a função informada.", "sem-plano");
+                    return;
+                }
+
+                console.log("[Assistência Médica] Plano retornado:", {
+                    codigo: planoElegivel.CODIGO,
+                    descricao: planoElegivel.DESCRICAO
+                });
+
+                that.renderizarPlanoSaudeAutomatico(planoElegivel, metadados);
+            },
+            error: function (xhr, status, error) {
+                console.warn("[Assistência Médica] Falha ao consultar plano por função:", error);
+                that.renderizarPlanoSaudeIndisponivel("Não foi possível consultar o plano de saúde por função. Tente novamente ou acione o RH.", "erro");
+            },
+            complete: function () {
+                if (that.tokenPlanoSaudeAutomatico === tokenRequisicao) {
+                    that.planoSaudeCarregando = false;
+                }
+            }
+        });
+    },
+
+    isPracaPoaAssistenciaMedica: function (contexto) {
+        contexto = contexto || {};
+
+        var id = this.instanceId;
+        var textos = [
+            contexto.praca,
+            contexto.unidade,
+            contexto.empresaFilial,
+            contexto.filial,
+            this.nomeFilial,
+            $("#cand_empresa_" + id).val()
+        ];
+        var textoNormalizado = this.normalizarTextoAssistenciaMedica(textos.join(" "));
+        var isPoa = textoNormalizado.indexOf("poa") > -1 || textoNormalizado.indexOf("porto alegre") > -1;
+
+        console.log("[Assistência Médica] Praça avaliada:", {
+            praca: contexto.praca || "",
+            unidade: contexto.unidade || "",
+            empresaFilial: contexto.empresaFilial || "",
+            filial: contexto.filial || "",
+            textoNormalizado: textoNormalizado,
+            isPoa: isPoa
+        });
+
+        return isPoa;
+    },
+
+    isEmpresaFilialMbmcAssistenciaMedica: function (contexto) {
+        contexto = contexto || {};
+
+        var id = this.instanceId;
+        var textoNormalizado = this.normalizarTextoAssistenciaMedica([
+            contexto.empresaFilial,
+            contexto.unidade,
+            contexto.filial,
+            this.nomeFilial,
+            $("#cand_empresa_" + id).val()
+        ].join(" "));
+        var isMbmc = textoNormalizado.indexOf("mbmc") > -1;
+
+        console.log("[Assistência Médica] Empresa/filial avaliada para MBMC:", {
+            textoNormalizado: textoNormalizado,
+            isMBMC: isMbmc
+        });
+
+        return isMbmc;
+    },
+
+    isEmpresaFilialMbeAssistenciaMedica: function (contexto) {
+        contexto = contexto || {};
+
+        var id = this.instanceId;
+        var textoNormalizado = this.normalizarTextoAssistenciaMedica([
+            contexto.empresaFilial,
+            contexto.unidade,
+            contexto.filial,
+            this.nomeFilial,
+            $("#cand_empresa_" + id).val()
+        ].join(" "));
+        var isMbe = textoNormalizado.indexOf("mbe") > -1 && textoNormalizado.indexOf("mbmc") === -1;
+
+        console.log("[Assistência Médica] Empresa/filial avaliada para MBE:", {
+            textoNormalizado: textoNormalizado,
+            isMBE: isMbe
+        });
+
+        return isMbe;
+    },
+
+    isFuncaoHeadDiretorAssistenciaMedica: function (contexto) {
+        contexto = contexto || {};
+
+        var id = this.instanceId;
+        var dados = this.dadosPublicosCandidato || {};
+        var textoNormalizado = this.normalizarTextoAssistenciaMedica([
+            contexto.funcao,
+            contexto.cargo,
+            contexto.categoria,
+            $("#cand_funcao_" + id).val(),
+            $("#cand_cargo_" + id).val(),
+            dados["fun_iddescfun"],
+            dados["fun_iddescfuncao"],
+            dados["fun_funcao"],
+            dados["cargo"],
+            dados["jobtitle"],
+            dados["job_title"]
+        ].join(" "));
+        var isHeadDiretor =
+            textoNormalizado.indexOf("head") > -1 ||
+            textoNormalizado.indexOf("diretor") > -1 ||
+            textoNormalizado.indexOf("diretoria") > -1;
+
+        console.log("[Assistência Médica] Função avaliada para Head/Diretor:", {
+            textoNormalizado: textoNormalizado,
+            isHeadDiretor: isHeadDiretor
+        });
+
+        return isHeadDiretor;
+    },
+
+    montarPlanoSaudeEspecialAssistenciaMedica: function (codigo, descricao) {
+        codigo = String(codigo || "").trim();
+        descricao = String(descricao || "").trim();
+
+        return {
+            CODIGO: codigo,
+            DESCRICAO: descricao,
+            IDDESC_PLANO_SAUDE: codigo + " - " + descricao
+        };
+    },
+
+    obterCusteioAssistenciaMedica: function (contexto) {
+        contexto = contexto || {};
+
+        var custeio = {
+            titular: "100% empresa",
+            dependente: "100% colaborador"
+        };
+
+        if (this.isJornadaEstagio()) {
+            custeio.titular = "";
+            custeio.dependente = "";
+            return custeio;
+        }
+
+        if (contexto.tipoContratacao === "Associado" && this.isEmpresaFilialMbeAssistenciaMedica(contexto)) {
+            custeio.titular = "100% colaborador";
+            custeio.dependente = "100% colaborador";
+        }
+
+        console.log("[Assistência Médica] Custeio aplicado:", custeio);
+
+        return custeio;
+    },
+
+    consultarPlanoSaudePoa: function (metadados) {
+        var that = this;
+        metadados = metadados || {};
+
+        var tokenRequisicao = new Date().getTime() + "_" + Math.random();
+
+        that.planoSaudeCarregando = true;
+        that.tokenPlanoSaudeAutomatico = tokenRequisicao;
+
+        that.atualizarCardPlanoSaudeAutomatico({
+            status: "carregando",
+            statusTexto: "Consultando regra...",
+            nome: "Buscando plano UNIMED POA",
+            origem: "Praça POA / Porto Alegre",
+            custeioTitular: metadados.custeioTitular || "100% empresa",
+            custeioDependente: metadados.custeioDependente || "100% colaborador",
+            valores: "Integração pendente",
+            mensagem: "Consultando ds_irho_planoSaude para aplicar a exceção da Praça POA."
+        });
+
+        var url = WCMAPI.getServerURL() + "/api/public/ecm/dataset/datasets";
+        var payload = {
+            name: "ds_irho_planoSaude",
+            constraints: []
+        };
+
+        console.log("[Assistência Médica] Dataset chamado para exceção POA:", payload);
+
+        $.ajax({
+            url: url,
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(payload),
+            headers: {
+                "Authorization": that.getOAuthHeader(url, "POST").Authorization
+            },
+            success: function (res) {
+                if (that.tokenPlanoSaudeAutomatico !== tokenRequisicao) {
+                    console.warn("[Assistência Médica] Resposta antiga da exceção POA ignorada.");
+                    return;
+                }
+
+                var valores = res && res.content && res.content.values ? res.content.values : [];
+                var planoPoa = null;
+                var planoPoaFallback = null;
+
+                for (var i = 0; i < valores.length; i++) {
+                    var item = valores[i] || {};
+                    var codigo = String(item.CODIGO || "").trim();
+                    var descricao = String(item.DESCRICAO || "").trim();
+                    var idDesc = String(item.IDDESC_PLANO_SAUDE || "").trim();
+
+                    if (item.ERROR) {
+                        console.warn("[Assistência Médica] ds_irho_planoSaude retornou erro:", item.ERROR);
+                        continue;
+                    }
+
+                    if (codigo === "UNM006") {
+                        planoPoa = item;
+                        break;
+                    }
+
+                    var textoPlano = that.normalizarTextoAssistenciaMedica([codigo, descricao, idDesc].join(" "));
+                    var contemUnimed = textoPlano.indexOf("unimed") > -1;
+                    var contemPoa =
+                        textoPlano.indexOf("poa") > -1 ||
+                        textoPlano.indexOf("porto alegre") > -1 ||
+                        textoPlano.indexOf("unimax") > -1 ||
+                        textoPlano.indexOf("coletivo empresarial privativo") > -1;
+
+                    if (!planoPoaFallback && codigo && descricao && codigo !== "000000" && contemUnimed && contemPoa) {
+                        planoPoaFallback = item;
+                    }
+                }
+
+                if (!planoPoa) {
+                    planoPoa = planoPoaFallback;
+                }
+
+                console.log("[Assistência Médica] Plano POA encontrado:", {
+                    codigo: planoPoa.CODIGO,
+                    descricao: planoPoa.DESCRICAO
+                });
+
+                that.renderizarPlanoSaudeAutomatico(planoPoa, {
+                    origemRegra: "Praça de Atuação POA",
+                    origemVisual: "Praça POA / Porto Alegre",
+                    mensagem: "Plano definido automaticamente pela exceção da Praça de Atuação POA/Porto Alegre.",
+                    custeioTitular: metadados.custeioTitular || "100% empresa",
+                    custeioDependente: metadados.custeioDependente || "100% colaborador"
+                });
+            },
+            error: function (xhr, status, error) {
+                console.warn("[Assistência Médica] Falha ao consultar ds_irho_planoSaude para exceção POA:", error);
+                that.renderizarPlanoSaudeIndisponivel("Praça POA identificada, mas o plano UNIMED POA não foi encontrado. Acione o RH.", "erro");
+            },
+            complete: function () {
+                if (that.tokenPlanoSaudeAutomatico === tokenRequisicao) {
+                    that.planoSaudeCarregando = false;
+                }
+            }
+        });
+    },
+
+    obterTipoContratacaoAssistenciaMedica: function () {
+        return this.obterTipoContratacaoPlanoSaude();
+    },
+
+    obterContextoAssistenciaMedica: function () {
+        var dados = this.dadosPublicosCandidato || {};
+        var id = this.instanceId;
+        var empresaFilial =
+            dados["iddesc_empresafilial"] ||
+            dados["fun_empresa_desc_ad"] ||
+            $("#cand_empresa_" + id).val() ||
+            "";
+        var filial =
+            dados["fun_nomecomercial_filial"] ||
+            dados["fun_filial"] ||
+            dados["filial"] ||
+            dados["nomefilial"] ||
+            $("#cand_filial_" + id).val() ||
+            $("#cand_nome_filial_" + id).val() ||
+            "";
+        var unidade =
+            this.nomeFilial ||
+            dados["fun_nomecomercial_filial"] ||
+            dados["fun_filial"] ||
+            dados["iddesc_empresafilial"] ||
+            dados["fun_empresa_desc_ad"] ||
+            $("#cand_empresa_" + id).val() ||
+            filial ||
+            "";
+
+        return {
+            codigoFuncao: this.obterCodigoFuncaoPlanoSaude(),
+            funcao: $("#cand_funcao_" + id).val() || "",
+            coligada: $("#cand_codcoligada_" + id).val() || "",
+            tipoContratacao: this.obterTipoContratacaoAssistenciaMedica(),
+            jornada: this.jornadaAdmissao || "",
+            praca: dados["cppracaatuacao"] ||
+                dados["pracaatuacao"] ||
+                dados["cp_praca_atuacao"] ||
+                dados["praca_atuacao"] ||
+                dados["fun_praca"] ||
+                dados["funpraca"] ||
+                "",
+            unidade: unidade,
+            empresaFilial: empresaFilial,
+            filial: filial,
+            cargo: $("#cand_cargo_" + id).val() || dados["fun_iddescfuncao"] || "",
+            categoria: dados["categoria"] || dados["cpcategoria"] || ""
+        };
+    },
+
+    consultarRegraAssistenciaMedica: function () {
+        var contexto = this.obterContextoAssistenciaMedica();
+
+        console.log("[Assistência Médica] Contexto carregado:", {
+            codigoFuncao: contexto.codigoFuncao,
+            coligada: contexto.coligada,
+            tipoContratacao: contexto.tipoContratacao,
+            praca: contexto.praca || "",
+            unidade: contexto.unidade || "",
+            empresaFilial: contexto.empresaFilial || "",
+            filial: contexto.filial || ""
+        });
+
+        if (this.isJornadaEstagio()) {
+            this.renderizarPlanoSaudeIndisponivel(
+                "Plano de saúde não disponível para esta modalidade de contratação.",
+                "sem-plano"
+            );
+            return;
+        }
+
+        var custeio = this.obterCusteioAssistenciaMedica(contexto);
+        var metadadosCusteio = {
+            custeioTitular: custeio.titular,
+            custeioDependente: custeio.dependente
+        };
+
+        if (this.isPracaPoaAssistenciaMedica(contexto)) {
+            console.log("[Assistência Médica] Praça POA identificada. Aplicando exceção UNIMED POA.");
+            this.consultarPlanoSaudePoa(metadadosCusteio);
+            return;
+        }
+
+        if (contexto.tipoContratacao === "Associado") {
+            var isMbmc = this.isEmpresaFilialMbmcAssistenciaMedica(contexto);
+            var isMbe = !isMbmc && this.isEmpresaFilialMbeAssistenciaMedica(contexto);
+
+            if (isMbmc) {
+                var isHeadDiretor = this.isFuncaoHeadDiretorAssistenciaMedica(contexto);
+                var planoMbmc = isHeadDiretor
+                    ? this.montarPlanoSaudeEspecialAssistenciaMedica("BRA004", "BRADESCO - Nacional Plus")
+                    : this.montarPlanoSaudeEspecialAssistenciaMedica("BRA003", "BRADESCO - Nacional II");
+
+                console.log("[Assistência Médica] Plano aplicado para Associado MBMC:", {
+                    codigo: planoMbmc.CODIGO,
+                    descricao: planoMbmc.DESCRICAO,
+                    isHeadDiretor: isHeadDiretor
+                });
+
+                this.renderizarPlanoSaudeAutomatico(planoMbmc, {
+                    origemRegra: isHeadDiretor ? "Associado MBMC - Head/Diretor" : "Associado MBMC - Regra padrão",
+                    origemVisual: "Associado MBMC",
+                    mensagem: isHeadDiretor
+                        ? "Plano Nacional Plus definido automaticamente para Associado MBMC com função Head/Diretor."
+                        : "Plano Nacional II definido automaticamente para Associado MBMC.",
+                    custeioTitular: custeio.titular,
+                    custeioDependente: custeio.dependente
+                });
+                return;
+            }
+
+            if (isMbe) {
+                this.consultarPlanoSaudeAutomatico({
+                    origemRegra: "Associado MBE - Plano por função",
+                    origemVisual: "Associado MBE",
+                    mensagem: "Plano definido automaticamente pela função para Associado MBE.",
+                    custeioTitular: custeio.titular,
+                    custeioDependente: custeio.dependente
+                });
+                return;
+            }
+
+            console.log("[Assistência Médica] Modalidade de associado não identificada. Aplicando regra base por função.");
+            this.consultarPlanoSaudeAutomatico({
+                origemRegra: "Associado - Plano por função",
+                origemVisual: "Função no RM Totvs",
+                mensagem: "Plano definido automaticamente pela função para Associado sem modalidade identificada.",
+                custeioTitular: custeio.titular,
+                custeioDependente: custeio.dependente
+            });
+            return;
+        }
+
+        this.consultarPlanoSaudeAutomatico({
+            custeioTitular: custeio.titular,
+            custeioDependente: custeio.dependente
+        });
+    },
+
+    renderizarPlanoSaudePreSelecionado: function (plano) {
+        this.renderizarPlanoSaudeAutomatico(plano);
+    },
+
+    limparPlanoSaudeParaInelegivel: function (mensagem) {
+        this.renderizarPlanoSaudeIndisponivel(mensagem, "sem-plano");
+    },
+
     carregarPlanosPorDataset: function (datasetName, selectId, placeholder, constraintsExtras, callbackFinal) {
         var that = this;
         var $select = $("#" + selectId + "_" + that.instanceId);
@@ -1397,6 +2328,7 @@
         }
 
         estado.campos = estado.campos || {};
+        that.depsPlanoSaudePersistidos = estado.depsPS || [];
 
         // Guarda os documentos gerais persistidos para reaplicar o visual
         // depois que os cards fixos/dinâmicos forem renderizados.
@@ -1413,6 +2345,15 @@
 
                 if (!$el.length) continue;
                 if ($el.attr("type") === "file") continue;
+
+                var cleanIdRestauracao = that.limparIdWidget(key);
+                if (
+                    cleanIdRestauracao === "cand_ps_opcao" ||
+                    cleanIdRestauracao === "cand_ps_tipo_plano" ||
+                    cleanIdRestauracao === "cand_ps_dependentes_opcao"
+                ) {
+                    continue;
+                }
 
                 if ($el.attr("type") === "checkbox" || $el.attr("type") === "radio") {
                     if (valor) {
@@ -1852,7 +2793,14 @@
                 that.atualizarVisibilidadeDocsDependente($card);
             }
 
-            $card.find(".dep-base64-cpf, .dep-base64-rgf, .dep-base64-rgv, .dep-base64-certnasc, .dep-base64-vacina").each(function () {
+            var $cnh = $card.find(".dep-base64-cnh");
+            if ($cnh.length && depData["dep-base64-cnh"]) {
+                $cnh.val(depData["dep-base64-cnh"]);
+                $cnh.attr("data-filename", depData["dep-base64-cnh-name"] || "");
+                $cnh.attr("data-nome-arquivo", depData["dep-base64-cnh-name"] || "");
+            }
+
+            $card.find(".dep-base64-cpf, .dep-base64-rgf, .dep-base64-rgv, .dep-base64-certnasc, .dep-base64-vacina, .dep-base64-cnh").each(function () {
                 var $campo = $(this);
                 var classes = ($campo.attr("class") || "").split(/\s+/);
                 for (var i = 0; i < classes.length; i++) {
@@ -2179,6 +3127,7 @@
             rotasVT: this.montarRotasVTWidgetJson(),
             depsPS: this.montarSelecionadosPlanoSaudeJson(),
             depsPO: this.montarSelecionadosPlanoOdontoJson(),
+            assistenciaMedica: this.regraPlanoSaude || null,
             timestamp: new Date().getTime()
         };
 
@@ -2257,7 +3206,7 @@
         var $box = $hiddenInput.siblings(".upload-box");
 
         if (!$box.length) {
-            $box = $hiddenInput.closest(".doc-conjuge, .doc-filho, .doc-cert-nasc, .doc-vacina").find(".upload-box").first();
+            $box = $hiddenInput.closest(".doc-conjuge, .doc-filho, .doc-cert-nasc, .doc-vacina, .doc-cnh").find(".upload-box").first();
         }
 
         if (!$box.length) {
@@ -2357,6 +3306,7 @@
                 campos: dadosCampos,
                 dependentes: dadosDependentes,
                 rotasVT: dadosRotasVT,
+                assistenciaMedica: that.regraPlanoSaude || null,
                 depsPS: depsSelecionadosPS,
                 depsPO: depsSelecionadosPO,
                 timestamp: new Date().getTime()
@@ -2493,15 +3443,7 @@
                 var passoLocalRestaurado = parseInt(estado.passo, 10);
                 var versaoLocalRestaurada = parseInt(estado.versao || "0", 10);
 
-                var jornadaNormalizada = String(that.jornadaAdmissao || "")
-                    .toLowerCase()
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .trim();
-
-                var isEstagio =
-                    jornadaNormalizada === "estagio" ||
-                    jornadaNormalizada === "estagiario";
+                var isEstagio = that.isJornadaEstagio();
 
                 if (
                     versaoLocalRestaurada < 2 &&
@@ -2932,6 +3874,8 @@
                 console.warn("[Dependentes] Erro ao aplicar regra visual:", erroRegra);
             }
 
+            AdmissaoObrigatoriedade.atualizarAsteriscos(that);
+
             if (!e.originalEvent) return;
             if (that.bloqueioRestauracaoAtivo) return;
             if (that.carregandoDadosIniciais) return;
@@ -2962,18 +3906,21 @@
         });
 
         // Conversor de arquivo e Estilização Visual nos cards do dependente (COM COMPRESSÃO)
-        $div.off("change", ".dep-file-cpf, .dep-file-rgf, .dep-file-rgv, .dep-file-certnasc, .dep-file-vacina").on("change", ".dep-file-cpf, .dep-file-rgf, .dep-file-rgv, .dep-file-certnasc, .dep-file-vacina", function () {
+        $div.off("change", ".dep-file-cpf, .dep-file-rgf, .dep-file-rgv, .dep-file-certnasc, .dep-file-vacina, .dep-file-cnh").on("change", ".dep-file-cpf, .dep-file-rgf, .dep-file-rgv, .dep-file-certnasc, .dep-file-vacina, .dep-file-cnh", function () {
             var input = this; var $card = $(input).closest(".dependente-card");
             var nomeDependente = $card.find(".dep-nome").val() || "Dependente";
             var $hidden = $(input).next("input[type='hidden']"); var $box = $(input).siblings(".upload-box");
             var $icon = $box.find("i.flaticon"); var $btn = $box.find(".dep-file-btn"); var $status = $box.find(".dep-file-status");
 
+            var parentescoUpload = $card.find(".dep-parentesco").val() || "";
+            var isConjugeUpload = parentescoUpload === "Conjuge" || parentescoUpload === "Companheiro";
             var docType = "Documento";
-            if ($(input).hasClass("dep-file-cpf")) docType = "CPF OCR";
-            else if ($(input).hasClass("dep-file-rgf")) docType = "RG Frente OCR";
-            else if ($(input).hasClass("dep-file-rgv")) docType = "RG Verso OCR";
+            if ($(input).hasClass("dep-file-cpf")) docType = isConjugeUpload ? "CPF" : "CPF OCR";
+            else if ($(input).hasClass("dep-file-rgf")) docType = isConjugeUpload ? "RG Frente" : "RG Frente OCR";
+            else if ($(input).hasClass("dep-file-rgv")) docType = isConjugeUpload ? "RG Verso" : "RG Verso OCR";
             else if ($(input).hasClass("dep-file-certnasc")) docType = "Certidão Civil OCR";
             else if ($(input).hasClass("dep-file-vacina")) docType = "Cartão Vacina OCR";
+            else if ($(input).hasClass("dep-file-cnh")) docType = "CNH";
 
             var descricaoFluig = docType + " - " + nomeDependente;
 
@@ -3165,89 +4112,12 @@
             }
         });
 
-        // Lógica de Plano de Saúde (CORRIGIDA COM OS IDs EXATOS DO VIEW.FTL)
-        $div.off("change", "#cand_ps_opcao_" + this.instanceId).on("change", "#cand_ps_opcao_" + this.instanceId, function () {
-            var valor = $(this).val();
-
-            // IDs exatos baseados no seu HTML
-            var $divPlanos = $("#div_ps_planos_" + that.instanceId);
-            var $inputTipoPlano = $("#cand_ps_tipo_plano_" + that.instanceId);
-            var $divOpcaoDependentes = $("#div_ps_dependentes_opcao_" + that.instanceId);
-
-            // Aqui estava o erro! O ID correto é div_ps_detalhes_
-            var $divDependentes = $("#div_ps_detalhes_" + that.instanceId);
-
-            if (that.isOpcaoPlanoSaudeOptante(valor)) {
-                $divPlanos.slideDown();
-
-                $divOpcaoDependentes.hide();
-                $divDependentes.hide();
-                $("#cand_ps_dependentes_opcao_" + that.instanceId).val("");
-                $("#container_dependentes_plano_" + that.instanceId)
-                    .find("input[type='checkbox']")
-                    .prop("checked", false);
-
-                var codFuncaoPlano = that.obterCodigoFuncaoPlanoSaude();
-                var codColigadaPlano = $("#cand_codcoligada_" + that.instanceId).val() || "";
-
-                console.log("[Plano Saúde por Função] Iniciando busca de planos.");
-                console.log("[Plano Saúde por Função] cand_funcao_codigo:", $("#cand_funcao_codigo_" + that.instanceId).val());
-                console.log("[Plano Saúde por Função] cand_funcao_texto:", $("#cand_funcao_" + that.instanceId).val());
-                console.log("[Plano Saúde por Função] codFuncaoPlano final:", codFuncaoPlano);
-                console.log("[Plano Saúde por Função] codColigadaPlano:", codColigadaPlano);
-
-                if (!codFuncaoPlano) {
-                    $inputTipoPlano
-                        .empty()
-                        .append('<option value="">Função não carregada. Atualize a página ou acione o RH.</option>');
-
-                    FLUIGC.toast({
-                        title: "Atenção",
-                        message: "Não foi possível identificar a função para buscar o plano de saúde.",
-                        type: "warning"
-                    });
-
-                    return;
+        $div.off("change", "#cand_ps_opcao_" + this.instanceId)
+            .on("change", "#cand_ps_opcao_" + this.instanceId, function () {
+                if (!that.isOpcaoPlanoSaudeOptante($(this).val())) {
+                    that.limparSelecaoDependentesPlanoSaude();
                 }
-
-                $inputTipoPlano
-                    .empty()
-                    .append('<option value="">Carregando planos disponíveis para sua função...</option>');
-
-                that.carregarPlanosPorDataset(
-                    "ds_irho_retornaPlanoSaudePorFuncao",
-                    "cand_ps_tipo_plano",
-                    "Selecione o plano de saúde...",
-                    [
-                        {
-                            "_field": "CODFUNCAO",
-                            "_initialValue": codFuncaoPlano,
-                            "_finalValue": codFuncaoPlano,
-                            "_type": 1,
-                            "_likeSearch": false
-                        },
-                        {
-                            "_field": "CODCOLIGADA",
-                            "_initialValue": codColigadaPlano,
-                            "_finalValue": codColigadaPlano,
-                            "_type": 1,
-                            "_likeSearch": false
-                        }
-                    ]
-                );
-            } else {
-                $divPlanos.slideUp();
-                $divOpcaoDependentes.slideUp();
-                $divDependentes.slideUp();
-
-                $inputTipoPlano.val("");
-                $("#cand_ps_dependentes_opcao_" + that.instanceId).val("");
-
-                $("#container_dependentes_plano_" + that.instanceId)
-                    .find("input[type='checkbox']")
-                    .prop("checked", false);
-            }
-        });
+            });
 
         $div.off("change", "#cand_ps_tipo_plano_" + this.instanceId)
             .on("change", "#cand_ps_tipo_plano_" + this.instanceId, function () {
@@ -3689,7 +4559,6 @@
 
             "txtEstadoCivil": estCivilValor,
             "CORRACA": racaProcesso,
-            "TipoSanguineo": $div.find("#cand_tipo_sanguineo_" + that.instanceId).val(),
 
             "txtNomeColaborador": $div.find("#cand_nomeCompleto_" + that.instanceId).val(),
             "cpfcnpj": $div.find("#cand_cpf_" + that.instanceId).val(),
@@ -3783,15 +4652,12 @@
             "txtParentescoEmergencia": $div.find("#cand_emergencia_parentesco_" + that.instanceId).val(),
             "txtTelefoneEmergencia": $div.find("#cand_emergencia_telefone_" + that.instanceId).val(),
 
-            // DADOS DE SUS, REGISTRO PROFISSIONAL E PASSAPORTE
+            // DADOS DE SUS E REGISTRO PROFISSIONAL
             // "Cartao_SUS": $div.find("#cand_cartao_sus_" + that.instanceId).val(),
             "Reg_Prof_Orgao": $div.find("#cand_reg_prof_orgao_" + that.instanceId).val(),
             "Reg_Prof_UF": $div.find("#cand_reg_prof_uf_" + that.instanceId).val(),
             "Reg_Prof_Num": $div.find("#cand_reg_prof_num_" + that.instanceId).val(),
             "Reg_Prof_Emissao": formatarDataBR($div.find("#cand_reg_prof_emissao_" + that.instanceId).val()),
-            "Passaporte_Num": $div.find("#cand_passaporte_num_" + that.instanceId).val(),
-            "Passaporte_Emissao": formatarDataBR($div.find("#cand_passaporte_emissao_" + that.instanceId).val()),
-            "Passaporte_Validade": formatarDataBR($div.find("#cand_passaporte_validade_" + that.instanceId).val()),
 
             // DADOS EXATOS DA FILIAÇÃO (Pai e Mãe)
             "txtNomDepen2": $div.find("#cand_mae_nome_" + that.instanceId).val(),
@@ -4494,7 +5360,7 @@
 
             var proximo = that.passoAtual + 1;
 
-            if (proximo === 5 && (that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio")) {
+            if (proximo === 5 && that.isJornadaEstagio()) {
                 proximo = 6;
             }
 
@@ -4529,7 +5395,7 @@
         if (this.passoAtual > 1) {
             var anterior = this.passoAtual - 1;
 
-            if (anterior === 5 && (this.jornadaAdmissao === "Estagio" || this.jornadaAdmissao === "Estágio")) {
+            if (anterior === 5 && this.isJornadaEstagio()) {
                 anterior = 4;
             }
 
@@ -4555,7 +5421,7 @@
         var that = this;
         var $d = $("#AdmissaoWidget_" + this.instanceId);
 
-        if ((that.jornadaAdmissao === "Estagio" || that.jornadaAdmissao === "Estágio") && Number(p) === 5) {
+        if (that.isJornadaEstagio() && Number(p) === 5) {
             // O passo 5 é Dependentes e fica oculto para estágio. Estados antigos
             // que apontavam para o antigo passo 5 retornam para Filiação.
             p = 4;
@@ -4617,13 +5483,17 @@
         }
         // ========================================================
 
-        if (p === 3 || p === "3") {
+        if (typeof this.aplicarRegrasVisuaisPorJornada === "function") {
             this.aplicarRegrasVisuaisPorJornada();
         }
 
         if (Number(p) === 4) this.preencherFiliacaoViaDependentes();
 
-        if (p === 6) {
+        if (Number(p) === 6) {
+            if (typeof this.consultarRegraAssistenciaMedica === "function") {
+                this.consultarRegraAssistenciaMedica();
+            }
+
             this.atualizarOpcoesPlanoSaude();
 
             if (typeof this.atualizarDependentesOdonto === "function") {
@@ -4789,6 +5659,50 @@
             return true;
         }
 
+        if (Number(p) === 6) {
+            if (this.planoSaudeCarregando) {
+                FLUIGC.toast({
+                    title: "Atenção",
+                    message: "Aguarde a consulta da assistência médica terminar.",
+                    type: "warning"
+                });
+
+                return false;
+            }
+
+            if (!this.isJornadaEstagio()) {
+                var regraPlanoSaude = this.regraPlanoSaude || {};
+
+                if (!this.regraPlanoSaude) {
+                    if (typeof this.consultarRegraAssistenciaMedica === "function") {
+                        this.consultarRegraAssistenciaMedica();
+                    }
+
+                    FLUIGC.toast({
+                        title: "Atenção",
+                        message: "Aguarde a consulta da assistência médica terminar.",
+                        type: "warning"
+                    });
+
+                    return false;
+                }
+
+                if (
+                    !regraPlanoSaude.disponivel ||
+                    !regraPlanoSaude.codigoPlano ||
+                    regraPlanoSaude.codigoPlano === "000000"
+                ) {
+                    FLUIGC.toast({
+                        title: "Atenção",
+                        message: "Não foi possível carregar um plano de saúde válido para sua função. Acione o RH.",
+                        type: "warning"
+                    });
+
+                    return false;
+                }
+            }
+        }
+
         return AdmissaoObrigatoriedade.validarPasso(p, this);
     },
 
@@ -4894,6 +5808,13 @@
         var isFilho = parentesco === "Filho";
 
         var $bloco = $card.find(".div-dados-mae-filho");
+        var $campoNomeMaeObservacao = $card.find(".div-nome-mae-observacao-dependente");
+
+        $campoNomeMaeObservacao.toggle(!isFilho);
+
+        if (isFilho) {
+            $campoNomeMaeObservacao.find(".dep-obs").val("");
+        }
 
         var $camposMae = $card.find(
             ".dep-mae-nome, " +
@@ -4971,6 +5892,35 @@
         }
     },
 
+    garantirUploadCnhDependente: function ($card) {
+        var $divDocs = $card.find(".div-docs-dependente");
+
+        if (!$divDocs.length || $divDocs.find(".doc-cnh").length) return;
+
+        var aviso = "Dependentes com 18 anos ou mais podem enviar a CNH no lugar dos documentos CPF, RG Frente e RG Verso.";
+        var html =
+            '<div class="col-md-12 doc-cnh-alert" style="display:none;">' +
+            '<div class="alert alert-info" style="margin-bottom:15px;">' + aviso + '</div>' +
+            '</div>' +
+            '<div class="col-md-4 doc-cnh" style="display:none; margin-bottom: 25px;">' +
+            '<div class="upload-box text-center" style="padding: 15px; border: 2px dashed #bce8f1; border-radius: 6px; background-color: #f9fdfd; cursor: pointer; transition: all 0.3s ease;" onclick="$(this).siblings(\'input[type=\\\'file\\\']\').trigger(\'click\');">' +
+            '<i class="flaticon flaticon-assignment-ind icon-xl text-info"></i>' +
+            '<h5 class="font-bold mt-10">CNH</h5>' +
+            '<p class="text-muted small dep-file-status" style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">Anexar CNH</p>' +
+            '<button type="button" class="btn btn-default btn-xs dep-file-btn">Anexar</button>' +
+            '</div>' +
+            '<input type="file" class="hidden dep-file-cnh" accept="image/*,application/pdf">' +
+            '<input type="hidden" class="dep-base64-cnh">' +
+            '</div>';
+
+        $divDocs.append(html);
+    },
+
+    removerUploadCnhDependente: function ($card) {
+        var $divDocs = $card.find(".div-docs-dependente");
+        $divDocs.find(".doc-cnh-alert, .doc-cnh").remove();
+    },
+
     atualizarVisibilidadeDocsDependente: function ($card) {
         if (!$card || !$card.length) return;
 
@@ -4983,9 +5933,7 @@
 
         var $divDocs = $card.find(".div-docs-dependente");
 
-        var isEstagio =
-            this.jornadaAdmissao === "Estagio" ||
-            this.jornadaAdmissao === "Estágio";
+        var isEstagio = this.isJornadaEstagio();
 
         var isConjuge =
             parentesco.indexOf("conjuge") > -1 ||
@@ -5006,6 +5954,8 @@
             $divDocs.find(".doc-rg-verso").hide();
             $divDocs.find(".doc-cert-nasc").hide();
             $divDocs.find(".doc-vacina").hide();
+            $divDocs.find(".doc-cnh-alert").hide();
+            $divDocs.find(".doc-cnh").hide();
         }
 
         function mostrarBase() {
@@ -5013,19 +5963,27 @@
         }
 
         esconderTodos();
+        this.removerUploadCnhDependente($card);
 
         // Estágio: nunca mostra documentos de dependentes
         if (isEstagio) {
             return;
         }
 
-        // Cônjuge / Companheiro: CPF + RG frente + RG verso
+        // Cônjuge / Companheiro: exige CPF + RG Frente + RG Verso,
+        // com CNH como alternativa quando tiver 18 anos ou mais.
         if (isConjuge) {
             mostrarBase();
 
             $divDocs.find(".doc-cpf").show();
             $divDocs.find(".doc-rg-frente").show();
             $divDocs.find(".doc-rg-verso").show();
+            $divDocs.find(".doc-cpf, .doc-rg-frente, .doc-rg-verso").find(".dep-doc-ocr-label").hide();
+
+            if (idade >= 18) {
+                this.garantirUploadCnhDependente($card);
+                $divDocs.find(".doc-cnh-alert, .doc-cnh").show();
+            }
 
             return;
         }
@@ -5044,11 +6002,22 @@
                 $divDocs.find(".doc-cpf").show();
                 $divDocs.find(".doc-rg-frente").show();
                 $divDocs.find(".doc-rg-verso").show();
+                $divDocs.find(".doc-cpf, .doc-rg-frente, .doc-rg-verso").find(".dep-doc-ocr-label").show();
 
                 // Até 5 anos: também mostra Cartão de Vacina
                 if (idade <= 5) {
                     $divDocs.find(".doc-vacina").show();
                 }
+            } else if (idade >= 18) {
+                mostrarBase();
+
+                $divDocs.find(".doc-cpf").show();
+                $divDocs.find(".doc-rg-frente").show();
+                $divDocs.find(".doc-rg-verso").show();
+                $divDocs.find(".doc-cpf, .doc-rg-frente, .doc-rg-verso").find(".dep-doc-ocr-label").show();
+
+                this.garantirUploadCnhDependente($card);
+                $divDocs.find(".doc-cnh-alert, .doc-cnh").show();
             }
 
             return;
@@ -6529,6 +7498,87 @@
         var oauth = OAuth({ consumer: oauthData.consumer, signature_method: oauthData.signature_method, hash_function: function (base, key) { return CryptoJS.HmacSHA1(base, key).toString(CryptoJS.enc.Base64); } });
         return oauth.toHeader(oauth.authorize({ url: url, method: method, data: data || {} }, oauthData.token));
     },
+
+    normalizarTextoDocumentoAdmissao: function (valor) {
+        var texto = String(valor || "").toLowerCase();
+
+        try {
+            texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        } catch (e) { }
+
+        return $.trim(texto.replace(/\s+/g, " "));
+    },
+
+    obterIdentificacaoDocumentoAdmissao: function (documento) {
+        documento = documento || {};
+
+        return this.normalizarTextoDocumentoAdmissao([
+            documento.doc_campo_interno,
+            documento.doc_titulo,
+            documento.doc_descricao
+        ].join(" "));
+    },
+
+    isDocumentoEscolaridadeAdmissao: function (documento) {
+        var identificacao = this.obterIdentificacaoDocumentoAdmissao(documento);
+
+        return identificacao.indexOf("escolaridade") > -1;
+    },
+
+    isDocumentoCertificacaoAdmissao: function (documento) {
+        var identificacao = this.obterIdentificacaoDocumentoAdmissao(documento);
+
+        if (identificacao.indexOf("reservista") > -1) return false;
+
+        return identificacao.indexOf("certificacao") > -1 ||
+            identificacao.indexOf("certificacoes") > -1 ||
+            identificacao.indexOf("certificado") > -1;
+    },
+
+    isDocumentoResidenciaAdmissao: function (documento) {
+        var identificacao = this.obterIdentificacaoDocumentoAdmissao(documento);
+
+        return identificacao.indexOf("residencia") > -1;
+    },
+
+    aplicarOverridesDocumentosPorTipoContratacao: function (lista) {
+        var that = this;
+        var tipoContratacao = this.obterTipoContratacao();
+        var isAssociado = tipoContratacao === "Associado";
+        var isEstagio = tipoContratacao === "Estagiário";
+        var isCLT = tipoContratacao === "CLT";
+
+        return (lista || []).reduce(function (acc, documento) {
+            if (!documento) return acc;
+
+            if (isEstagio && that.isDocumentoCertificacaoAdmissao(documento)) {
+                return acc;
+            }
+
+            var ajustado = {};
+            for (var prop in documento) {
+                if (documento.hasOwnProperty(prop)) {
+                    ajustado[prop] = documento[prop];
+                }
+            }
+
+            if ((isAssociado || isCLT) && that.isDocumentoCertificacaoAdmissao(ajustado)) {
+                ajustado.doc_obrigatorio = "false";
+            }
+
+            if (isAssociado && that.isDocumentoEscolaridadeAdmissao(ajustado)) {
+                ajustado.doc_obrigatorio = "true";
+            }
+
+            if (isAssociado && that.isDocumentoResidenciaAdmissao(ajustado)) {
+                ajustado.doc_ocr = "false";
+            }
+
+            acc.push(ajustado);
+            return acc;
+        }, []);
+    },
+
     renderizarDocumentos: function (lista) {
         var that = this;
         var html = "";
@@ -6545,7 +7595,9 @@
                 .toUpperCase();
         }
 
-        var listaFiltrada = (lista || []).filter(function (documento) {
+        var listaComOverrides = that.aplicarOverridesDocumentosPorTipoContratacao(lista);
+
+        var listaFiltrada = (listaComOverrides || []).filter(function (documento) {
             var identificacao = normalizarIdentificacaoDocumento(documento);
 
             var documentoPis =
@@ -6585,6 +7637,10 @@
 
         $("#container_documentos_dinamicos_" + that.instanceId).html(html);
         $("#hidden_inputs_container_" + that.instanceId).html(inputs);
+
+        if (typeof that.aplicarRegrasVisuaisPorJornada === "function") {
+            that.aplicarRegrasVisuaisPorJornada();
+        }
     },
     renderizarDocumentosFixos: function () {
         var that = this;
@@ -6627,7 +7683,9 @@
         var cnhPossui = $div.find("#cand_cnh_possuo_" + that.instanceId).val();
         var estCivil = $div.find("#cand_estado_civil_" + that.instanceId).val();
         var possuiPCD = $div.find("#cand_possui_deficiencia_" + that.instanceId).val();
-        var isCLT = (that.jornadaAdmissao !== "Estagio" && that.jornadaAdmissao !== "Estágio");
+        var tipoContratacao = that.obterTipoContratacao();
+        var isCLT = !that.isJornadaEstagio();
+        var isContratacaoCLT = tipoContratacao === "CLT";
         var bancoDigitado = ($div.find("#cand_banco_" + that.instanceId).val() || "").toUpperCase();
         var funcaoDigitada = ($div.find("#cand_funcao_" + that.instanceId).val() || "").toUpperCase();
 
@@ -6647,7 +7705,7 @@
             addDocFixo("doc_fixo_cnh", "CNH (Motorista)", "Anexar CNH", true, true);
         }
 
-        // 3. CERTIDÃO CIVIL (Nascimento, Casamento ou União - Obrigatório, CLT/Estágio, OCR)
+        // 3. CERTIDÃO CIVIL (Nascimento, Casamento ou União, OCR)
         var tituloCertCivil = "Certidão de Nascimento";
         if (estCivil === "Casado" || estCivil === "União Estável" || estCivil === "Uniao Estavel") {
             tituloCertCivil = "Certidão de Casamento/União";
@@ -6657,7 +7715,9 @@
             addDocFixo("doc_fixo_laudopcd", "Laudo Médico PCD", "Anexar laudo médico oficial", true, false);
         }
 
-        addDocFixo("doc_fixo_certcivil", tituloCertCivil, "Anexar certidão", true, true);
+        if (!isContratacaoCLT) {
+            addDocFixo("doc_fixo_certcivil", tituloCertCivil, "Anexar certidão", false, true);
+        }
 
         if (bancoDigitado.indexOf("SICOOB") > -1) {
             addDocFixo("doc_fixo_banco_sicoob", "COMPROVANTE DE DADOS BANCÁRIOS - SICOOB", "Anexar extrato ou cópia do cartão (frente)", true, false);
@@ -6669,10 +7729,10 @@
         var isEngenheiroOuTecnico = (funcaoDigitada.indexOf("ENGENHEIR") > -1 || funcaoDigitada.indexOf("TÉCNIC") > -1 || funcaoDigitada.indexOf("TECNIC") > -1);
 
         // Verifica se NÃO é estágio
-        var isEstagio = (funcaoDigitada.indexOf("ESTÁGIO") > -1 || funcaoDigitada.indexOf("ESTAGIO") > -1);
+        var funcaoEhEstagio = (funcaoDigitada.indexOf("ESTÁGIO") > -1 || funcaoDigitada.indexOf("ESTAGIO") > -1);
 
         // Se for Engenheiro/Técnico E NÃO for estágio, exige o documento
-        if (isEngenheiroOuTecnico && !isEstagio) {
+        if (isEngenheiroOuTecnico && !funcaoEhEstagio) {
             addDocFixo(
                 "doc_fixo_reg_prof",
                 "Registro Profissional (CREA, CRT, TST)",
@@ -6864,78 +7924,6 @@
         this.sincronizarFiliacaoComCardsFixos();
     },
 
-    carregarTiposSanguineos: function (tentativas) {
-        var that = this;
-        var $select = $("#cand_tipo_sanguineo_" + that.instanceId);
-
-        // CANCELA REQUISIÇÕES ANTERIORES PARA EVITAR "RACE CONDITION"
-        if ($select.data('jqxhr')) {
-            $select.data('jqxhr').abort();
-        }
-
-        var maxTentativas = 3;
-        tentativas = tentativas || 0;
-
-        var nomeDataset = "ds_irho_tipoSanguineo";
-        var payloadObj = { name: nomeDataset, constraints: [] };
-        var dataProxy = {
-            name: "ds_irho_api_proxy",
-            constraints: [
-                { _field: "action", _initialValue: "GET_DATASET", _finalValue: "GET_DATASET", _type: 1, _likeSearch: false },
-                { _field: "payload", _initialValue: JSON.stringify(payloadObj), _finalValue: JSON.stringify(payloadObj), _type: 1, _likeSearch: false }
-            ]
-        };
-
-        var url = WCMAPI.getServerURL() + '/api/public/ecm/dataset/datasets';
-
-        var ajaxCall = $.ajax({
-            url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(dataProxy),
-            headers: { "Authorization": that.getOAuthHeader(url, 'POST').Authorization },
-            success: function (resProxy) {
-                var carregouViaDataset = false;
-                if (resProxy.content && resProxy.content.values && resProxy.content.values.length > 0) {
-                    var rProxy = resProxy.content.values[0];
-                    if (rProxy.status == "success") {
-                        var resData = JSON.parse(rProxy.response);
-                        if (resData.records && resData.records.length > 0) {
-                            if (!resData.records[0].ERROR || resData.records[0].ERROR === "") {
-                                $select.empty().append('<option value="">Selecione...</option>');
-
-                                resData.records.forEach(function (item) {
-                                    var valor = item.TIPOSANG;
-                                    var texto = item.IDDESC_SANGUE || item.TIPOSANG;
-                                    if (valor) $select.append('<option value="' + valor + '">' + texto + '</option>');
-                                });
-                                carregouViaDataset = true;
-                            }
-                        }
-                    }
-                }
-
-                if (!carregouViaDataset) {
-                    if (tentativas < maxTentativas) {
-                        setTimeout(function () { that.carregarTiposSanguineos(tentativas + 1); }, 1500);
-                        return;
-                    }
-                    $select.empty().append('<option value="">Falha ao carregar do RM</option>');
-                }
-
-                // VERIFICA SE EXISTE VALOR PENDENTE DA RESTAURAÇÃO
-                if ($select.attr('data-valor-pendente')) {
-                    $select.val($select.attr('data-valor-pendente')).trigger('change');
-                    $select.removeAttr('data-valor-pendente');
-                }
-            },
-            error: function (xhr) {
-                if (xhr.statusText === "abort") return; // Ignora erros de aborto intencional
-                if (tentativas < maxTentativas) { setTimeout(function () { that.carregarTiposSanguineos(tentativas + 1); }, 1500); return; }
-                $select.empty().append('<option value="">Erro de conexão</option>');
-            }
-        });
-
-        $select.data('jqxhr', ajaxCall);
-    },
-
     carregarNacionalidades: function (tentativas) {
         var that = this;
         var $select = $("#cand_nacionalidade_" + that.instanceId);
@@ -7114,14 +8102,26 @@
     },
 
     aplicarRegrasVisuaisPorJornada: function () {
+        return this.aplicarRegrasVisuaisPorTipoContratacao();
+    },
+
+    aplicarRegrasVisuaisPorTipoContratacao: function () {
         var that = this;
         var $div = $("#AdmissaoWidget_" + this.instanceId);
+        var tipoContratacao = that.obterTipoContratacao();
+        var isEstagio = tipoContratacao === "Estagiário" || that.isJornadaEstagio();
+        var isAssociado = tipoContratacao === "Associado";
+        var isCLT = tipoContratacao === "CLT";
 
         // 1. Mapeia os blocos exclusivos CLT 
         var $painelCTPS = $div.find("#cand_tipo_ctps_" + that.instanceId).closest(".panel");
         var $painelCNH = $div.find("#cand_cnh_possuo_" + that.instanceId).closest(".panel");
         var $painelRegProf = $div.find("#cand_reg_prof_orgao_" + that.instanceId).closest(".panel");
         var $painelPlanoSaude = $div.find("#cand_ps_opcao_" + that.instanceId).closest(".panel");
+        var $painelVT = $div.find("#cand_vt_opcao_" + that.instanceId).closest(".panel");
+        var $painelOdonto = $div.find("#cand_po_opcao_" + that.instanceId).closest(".panel");
+        var $textoOdontoAssociado = $div.find("#texto_odonto_associado_" + that.instanceId);
+        var $painelExameAdmissional = $("#painel_exame_admissional_" + this.instanceId);
 
         // ABA DE DEPENDENTES INTEIRA (Passo 5) no topo da tela
         var $abaDependentes = $div.find('.step-item[data-step="5"]');
@@ -7136,28 +8136,84 @@
             ", #cand_coordenador_nome_" + that.instanceId +
             ", #cand_coordenador_nacionalidade_" + that.instanceId).closest(".form-group");
 
-        var jornadaNormalizada = String(that.jornadaAdmissao || "")
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .trim();
-
-        var isEstagio =
-            jornadaNormalizada === "estagio" ||
-            jornadaNormalizada === "estagiario";
-
         var $campoGrauInstrucao = $("#cand_grau_instrucao_" + that.instanceId).closest(".form-group");
+        var $camposTituloEleitor = $div.find(
+            "#cand_titulo_digital_" + that.instanceId +
+            ", #cand_titulo_eleitor_" + that.instanceId +
+            ", #cand_titulo_zona_" + that.instanceId +
+            ", #cand_titulo_secao_" + that.instanceId +
+            ", #cand_titulo_uf_" + that.instanceId +
+            ", #cand_titulo_data_emissao_" + that.instanceId
+        );
+        var $linhasTituloEleitor = $camposTituloEleitor.closest(".row");
+        var $tituloTituloEleitor = $div.find("#cand_titulo_digital_" + that.instanceId).closest(".row").prev("h4");
+        var $cardMaeFiliacao = $div.find('.dependente-card[data-filiacao="mae"]');
+        var $campoRgMaeFiliacao = $cardMaeFiliacao.find(".dep-rg").closest(".form-group");
+        var $camposDeficienciaMaeFiliacao = $cardMaeFiliacao
+            .find(".dep-possui-deficiencia")
+            .closest(".form-group")
+            .add($cardMaeFiliacao.find(".div-dep-tipo-deficiencia"));
 
         $campoGrauInstrucao
             .removeClass("col-md-1 col-md-2 col-md-3 col-md-4 col-md-5 col-md-6 col-md-7 col-md-8 col-md-9 col-md-10 col-md-11 col-md-12");
 
         $campoGrauInstrucao.find("select, input").css("width", "100%");
 
+        if (isAssociado) {
+            $tituloTituloEleitor.hide();
+            $linhasTituloEleitor.hide();
+            $camposTituloEleitor.val("");
+        } else {
+            $tituloTituloEleitor.show();
+            $linhasTituloEleitor.show();
+        }
+
+        if (isAssociado || isEstagio) {
+            $painelVT.hide();
+            $div.find("#cand_vt_opcao_" + that.instanceId).val("Nao opto");
+            $div.find("#div_vt_detalhes_" + that.instanceId).hide();
+            $div.find("#container_rotas_vt_" + that.instanceId).empty();
+        } else {
+            $painelVT.show();
+        }
+
+        if (isEstagio) {
+            $painelOdonto.hide();
+            $div.find("#cand_po_opcao_" + that.instanceId).val("Nao");
+            $div.find("#cand_po_tipo_plano_" + that.instanceId).val("");
+            $div.find("#div_po_planos_" + that.instanceId).hide();
+            $div.find("#div_po_dependentes_" + that.instanceId).hide();
+            $div.find("#container_dependentes_odonto_" + that.instanceId)
+                .find("input[type='checkbox']")
+                .prop("checked", false);
+        } else {
+            $painelOdonto.show();
+        }
+
+        if (isAssociado) {
+            $textoOdontoAssociado.show();
+        } else {
+            $textoOdontoAssociado.hide();
+        }
+
+        if (isCLT) {
+            $campoRgMaeFiliacao.hide();
+            $cardMaeFiliacao.find(".dep-rg").val("");
+            $camposDeficienciaMaeFiliacao.hide();
+            $cardMaeFiliacao.find(".dep-possui-deficiencia").val("Nao");
+            $cardMaeFiliacao.find(".dep-tipo-deficiencia").val("");
+        } else {
+            $campoRgMaeFiliacao.show();
+            $camposDeficienciaMaeFiliacao.show();
+            this.atualizarVisibilidadeDeficienciaDependente($cardMaeFiliacao);
+        }
+
         if (isEstagio) {
             $painelCTPS.hide();
             $painelCNH.hide();
             $painelRegProf.hide();
-            $painelPlanoSaude.hide();
+            $painelPlanoSaude.show();
+            $painelExameAdmissional.hide();
             $abaDependentes.hide();
 
             // Estágio: mostra os campos detalhados de formação.
@@ -7171,6 +8227,7 @@
             $painelCNH.show();
             $painelRegProf.show();
             $painelPlanoSaude.show();
+            $painelExameAdmissional.show();
             $abaDependentes.show();
 
             // CLT: oculta os campos detalhados de formação.
@@ -7182,15 +8239,10 @@
 
         // Força a renderização dos documentos fixos baseada na jornada e nos dados preenchidos
         that.renderizarDocumentosFixos();
-    },
 
-    carregarTiposSanguineosEstatico: function ($select) {
-        // Lista fixa de emergência caso a integração RM/Dataset falhe
-        var tipos = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Não Sabe"];
-        $select.empty().append('<option value="">Selecione...</option>');
-        tipos.forEach(function (t) {
-            $select.append('<option value="' + t + '">' + t + '</option>');
-        });
+        if (window.AdmissaoObrigatoriedade) {
+            AdmissaoObrigatoriedade.atualizarAsteriscos(that);
+        }
     },
 
     calcularIdadeDependente: function (dataNasc) {
@@ -7314,7 +8366,7 @@
 
         secao("Benefícios e Diversidade");
         linha("Vale Transporte", dados.ValeTransp === "1" ? "Optante" : "Não Optante");
-        linha("Plano de Saúde", dados.TxtIncPlanoSaudeOpcao);
+        linha("Assistência Médica", dados.TxtIncPlanoSaudeOpcao);
         linha("Possui Deficiência?", dados.txtPossuiDeficiencia + (dados.txtPossuiDeficiencia === "Sim" ? (" - " + dados.txtTipoDeficiencia) : ""));
 
         secao("Medidas para Uniforme");

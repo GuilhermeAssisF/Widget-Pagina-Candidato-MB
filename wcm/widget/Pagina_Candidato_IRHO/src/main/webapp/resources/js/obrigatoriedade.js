@@ -1,9 +1,63 @@
-var AdmissaoObrigatoriedade = {
+﻿var AdmissaoObrigatoriedade = {
+
+    normalizarTextoTipoContratacao: function (valor) {
+        var texto = String(valor || "").toLowerCase();
+
+        try {
+            texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        } catch (e) { }
+
+        return texto.trim();
+    },
+
+    obterTipoContratacao: function (widget) {
+        if (widget && typeof widget.obterTipoContratacao === "function") {
+            return widget.obterTipoContratacao();
+        }
+
+        var dados = (widget && widget.dadosPublicosCandidato) || {};
+        var texto = this.normalizarTextoTipoContratacao([
+            widget && widget.jornadaAdmissao,
+            dados["cpjornadaadmissao"],
+            dados["cpjornadaadmissaodescricao"],
+            dados["cptipocontrato"],
+            dados["zoomtipofuncionario"],
+            dados["codtipofuncionario"]
+        ].join(" "));
+
+        if (texto.indexOf("estagio") > -1 || texto.indexOf("estagiario") > -1) return "Estagiário";
+        if (texto.indexOf("aprendiz") > -1) return "Aprendiz";
+        if (texto.indexOf("associado") > -1) return "Associado";
+
+        return "CLT";
+    },
+
+    campoOcultoPorRegra: function ($campo) {
+        var oculto = false;
+
+        $campo.parents().addBack().each(function () {
+            var $el = $(this);
+
+            if (
+                $el.css("display") === "none" &&
+                !$el.hasClass("tab-pane") &&
+                !$el.hasClass("step-content")
+            ) {
+                oculto = true;
+                return false;
+            }
+        });
+
+        return oculto;
+    },
 
     // 1. MAPEAMENTO DE REGRAS: Retorna true se o campo for obrigatório
     regras: function (widget) {
-        var isEstagio = (widget.jornadaAdmissao === "Estagio" || widget.jornadaAdmissao === "Estagiario" || widget.jornadaAdmissao === "Estágio" || widget.jornadaAdmissao === "Estagiário");
+        var tipoContratacao = this.obterTipoContratacao(widget);
+        var isEstagio = tipoContratacao === "Estagiário";
+        var isAssociado = tipoContratacao === "Associado";
         var isCLT = !isEstagio;
+        var exigeValeTransporte = tipoContratacao === "CLT" || tipoContratacao === "Aprendiz";
         var isMasculino = ($("#cand_sexo_" + widget.instanceId).val() === "Masculino" || $("#cand_sexo_" + widget.instanceId).val() === "M");
 
         // Verifica a filial para decidir se exige medidas (Roupas/EPI)
@@ -27,12 +81,12 @@ var AdmissaoObrigatoriedade = {
             "cand_rg_uf": function () { return true; },
             "cand_rg_orgao": function () { return true; },
             "cand_rg_data_emissao": function () { return true; },
-            "cand_titulo_digital": function () { return true; },
-            "cand_titulo_eleitor": function () { return true; },
-            "cand_titulo_zona": function () { return true; },
-            "cand_titulo_secao": function () { return true; },
-            "cand_titulo_uf": function () { return true; },
-            "cand_titulo_data_emissao": function () { return true; },
+            // "cand_titulo_digital": function () { return !isAssociado; },
+            // "cand_titulo_eleitor": function () { return false; },
+            // "cand_titulo_zona": function () { return !isAssociado; },
+            // "cand_titulo_secao": function () { return !isAssociado; },
+            // "cand_titulo_uf": function () { return !isAssociado; },
+            // "cand_titulo_data_emissao": function () { return !isAssociado; },
 
             // Endereço
             "cand_cep": function () { return true; },
@@ -107,12 +161,7 @@ var AdmissaoObrigatoriedade = {
             "cand_coordenador_nacionalidade": function () { return isEstagio; },
 
             // --- Passo 6: Benefícios ---
-            "cand_vt_opcao": function () { return true; },
-
-            "cand_ps_opcao": function () { return isCLT; },
-            "cand_ps_tipo_dep": function () { return isCLT && (val("cand_ps_opcao") || "").indexOf("Opto") === 0; },
-            "cand_ps_qtd_conjuge": function () { return isCLT && (val("cand_ps_opcao") || "").indexOf("Opto") === 0 && (val("cand_ps_tipo_dep") === "Cônjuge" || val("cand_ps_tipo_dep") === "Ambos"); },
-            "cand_ps_qtd_filhos": function () { return isCLT && (val("cand_ps_opcao") || "").indexOf("Opto") === 0 && (val("cand_ps_tipo_dep") === "Filho(s)" || val("cand_ps_tipo_dep") === "Ambos"); }
+            "cand_vt_opcao": function () { return exigeValeTransporte; }
         };
     },
 
@@ -120,13 +169,16 @@ var AdmissaoObrigatoriedade = {
     atualizarAsteriscos: function (widget) {
         var regras = this.regras(widget);
         var $div = $("#AdmissaoWidget_" + widget.instanceId);
+        var isAssociado = this.obterTipoContratacao(widget) === "Associado";
 
         // Removemos todos os asteriscos dinâmicos antes de recalcular
         $div.find("label .asterisco-dinamico").remove();
 
         Object.keys(regras).forEach(function (idCampo) {
-            if (regras[idCampo]()) {
-                var $label = $div.find("#" + idCampo + "_" + widget.instanceId).closest(".form-group").find("label").first();
+            var $campo = $div.find("#" + idCampo + "_" + widget.instanceId);
+
+            if (regras[idCampo]() && $campo.length && !AdmissaoObrigatoriedade.campoOcultoPorRegra($campo)) {
+                var $label = $campo.closest(".form-group").find("label").first();
                 // Adiciona o asterisco apenas se a label existir e não tiver um asterisco
                 if ($label.length && $label.find(".asterisco-dinamico").length === 0) {
                     $label.append(' <span class="text-danger asterisco-dinamico">*</span>');
@@ -136,96 +188,129 @@ var AdmissaoObrigatoriedade = {
 
         // O Passo 4 (Dependentes) tem classes genéricas em vez de IDs, tratamos a parte:
         $div.find(".dependente-card").each(function () {
-                var $card = $(this);
-                var tipoFiliacao = $card.attr("data-filiacao") || "";
-                if (tipoFiliacao === "pai" && !widget.cardFiliacaoTemConteudo($card)) return;
-                [
-                    "dep-parentesco",
-                    "dep-nome",
-                    "dep-sexo",
-                    "dep-cpf",
-                    "dep-nasc",
-                    "dep-possui-deficiencia"
+            var $card = $(this);
+            var tipoFiliacao = $card.attr("data-filiacao") || "";
+            if (tipoFiliacao === "pai" && !widget.cardFiliacaoTemConteudo($card)) return;
+            [
+                "dep-parentesco",
+                "dep-nome",
+                "dep-sexo",
+                "dep-cpf",
+                "dep-nasc",
+                "dep-possui-deficiencia",
+                "dep-obs"
+            ].forEach(function (cls) {
+                var $campo = $card.find("." + cls);
 
+                if (!$campo.length || AdmissaoObrigatoriedade.campoOcultoPorRegra($campo)) return;
+
+                var $label = $campo
+                    .closest(".form-group")
+                    .find("label")
+                    .first();
+
+                if (
+                    $label.length &&
+                    $label.find(".asterisco-dinamico").length === 0
+                ) {
+                    $label.append(
+                        ' <span class="text-danger asterisco-dinamico">*</span>'
+                    );
+                }
+            });
+
+            if ($card.find(".dep-possui-deficiencia").val() === "Sim") {
+                var $campoTipoDeficiencia = $card.find(".dep-tipo-deficiencia");
+
+                if (AdmissaoObrigatoriedade.campoOcultoPorRegra($campoTipoDeficiencia)) return;
+
+                var $labelTipoDeficiencia = $campoTipoDeficiencia
+                    .closest(".form-group")
+                    .find("label")
+                    .first();
+
+                if (
+                    $labelTipoDeficiencia.length &&
+                    $labelTipoDeficiencia.find(".asterisco-dinamico").length === 0
+                ) {
+                    $labelTipoDeficiencia.append(
+                        ' <span class="text-danger asterisco-dinamico">*</span>'
+                    );
+                }
+            }
+
+            var parentescoDependente =
+                $card.find(".dep-parentesco").val() || "";
+
+            var isConjuge =
+                parentescoDependente === "Conjuge" ||
+                parentescoDependente === "Companheiro";
+
+            if (isConjuge) {
+                var $campoDataUniao = $card.find(".dep-data-uniao");
+
+                if (AdmissaoObrigatoriedade.campoOcultoPorRegra($campoDataUniao)) return;
+
+                var $labelDataUniao = $campoDataUniao
+                    .closest(".form-group")
+                    .find("label")
+                    .first();
+
+                if (
+                    $labelDataUniao.length &&
+                    $labelDataUniao.find(".asterisco-dinamico").length === 0
+                ) {
+                    $labelDataUniao.append(
+                        ' <span class="text-danger asterisco-dinamico">*</span>'
+                    );
+                }
+            }
+
+            if ($card.find(".dep-parentesco").val() === "Filho") {
+                [
+                    "dep-mae-nome",
+                    "dep-mae-cpf"
                 ].forEach(function (cls) {
-                    var $label = $card
-                        .find("." + cls)
+                    var $campoMae = $card.find("." + cls);
+
+                    if (!$campoMae.length || AdmissaoObrigatoriedade.campoOcultoPorRegra($campoMae)) return;
+
+                    var $labelMae = $campoMae
                         .closest(".form-group")
                         .find("label")
                         .first();
 
                     if (
-                        $label.length &&
-                        $label.find(".asterisco-dinamico").length === 0
+                        $labelMae.length &&
+                        $labelMae.find(".asterisco-dinamico").length === 0
                     ) {
-                        $label.append(
+                        $labelMae.append(
                             ' <span class="text-danger asterisco-dinamico">*</span>'
                         );
                     }
                 });
+            }
 
-                if ($card.find(".dep-possui-deficiencia").val() === "Sim") {
-                    var $labelTipoDeficiencia = $card
-                        .find(".dep-tipo-deficiencia")
-                        .closest(".form-group")
-                        .find("label")
-                        .first();
+            var $campoNomeMaeObservacao = $card.find(".dep-obs");
 
-                    if (
-                        $labelTipoDeficiencia.length &&
-                        $labelTipoDeficiencia.find(".asterisco-dinamico").length === 0
-                    ) {
-                        $labelTipoDeficiencia.append(
-                            ' <span class="text-danger asterisco-dinamico">*</span>'
-                        );
-                    }
+            if (
+                $campoNomeMaeObservacao.length &&
+                !AdmissaoObrigatoriedade.campoOcultoPorRegra($campoNomeMaeObservacao)
+            ) {
+                var $labelNomeMaeObservacao = $campoNomeMaeObservacao
+                    .closest(".form-group")
+                    .find("label")
+                    .first();
+
+                if (
+                    $labelNomeMaeObservacao.length &&
+                    $labelNomeMaeObservacao.find(".asterisco-dinamico").length === 0
+                ) {
+                    $labelNomeMaeObservacao.append(
+                        ' <span class="text-danger asterisco-dinamico">*</span>'
+                    );
                 }
-
-                var parentescoDependente =
-                    $card.find(".dep-parentesco").val() || "";
-
-                var isConjuge =
-                    parentescoDependente === "Conjuge" ||
-                    parentescoDependente === "Companheiro";
-
-                if (isConjuge) {
-                    var $labelDataUniao = $card
-                        .find(".dep-data-uniao")
-                        .closest(".form-group")
-                        .find("label")
-                        .first();
-
-                    if (
-                        $labelDataUniao.length &&
-                        $labelDataUniao.find(".asterisco-dinamico").length === 0
-                    ) {
-                        $labelDataUniao.append(
-                            ' <span class="text-danger asterisco-dinamico">*</span>'
-                        );
-                    }
-                }
-
-                if ($card.find(".dep-parentesco").val() === "Filho") {
-                    [
-                        "dep-mae-nome",
-                        "dep-mae-cpf"
-                    ].forEach(function (cls) {
-                        var $labelMae = $card
-                            .find("." + cls)
-                            .closest(".form-group")
-                            .find("label")
-                            .first();
-
-                        if (
-                            $labelMae.length &&
-                            $labelMae.find(".asterisco-dinamico").length === 0
-                        ) {
-                            $labelMae.append(
-                                ' <span class="text-danger asterisco-dinamico">*</span>'
-                            );
-                        }
-                    });
-                }
+            }
         });
     },
 
@@ -235,8 +320,21 @@ var AdmissaoObrigatoriedade = {
 
         this.atualizarAsteriscos(widget);
 
+        function normalizarTextoObrigatoriedadeValidacao(valor) {
+            var texto = String(valor || "").toLowerCase();
+
+            try {
+                texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            } catch (e) { }
+
+            return texto.trim();
+        }
+
         var regras = this.regras(widget);
         var $d = $("#AdmissaoWidget_" + widget.instanceId);
+        var tipoContratacao = this.obterTipoContratacao(widget);
+        var isAssociado = tipoContratacao === "Associado";
+        var isEstagio = tipoContratacao === "Estagiário";
         var valid = true;
         var msg = "";
 
@@ -265,7 +363,7 @@ var AdmissaoObrigatoriedade = {
                 var $c = $target.find("#" + id + "_" + widget.instanceId);
 
                 // Se a regra diz que é obrigatório e o campo existe neste passo/aba
-                if (regras[id]() && $c.length) {
+                if (regras[id]() && $c.length && !this.campoOcultoPorRegra($c)) {
                     if (!$c.val() || $c.val().trim() === "") {
                         var labelText = $c.closest(".form-group").find("label").first().text().replace("*", "").trim() || "Campo obrigatório";
                         erro("O campo <strong>" + labelText + "</strong> é obrigatório.", $c);
@@ -290,7 +388,7 @@ var AdmissaoObrigatoriedade = {
                     var tipoFiliacao = $card.attr("data-filiacao") || "";
 
                     if (tipoFiliacao === "pai" && !widget.cardFiliacaoTemConteudo($card)) return true;
-                    if (passo == 5 && (widget.jornadaAdmissao === "Estagio" || widget.jornadaAdmissao === "Estágio")) return true;
+                    if (passo == 5 && isEstagio) return true;
                     // Lista de classes obrigatórias nos cards
                     var obgDeps = [
                         { cls: "dep-parentesco", nome: "Parentesco" },
@@ -301,12 +399,16 @@ var AdmissaoObrigatoriedade = {
                         {
                             cls: "dep-possui-deficiencia",
                             nome: "Possui Deficiência?"
+                        },
+                        {
+                            cls: "dep-obs",
+                            nome: "Nome da Mãe"
                         }
                     ];
 
                     for (var d = 0; d < obgDeps.length; d++) {
                         var $f = $card.find("." + obgDeps[d].cls);
-                        if ($f.length && (!$f.val() || $f.val().trim() === "")) {
+                        if ($f.length && !AdmissaoObrigatoriedade.campoOcultoPorRegra($f) && (!$f.val() || $f.val().trim() === "")) {
                             return erro("O campo <strong>" + obgDeps[d].nome + "</strong> do dependente " + (index + 1) + " é obrigatório.", $f);
                         }
                     }
@@ -319,8 +421,9 @@ var AdmissaoObrigatoriedade = {
                             $card.find(".dep-tipo-deficiencia");
 
                         if (
-                            !$tipoDeficiencia.val() ||
-                            $tipoDeficiencia.val().trim() === ""
+                            !AdmissaoObrigatoriedade.campoOcultoPorRegra($tipoDeficiencia) &&
+                            (!$tipoDeficiencia.val() ||
+                                $tipoDeficiencia.val().trim() === "")
                         ) {
                             return erro(
                                 "O campo <strong>Tipo de Deficiência</strong> do dependente " +
@@ -343,8 +446,9 @@ var AdmissaoObrigatoriedade = {
                             $card.find(".dep-data-uniao");
 
                         if (
-                            !$dataUniao.val() ||
-                            $dataUniao.val().trim() === ""
+                            !AdmissaoObrigatoriedade.campoOcultoPorRegra($dataUniao) &&
+                            (!$dataUniao.val() ||
+                                $dataUniao.val().trim() === "")
                         ) {
                             return erro(
                                 "O campo <strong>Data de União/Casamento</strong> do dependente " +
@@ -372,8 +476,9 @@ var AdmissaoObrigatoriedade = {
                                 $card.find("." + camposMaeObrigatorios[m].cls);
 
                             if (
-                                !$campoMae.val() ||
-                                $campoMae.val().trim() === ""
+                                !AdmissaoObrigatoriedade.campoOcultoPorRegra($campoMae) &&
+                                (!$campoMae.val() ||
+                                    $campoMae.val().trim() === "")
                             ) {
                                 return erro(
                                     "O campo <strong>" +
@@ -387,21 +492,113 @@ var AdmissaoObrigatoriedade = {
                         }
                     }
 
-                    // Valida anexos obrigatórios visíveis do dependente
-                    var anexos = [
+                    var $campoNomeMaeObservacao = $card.find(".dep-obs");
+
+                    if (
+                        $campoNomeMaeObservacao.length &&
+                        !AdmissaoObrigatoriedade.campoOcultoPorRegra($campoNomeMaeObservacao) &&
+                        (!$campoNomeMaeObservacao.val() ||
+                            $campoNomeMaeObservacao.val().trim() === "")
+                    ) {
+                        return erro(
+                            "Informe o nome completo da mãe.",
+                            $campoNomeMaeObservacao
+                        );
+                    }
+
+                    var idadeDependente = null;
+
+                    if (widget && typeof widget.calcularIdadeDependente === "function") {
+                        idadeDependente = widget.calcularIdadeDependente(
+                            $card.find(".dep-nasc").val()
+                        );
+                    }
+
+                    var possuiCnhDependente =
+                        !!$card.find(".dep-base64-cnh").val();
+
+                    var cnhSubstituiIdentificacao =
+                        idadeDependente !== null &&
+                        idadeDependente >= 18 &&
+                        possuiCnhDependente;
+
+                    var anexosIdentificacao = [
                         { sel: ".doc-cpf", b64: ".dep-base64-cpf", nome: "CPF" },
                         { sel: ".doc-rg-frente", b64: ".dep-base64-rgf", nome: "RG Frente" },
-                        { sel: ".doc-rg-verso", b64: ".dep-base64-rgv", nome: "RG Verso" },
-                        { sel: ".doc-cert-nasc", b64: ".dep-base64-certnasc", nome: "Certidão" }
+                        { sel: ".doc-rg-verso", b64: ".dep-base64-rgv", nome: "RG Verso" }
                     ];
 
-                    for (var a = 0; a < anexos.length; a++) {
-                        var $sec = $card.find(anexos[a].sel);
-                        if ($sec.is(":visible") && !$card.find(anexos[a].b64).val()) {
-                            $sec.find(".upload-box").css("border", "2px solid #d9534f").effect("shake");
-                            return erro("O anexo de <strong>" + anexos[a].nome + "</strong> do dependente " + (index + 1) + " é obrigatório.");
+                    var exigeConjuntoIdentificacao = false;
+
+                    for (var ai = 0; ai < anexosIdentificacao.length; ai++) {
+                        if ($card.find(anexosIdentificacao[ai].sel).is(":visible")) {
+                            exigeConjuntoIdentificacao = true;
+                            break;
                         }
                     }
+
+                    if (exigeConjuntoIdentificacao && !cnhSubstituiIdentificacao) {
+                        for (var a = 0; a < anexosIdentificacao.length; a++) {
+                            var $secIdentificacao = $card.find(anexosIdentificacao[a].sel);
+
+                            if (
+                                $secIdentificacao.is(":visible") &&
+                                !$card.find(anexosIdentificacao[a].b64).val()
+                            ) {
+                                $secIdentificacao
+                                    .find(".upload-box")
+                                    .css("border", "2px solid #d9534f")
+                                    .effect("shake");
+
+                                return erro(
+                                    "O anexo de <strong>" +
+                                    anexosIdentificacao[a].nome +
+                                    "</strong> do dependente " +
+                                    (index + 1) +
+                                    " é obrigatório. Dependentes com 18 anos ou mais podem enviar a CNH no lugar de CPF, RG Frente e RG Verso.",
+                                    $secIdentificacao
+                                );
+                            }
+                        }
+                    }
+
+                    var anexosEspecificos = [
+                        { sel: ".doc-cert-nasc", b64: ".dep-base64-certnasc", nome: "Certidão" },
+                        { sel: ".doc-vacina", b64: ".dep-base64-vacina", nome: "Cartão de Vacina" }
+                    ];
+
+                    for (var e = 0; e < anexosEspecificos.length; e++) {
+                        var $secEspecifico = $card.find(anexosEspecificos[e].sel);
+
+                        if (
+                            $secEspecifico.is(":visible") &&
+                            !$card.find(anexosEspecificos[e].b64).val()
+                        ) {
+                            $secEspecifico
+                                .find(".upload-box")
+                                .css("border", "2px solid #d9534f")
+                                .effect("shake");
+
+                            return erro(
+                                "O anexo de <strong>" +
+                                anexosEspecificos[e].nome +
+                                "</strong> do dependente " +
+                                (index + 1) +
+                                " é obrigatório.",
+                                $secEspecifico
+                            );
+                        }
+                    }
+
+                    console.log("[Documentos Dependentes] Validação de equivalência CNH:", {
+                        dependente: index + 1,
+                        parentesco: parentescoDependente,
+                        idade: idadeDependente,
+                        exigeConjuntoIdentificacao: exigeConjuntoIdentificacao,
+                        possuiCnhDependente: possuiCnhDependente,
+                        cnhSubstituiIdentificacao: cnhSubstituiIdentificacao
+                    });
+
                     return valid;
                 });
             }
@@ -412,7 +609,7 @@ var AdmissaoObrigatoriedade = {
             var $selectOpcaoVT = $d.find("#cand_vt_opcao_" + widget.instanceId);
             var optoVT = ($selectOpcaoVT.val() === "Opto");
 
-            if (optoVT) {
+            if (optoVT && !this.campoOcultoPorRegra($selectOpcaoVT)) {
                 var $rotas = $target.find(".vt-card");
 
                 if ($rotas.length === 0) {
@@ -483,3 +680,4 @@ var AdmissaoObrigatoriedade = {
         return this.validarPasso(null, widget, $container);
     }
 };
+

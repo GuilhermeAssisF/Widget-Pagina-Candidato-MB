@@ -1114,6 +1114,179 @@ div[id^="AdmissaoWidget_"] .foto-step-actions.foto-step-actions-ios .foto-action
     cursor: pointer;
 }
 
+.plano-saude-auto-intro {
+    font-size: 13px;
+    color: var(--texto-secundario, #4b5563);
+    margin: 0 0 12px;
+}
+
+.plano-saude-auto-card {
+    border: 1px solid var(--borda-padrao, #d1d5db);
+    border-left: 4px solid var(--color-primary, #0b6bcb);
+    border-radius: 6px;
+    background: #fff;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+.plano-saude-auto-card.sem-plano {
+    border-left-color: #f0ad4e;
+    background: #fffaf0;
+}
+
+.plano-saude-auto-card.erro-plano {
+    border-left-color: #d9534f;
+    background: #fff5f5;
+}
+
+.plano-saude-auto-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.plano-saude-auto-label {
+    font-weight: 700;
+    color: var(--texto-padrao, #1f2937);
+}
+
+.plano-saude-auto-status {
+    display: inline-block;
+    border-radius: 999px;
+    background: #e7f3ff;
+    color: #0b5cab;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 6px 9px;
+    white-space: nowrap;
+}
+
+.plano-saude-auto-card.sem-plano .plano-saude-auto-status,
+.plano-saude-auto-card.erro-plano .plano-saude-auto-status {
+    background: #fff0d9;
+    color: #8a5a00;
+}
+
+.plano-saude-auto-nome {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--texto-padrao, #1f2937);
+    margin-bottom: 12px;
+}
+
+.plano-saude-auto-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.plano-saude-auto-grid>div {
+    border: 1px solid var(--borda-padrao, #d1d5db);
+    border-radius: 6px;
+    padding: 9px 10px;
+    background: #f9fafb;
+}
+
+.plano-saude-auto-grid small {
+    display: block;
+    color: var(--texto-secundario, #6b7280);
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.plano-saude-auto-grid strong {
+    display: block;
+    color: var(--texto-padrao, #1f2937);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.plano-saude-auto-mensagem {
+    color: var(--texto-secundario, #4b5563);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.plano-saude-valores {
+    border-top: 1px solid var(--borda-padrao, #d1d5db);
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+.plano-saude-valores-titulo {
+    color: var(--texto-padrao, #1f2937);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.plano-saude-valores-msg {
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 9px 10px;
+}
+
+.plano-saude-valores-msg.carregando,
+.plano-saude-valores-msg.info {
+    background: #f3f4f6;
+    color: var(--texto-secundario, #4b5563);
+}
+
+.plano-saude-valores-msg.erro {
+    background: #fff5f5;
+    color: #a94442;
+}
+
+.plano-saude-valores-tabela {
+    font-size: 12px;
+    margin-bottom: 0;
+}
+
+.plano-saude-valores-tabela th {
+    color: var(--texto-padrao, #1f2937);
+    font-weight: 700;
+}
+
+.plano-saude-valores-card {
+    background: #f9fafb;
+    border: 1px solid var(--borda-padrao, #d1d5db);
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.plano-saude-valores-card small,
+.plano-saude-valores-card em {
+    color: var(--texto-secundario, #6b7280);
+    display: block;
+    font-size: 11px;
+    font-style: normal;
+}
+
+.plano-saude-valores-card strong,
+.plano-saude-valores-card span {
+    color: var(--texto-padrao, #1f2937);
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 3px;
+}
+
+@media (max-width: 767px) {
+    .plano-saude-auto-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .plano-saude-auto-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ==========================================================================
    ALERTAS E AVISOS (NOVO DESIGN - CENTRO VERTICAL E FONT-AWESOME)
    ========================================================================== */

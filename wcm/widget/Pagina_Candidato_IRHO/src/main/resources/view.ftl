@@ -265,12 +265,6 @@
                                             <option value="8">Parda</option>
                                         </select>
                                     </div>
-                                    <div class="form-group col-md-3">
-                                        <label>Tipo Sanguíneo</label>
-                                        <select class="form-control" id="cand_tipo_sanguineo_${instanceId}">
-                                            <option value="">Carregando...</option>
-                                        </select>
-                                    </div>
                                 </div>
                                 <hr>
                                 <h4 style="color: #1eaad9;">Dados do RG</h4>
@@ -1055,29 +1049,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <i class="fa-solid fa-passport">
-                            </i>
-                            Passaporte (Opcional)
-                        </div>
-                        <div class="panel-body">
-                            <div class="row">
-                                <div class="form-group col-md-4">
-                                    <label>Número do Passaporte</label>
-                                    <input type="text" class="form-control" id="cand_passaporte_num_${instanceId}">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>Data de Emissão</label>
-                                    <input type="text" class="form-control fluig-calendar" id="cand_passaporte_emissao_${instanceId}" placeholder="DD/MM/AAAA">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>Data de Validade</label>
-                                    <input type="text" class="form-control fluig-calendar" id="cand_passaporte_validade_${instanceId}" placeholder="DD/MM/AAAA">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="text-right">
                         <button type="button" class="btn btn-info " data-next-tab="#tab_foto_${instanceId}">
                             Próxima Aba
@@ -1372,7 +1343,11 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
+                                <label>Nome da Mãe</label>
+                                <input type="text" class="form-control dep-obs" placeholder="Nome completo da mãe">
+                            </div>
+                            <div class="form-group col-md-3">
                                 <label>Possui Deficiência?</label>
                                 <select class="form-control dep-possui-deficiencia">
                                     <option value="">Selecione...</option>
@@ -1380,7 +1355,7 @@
                                     <option value="Sim">Sim</option>
                                 </select>
                             </div>
-                            <div class="form-group col-md-8 div-dep-tipo-deficiencia" style="display:none;">
+                            <div class="form-group col-md-3 div-dep-tipo-deficiencia" style="display:none;">
                                 <label>Tipo de Deficiência</label>
                                 <select class="form-control dep-tipo-deficiencia">
                                     <option value="">Selecione...</option>
@@ -1393,16 +1368,6 @@
                                     <option value="Reabilitado">Reabilitado</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="row">
-                            <#-- <div class="form-group col-md-4">
-                                <label>Cartão SUS</label>
-                                <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
-                        </div>
-                        -->
-                        <div class="form-group col-md-12">
-                            <label>Observação</label>
-                            <input type="text" class="form-control dep-obs" placeholder="Alguma observação?">
                         </div>
                     </div>
                     <div class="row">
@@ -1420,341 +1385,339 @@
                                 <option value="Sim">Sim</option>
                             </select>
                         </div>
-                        <#-- <div class="col-md-3 form-group div-salario-familia" style="display: none;">
-                            <label>Salário Família?</label>
-                            <select class="form-control dep-sf">
-                                <option value="Nao">Não</option>
-                                <option value="Sim">Sim</option>
-                            </select>
                     </div>
-                    -->
                 </div>
             </div>
         </div>
     </div>
-</div>
-</div>
-<div data-step-content="5" class="step-content">
-    <h3 class="section-title">
-        <i class="fa-solid fa-person-breastfeeding" style="color: rgb(177, 151, 252);">
-        </i>
-        Dependentes
-    </h3>
-    <div id="campos_filiacao_legacy_${instanceId}" style="display:none;">
-        <input type="hidden" id="cand_mae_nome_${instanceId}">
-        <input type="hidden" id="cand_mae_sexo_${instanceId}" value="Feminino">
-        <input type="hidden" id="cand_mae_est_civil_${instanceId}">
-        <input type="hidden" id="cand_mae_cpf_${instanceId}">
-        <input type="hidden" id="cand_mae_nasc_${instanceId}">
-        <input type="hidden" id="cand_pai_nome_${instanceId}">
-        <input type="hidden" id="cand_pai_sexo_${instanceId}" value="Masculino">
-        <input type="hidden" id="cand_pai_est_civil_${instanceId}">
-        <input type="hidden" id="cand_pai_cpf_${instanceId}">
-        <input type="hidden" id="cand_pai_nasc_${instanceId}">
+    <div data-step-content="5" class="step-content">
+        <h3 class="section-title">
+            <i class="fa-solid fa-person-breastfeeding" style="color: rgb(177, 151, 252);">
+            </i>
+            Dependentes
+        </h3>
+        <div id="campos_filiacao_legacy_${instanceId}" style="display:none;">
+            <input type="hidden" id="cand_mae_nome_${instanceId}">
+            <input type="hidden" id="cand_mae_sexo_${instanceId}" value="Feminino">
+            <input type="hidden" id="cand_mae_est_civil_${instanceId}">
+            <input type="hidden" id="cand_mae_cpf_${instanceId}">
+            <input type="hidden" id="cand_mae_nasc_${instanceId}">
+            <input type="hidden" id="cand_pai_nome_${instanceId}">
+            <input type="hidden" id="cand_pai_sexo_${instanceId}" value="Masculino">
+            <input type="hidden" id="cand_pai_est_civil_${instanceId}">
+            <input type="hidden" id="cand_pai_cpf_${instanceId}">
+            <input type="hidden" id="cand_pai_nasc_${instanceId}">
+        </div>
+        <div class="alert alert-info">
+            <i class="flaticon flaticon-info">
+            </i>
+            Adicione apenas os dependentes que deseja cadastrar. Mãe e pai são informados na etapa de Filiação.
+        </div>
+        <div id="container_dependentes_${instanceId}"></div>
+        <div class="row" style="margin-top: 20px;">
+            <div class="col-md-12 text-center">
+                <button type="button" class="btn btn-info " data-add-dependente>
+                    <i class="flaticon flaticon-plus"></i>
+                    Adicionar Dependente
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="alert alert-info">
-        <i class="flaticon flaticon-info">
-        </i>
-        Adicione apenas os dependentes que deseja cadastrar. Mãe e pai são informados na etapa de Filiação.
+    <div data-step-content="6" class="step-content">
+        <h3 class="section-title">
+            <i class="fa-solid fa-address-card" style="color: rgb(177, 151, 252);">
+            </i>
+            Benefícios
+        </h3>
+        <div class="panel panel-default">
+            <div class="panel-heading font-bold">
+                <i class="flaticon flaticon-bus icon-sm">
+                </i>
+                Vale Transporte
+            </div>
+            <div class="panel-body">
+                <div class="row">
+                    <div class="form-group col-md-12">
+                        <label>Em relação ao vale transporte, escolha uma das opções:</label>
+                        <select class="form-control" id="cand_vt_opcao_${instanceId}">
+                            <option value="">Selecione...</option>
+                            <option value="Opto">Opto pela Utilização do Vale Transporte</option>
+                            <option value="Nao opto">Não opto pela Utilização do Vale Transporte</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="div_vt_detalhes_${instanceId}" style="display: none; background-color: #f9f9f9; padding: 15px; border: 1px solid #eee; border-radius: 4px; margin-top: 10px;">
+                    <h5 class="text-info" style="margin-top:0;">
+                        <i class="flaticon flaticon-map-marker icon-sm">
+                        </i>
+                        Detalhes das Rotas de Transporte
+                    </h5>
+                    <div id="container_rotas_vt_${instanceId}">
+                    </div>
+                    <div class="row mt-10">
+                        <div class="col-md-12 text-center">
+                            <button type="button" class="btn btn-default " data-add-rota>
+                                <i class="flaticon flaticon-plus">
+                                </i>
+                                Adicionar Rota (Ida / Volta)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading font-bold">
+                <i class="flaticon flaticon-medical icon-sm">
+                </i>
+                Assistência Médica
+            </div>
+            <div class="panel-body">
+                <p class="plano-saude-auto-intro">
+                    Bem-vindo(a) à etapa de Assistência Médica! Aqui você encontrará o plano de saúde disponível de acordo com a sua elegibilidade, definida automaticamente pelo sistema com base na sua função e nas regras corporativas vigentes. Não é necessário escolher o plano — ele já estará pré-selecionado para você.
+                </p>
+                <p class="plano-saude-auto-intro">
+                    Caso queira, você também poderá incluir dependentes nesta etapa. Os valores individuais de cada dependente são de responsabilidade do colaborador e serão descontados em folha de pagamento, conforme a tabela de preços atual.
+                </p>
+                <p class="plano-saude-auto-intro">
+                    Revise as informações com atenção e, se identificar qualquer divergência, acione o RH antes de prosseguir.
+                </p>
+                <input type="hidden" id="cand_ps_opcao_${instanceId}" value="">
+                <div id="div_ps_planos_${instanceId}" style="display:none;">
+                    <select class="form-control" id="cand_ps_tipo_plano_${instanceId}">
+                        <option value="">Plano de saúde automático não carregado.</option>
+                    </select>
+                </div>
+                <div class="plano-saude-auto-card" id="card_plano_saude_preselecionado_${instanceId}">
+                    <div class="plano-saude-auto-header">
+                        <span class="plano-saude-auto-label">Plano conforme elegibilidade</span>
+                        <span class="plano-saude-auto-status" id="status_plano_saude_${instanceId}">Carregando regra...</span>
+                    </div>
+                    <div class="plano-saude-auto-nome" id="nome_plano_saude_${instanceId}">Aguardando dados da função.</div>
+                    <div class="plano-saude-auto-grid">
+                        <div>
+                            <small>Origem da regra</small>
+                            <strong id="origem_plano_saude_${instanceId}">Função no RM Totvs</strong>
+                        </div>
+                        <div>
+                            <small>Custeio do titular</small>
+                            <strong id="custeio_titular_plano_saude_${instanceId}">100% empresa</strong>
+                        </div>
+                        <div>
+                            <small>Custeio dos dependentes</small>
+                            <strong id="custeio_dependente_plano_saude_${instanceId}">100% colaborador</strong>
+                        </div>
+                        <div>
+                            <small>Valores vigentes</small>
+                            <strong id="valores_plano_saude_${instanceId}">Integração pendente</strong>
+                        </div>
+                    </div>
+                    <div class="plano-saude-auto-mensagem" id="mensagem_plano_saude_${instanceId}">
+                        O plano será definido automaticamente conforme a função cadastrada na admissão.
+                    </div>
+                    <div class="plano-saude-valores" id="planoSaudeValores_${instanceId}" style="display:none;">
+                        <div id="planoSaudeValoresConteudo_${instanceId}">
+                        </div>
+                    </div>
+                </div>
+                <div id="div_ps_dependentes_opcao_${instanceId}" style="display:none;">
+                    <div class="form-group">
+                        <label>DESEJA INCLUIR DEPENDENTES NO PLANO DE SAÚDE?</label>
+                        <select class="form-control" id="cand_ps_dependentes_opcao_${instanceId}">
+                            <option value="">Selecione...</option>
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="div_ps_detalhes_${instanceId}" style="display:none; background-color: #f9f9f9; padding: 15px; border: 1px solid #eee; border-radius: 4px; margin-bottom: 15px;">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label>Selecione os dependentes para inclusão:</label>
+                            <div id="container_dependentes_plano_${instanceId}" style="margin-bottom: 10px;">
+                            </div>
+                            <div id="msg_elegibilidade_plano_${instanceId}" class="alert alert-warning" style="display: none; margin-bottom: 0; font-size: 12px;">
+                                <i class="flaticon flaticon-info icon-sm">
+                                </i>
+                                Apenas
+                                <strong>Cônjuges</strong>
+                                e
+                                <strong>Filhos</strong>
+                                podem ser incluídos no plano de saúde. Não identificamos dependentes com este parentesco cadastrados na etapa de "Dependentes".
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading font-bold">
+                <i class="flaticon flaticon-face-smile icon-sm">
+                </i>
+                Plano Odontológico
+            </div>
+            <div class="panel-body">
+                <p id="texto_odonto_associado_${instanceId}" class="alert alert-info small" style="display:none; margin-bottom: 15px;">
+                    O plano odontológico é opcional. Caso opte pela adesão, selecione o plano disponível e, se desejar, inclua dependentes elegíveis. Os valores e condições aplicáveis serão apresentados conforme parametrização vigente.
+                </p>
+                <div class="row">
+                    <div class="form-group col-md-12">
+                        <label>Deseja aderir ao Plano Odontológico?</label>
+                        <select class="form-control" id="cand_po_opcao_${instanceId}">
+                            <option value="" selected>Selecione...</option>
+                            <option value="Sim">Sim</option>
+                            <option value="Nao">Não</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row" id="div_po_planos_${instanceId}" style="display:none;">
+                    <div class="form-group col-md-12">
+                        <label>Qual Plano deseja aderir?</label>
+                        <select class="form-control" id="cand_po_tipo_plano_${instanceId}">
+                            <option value="">Selecione o plano...</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="div_po_dependentes_${instanceId}" style="display:none; background-color: #f9f9f9; padding: 15px; border: 1px solid #eee; border-radius: 4px; margin-top: 15px;">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label>Selecione os dependentes para inclusão no Plano Odontológico:</label>
+                            <div id="container_dependentes_odonto_${instanceId}" style="margin-bottom: 10px;">
+                            </div>
+                            <div id="msg_elegibilidade_odonto_${instanceId}" class="alert alert-warning" style="display: none; margin-bottom: 0; font-size: 12px;">
+                                <i class="fa-solid fa-circle-info">
+                                </i>
+                                <strong>Atenção:</strong>
+                                Não identificamos dependentes elegíveis cadastrados na etapa de "Dependentes".
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="container_dependentes_${instanceId}"></div>
-    <div class="row" style="margin-top: 20px;">
-        <div class="col-md-12 text-center">
-            <button type="button" class="btn btn-info " data-add-dependente>
-                <i class="flaticon flaticon-plus"></i>
-                Adicionar Dependente
+    <div data-step-content="7" class="step-content">
+        <h3 class="section-title">
+            <i class="fa-solid fa-file-lines" style="color: rgb(177, 151, 252);">
+            </i>
+            Envio de Documentos
+        </h3>
+        <div style="background-color: #d9edf7; border: 1px solid #bce8f1; color: #31708f; padding: 15px; border-radius: 4px; display: flex; align-items: center; margin-bottom: 25px;">
+            <i class="flaticon flaticon-info icon-md" style="margin-right: 15px; font-size: 24px;">
+            </i>
+            <span>
+                <strong>Instrução:</strong>
+                Clique nos quadros abaixo para anexar ou fotografar cada documento solicitado.
+            </span>
+        </div>
+        <div class="row" id="container_documentos_fixos_${instanceId}">
+        </div>
+        <hr style="border-top: 1px dashed #ccc; margin: 10px 0 20px 0;">
+        <div class="row" id="container_documentos_dinamicos_${instanceId}">
+            <div class="col-md-12 text-center" style="padding: 40px;">
+                <i class="flaticon flaticon-refresh is-spinning icon-xl">
+                </i>
+                <br>
+                <span class="text-muted">Carregando lista de documentos...</span>
+            </div>
+        </div>
+        <div id="hidden_inputs_container_${instanceId}">
+        </div>
+    </div>
+    <div data-step-content="8" class="step-content">
+        <h3 class="section-title">
+            <i class="fa-solid fa-flag" style="color: rgb(177, 151, 252);">
+            </i>
+            Revisão e Envio
+        </h3>
+        <div id="resumo_container_${instanceId}" style="margin-bottom: 30px;">
+            <p class="text-center text-muted">
+                <i class="flaticon flaticon-refresh is-spinning">
+                </i>
+                Carregando resumo...
+            </p>
+        </div>
+        <div class="panel panel-info" id="painel_exame_admissional_${instanceId}" style="border-color: #bce8f1;">
+            <div class="panel-heading" style="background-color: #d9edf7; color: #31708f; border-color: #bce8f1;">
+                <i class="flaticon flaticon-medical">
+                </i>
+                <strong>Agendamento do Exame Admissional</strong>
+            </div>
+            <div class="panel-body">
+                <div class="row">
+                    <div class="form-group col-md-4">
+                        <label class="small text-muted">Data e Hora</label>
+                        <input type="text" class="form-control" id="cand_exame_datahora_${instanceId}" readonly style="background-color: #fff; font-weight:bold;">
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label class="small text-muted">Clínica</label>
+                        <input type="text" class="form-control" id="cand_exame_clinica_${instanceId}" readonly style="background-color: #fff; font-weight:bold;">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group col-md-12">
+                        <label class="small text-muted">Endereço</label>
+                        <input type="text" class="form-control" id="cand_exame_endereco_${instanceId}" readonly style="background-color: #fff; font-weight:bold;">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <label class="small text-muted">Orientação</label>
+                        <div class="well well-sm" style="margin-bottom: 0;">
+                            <span id="text_exame_orientacao_${instanceId}" class="text-info">Consulte as orientações no e-mail recebido.</span>
+                            <textarea id="cand_exame_orientacao_${instanceId}" style="display:none;">
+                            </textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="alert alert-success text-center" style="margin-top: 30px; padding: 20px;">
+            <i class="flaticon flaticon-check-circle icon-xl">
+            </i>
+            <br>
+            <h4 style="margin-top: 10px;">Tudo Pronto!</h4>
+            <p>
+                Confira os dados acima. Se estiver tudo correto, clique em
+                <strong>"Finalizar e Enviar"</strong>
+                abaixo.
+            </p>
+        </div>
+    </div>
+    </form>
+    <hr>
+    <div class="row widget-nav-footer"
+        style="display: flex; align-items: center; padding-bottom: 20px;">
+        <div class="col-xs-4 widget-nav-back">
+            <button type="button"
+                class="btn btn-default"
+                data-nav-back
+                disabled>
+                <i class="flaticon flaticon-arrow-left"></i>
+                Voltar
+            </button>
+        </div>
+        <div class="col-xs-4 text-center widget-nav-brand">
+            <img src="/Pagina_Candidato_IRHO/resources/images/LOGO-COMPLETA.png"
+                alt="Logo Interhativa"
+                style="max-height: 45px; max-width: 100%;">
+        </div>
+        <div class="col-xs-4 text-right widget-nav-next">
+            <button type="button"
+                class="btn btn-primary"
+                data-nav-next>
+                Próximo
+                <i class="flaticon flaticon-arrow-right"></i>
+            </button>
+            <button type="button"
+                class="btn btn-accept"
+                data-finish
+                style="display: none;">
+                Finalizar e Enviar
+                <i class="flaticon flaticon-send"></i>
             </button>
         </div>
     </div>
-</div>
-<div data-step-content="6" class="step-content">
-    <h3 class="section-title">
-        <i class="fa-solid fa-address-card" style="color: rgb(177, 151, 252);">
-        </i>
-        Benefícios
-    </h3>
-    <div class="panel panel-default">
-        <div class="panel-heading font-bold">
-            <i class="flaticon flaticon-bus icon-sm">
-            </i>
-            Vale Transporte
-        </div>
-        <div class="panel-body">
-            <div class="row">
-                <div class="form-group col-md-12">
-                    <label>Em relação ao vale transporte, escolha uma das opções:</label>
-                    <select class="form-control" id="cand_vt_opcao_${instanceId}">
-                        <option value="">Selecione...</option>
-                        <option value="Opto">Opto pela Utilização do Vale Transporte</option>
-                        <option value="Nao opto">Não opto pela Utilização do Vale Transporte</option>
-                    </select>
-                </div>
-            </div>
-            <div id="div_vt_detalhes_${instanceId}" style="display: none; background-color: #f9f9f9; padding: 15px; border: 1px solid #eee; border-radius: 4px; margin-top: 10px;">
-                <h5 class="text-info" style="margin-top:0;">
-                    <i class="flaticon flaticon-map-marker icon-sm">
-                    </i>
-                    Detalhes das Rotas de Transporte
-                </h5>
-                <div id="container_rotas_vt_${instanceId}">
-                </div>
-                <div class="row mt-10">
-                    <div class="col-md-12 text-center">
-                        <button type="button" class="btn btn-default " data-add-rota>
-                            <i class="flaticon flaticon-plus">
-                            </i>
-                            Adicionar Rota (Ida / Volta)
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="panel panel-default">
-        <div class="panel-heading font-bold">
-            <i class="flaticon flaticon-medical icon-sm">
-            </i>
-            Plano de Saúde
-        </div>
-        <div class="panel-body">
-            <div class="alert alert-info" style="font-size: 12px;">
-                <strong>Informações sobre o Plano de Saúde:</strong>
-                <br>
-                &bull; Plano disponível para colaboradores CLT.
-                <br>
-                &bull; Mensalidade do titular paga integralmente pela empresa.
-                <br>
-                &bull; Coparticipação (consultas e exames) por conta do colaborador.
-                <br>
-                &bull; Inclusão de dependentes é opcional, com custo integral (mensalidade + coparticipação) do colaborador.
-                <br>
-                &bull; Inclusões realizadas em até 30 dias corridos da admissão têm isenção de carência. Após esse prazo, aplicam-se as carências contratuais.
-            </div>
-            <div class="row">
-                <div class="form-group col-md-12">
-                    <label>DESEJA ADERIR AO PLANO DE SAÚDE?</label>
-                    <select class="form-control" id="cand_ps_opcao_${instanceId}">
-                        <option value="">Selecione...</option>
-                        <option value="Sim">Sim</option>
-                        <option value="Não">Não</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group col-md-12" id="div_ps_planos_${instanceId}" style="display:none;">
-                    <label for="cand_ps_tipo_plano_${instanceId}">
-                        Selecione o Plano de Saúde
-                        <span class="text-danger">*</span>
-                    </label>
-                    <select class="form-control" id="cand_ps_tipo_plano_${instanceId}">
-                        <option value="">Selecione o plano...</option>
-                    </select>
-                </div>
-            </div>
-            <div id="div_ps_dependentes_opcao_${instanceId}" style="display:none;">
-                <div class="form-group">
-                    <label>DESEJA INCLUIR DEPENDENTES NO PLANO DE SAÚDE?</label>
-                    <select class="form-control" id="cand_ps_dependentes_opcao_${instanceId}">
-                        <option value="">Selecione...</option>
-                        <option value="Sim">Sim</option>
-                        <option value="Não">Não</option>
-                    </select>
-                </div>
-            </div>
-            <div id="div_ps_detalhes_${instanceId}" style="display:none; background-color: #f9f9f9; padding: 15px; border: 1px solid #eee; border-radius: 4px; margin-bottom: 15px;">
-                <div class="row">
-                    <div class="col-md-12">
-                        <label>Selecione os dependentes para inclusão:</label>
-                        <div id="container_dependentes_plano_${instanceId}" style="margin-bottom: 10px;">
-                        </div>
-                        <div id="msg_elegibilidade_plano_${instanceId}" class="alert alert-warning" style="display: none; margin-bottom: 0; font-size: 12px;">
-                            <i class="flaticon flaticon-info icon-sm">
-                            </i>
-                            Apenas
-                            <strong>Cônjuges</strong>
-                            e
-                            <strong>Filhos</strong>
-                            podem ser incluídos no plano de saúde. Não identificamos dependentes com este parentesco cadastrados na etapa de "Dependentes".
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row" id="div_ps_custos_${instanceId}" style="display:none;">
-                <div class="col-md-12">
-                    <div class="well well-sm" style="font-size: 12px; color: #8a6d3b; background-color: #fcf8e3; border-color: #faebcc; margin-bottom: 0;">
-                        <strong>Atenção aos custos mensais:</strong>
-                        <br>
-                        <span id="texto_custo_plano_${instanceId}">Calculando valor para sua filial...</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="panel panel-default">
-        <div class="panel-heading font-bold">
-            <i class="flaticon flaticon-face-smile icon-sm">
-            </i>
-            Plano Odontológico
-        </div>
-        <div class="panel-body">
-            <div class="row">
-                <div class="form-group col-md-12">
-                    <label>Deseja aderir ao Plano Odontológico?</label>
-                    <select class="form-control" id="cand_po_opcao_${instanceId}">
-                        <option value="" selected>Selecione...</option>
-                        <option value="Sim">Sim</option>
-                        <option value="Nao">Não</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row" id="div_po_planos_${instanceId}" style="display:none;">
-                <div class="form-group col-md-12">
-                    <label>Qual Plano deseja aderir?</label>
-                    <select class="form-control" id="cand_po_tipo_plano_${instanceId}">
-                        <option value="">Selecione o plano...</option>
-                    </select>
-                </div>
-            </div>
-            <div id="div_po_dependentes_${instanceId}" style="display:none; background-color: #f9f9f9; padding: 15px; border: 1px solid #eee; border-radius: 4px; margin-top: 15px;">
-                <div class="row">
-                    <div class="col-md-12">
-                        <label>Selecione os dependentes para inclusão no Plano Odontológico:</label>
-                        <div id="container_dependentes_odonto_${instanceId}" style="margin-bottom: 10px;">
-                        </div>
-                        <div id="msg_elegibilidade_odonto_${instanceId}" class="alert alert-warning" style="display: none; margin-bottom: 0; font-size: 12px;">
-                            <i class="fa-solid fa-circle-info">
-                            </i>
-                            <strong>Atenção:</strong>
-                            Não identificamos dependentes elegíveis cadastrados na etapa de "Dependentes".
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<div data-step-content="7" class="step-content">
-    <h3 class="section-title">
-        <i class="fa-solid fa-file-lines" style="color: rgb(177, 151, 252);">
-        </i>
-        Envio de Documentos
-    </h3>
-    <div style="background-color: #d9edf7; border: 1px solid #bce8f1; color: #31708f; padding: 15px; border-radius: 4px; display: flex; align-items: center; margin-bottom: 25px;">
-        <i class="flaticon flaticon-info icon-md" style="margin-right: 15px; font-size: 24px;">
-        </i>
-        <span>
-            <strong>Instrução:</strong>
-            Clique nos quadros abaixo para anexar ou fotografar cada documento solicitado.
-        </span>
-    </div>
-    <div class="row" id="container_documentos_fixos_${instanceId}">
-    </div>
-    <hr style="border-top: 1px dashed #ccc; margin: 10px 0 20px 0;">
-    <div class="row" id="container_documentos_dinamicos_${instanceId}">
-        <div class="col-md-12 text-center" style="padding: 40px;">
-            <i class="flaticon flaticon-refresh is-spinning icon-xl">
-            </i>
-            <br>
-            <span class="text-muted">Carregando lista de documentos...</span>
-        </div>
-    </div>
-    <div id="hidden_inputs_container_${instanceId}">
-    </div>
-</div>
-<div data-step-content="8" class="step-content">
-    <h3 class="section-title">
-        <i class="fa-solid fa-flag" style="color: rgb(177, 151, 252);">
-        </i>
-        Revisão e Envio
-    </h3>
-    <div id="resumo_container_${instanceId}" style="margin-bottom: 30px;">
-        <p class="text-center text-muted">
-            <i class="flaticon flaticon-refresh is-spinning">
-            </i>
-            Carregando resumo...
-        </p>
-    </div>
-    <div class="panel panel-info" style="border-color: #bce8f1;">
-        <div class="panel-heading" style="background-color: #d9edf7; color: #31708f; border-color: #bce8f1;">
-            <i class="flaticon flaticon-medical">
-            </i>
-            <strong>Agendamento do Exame Admissional</strong>
-        </div>
-        <div class="panel-body">
-            <div class="row">
-                <div class="form-group col-md-4">
-                    <label class="small text-muted">Data e Hora</label>
-                    <input type="text" class="form-control" id="cand_exame_datahora_${instanceId}" readonly style="background-color: #fff; font-weight:bold;">
-                </div>
-                <div class="form-group col-md-8">
-                    <label class="small text-muted">Clínica</label>
-                    <input type="text" class="form-control" id="cand_exame_clinica_${instanceId}" readonly style="background-color: #fff; font-weight:bold;">
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group col-md-12">
-                    <label class="small text-muted">Endereço</label>
-                    <input type="text" class="form-control" id="cand_exame_endereco_${instanceId}" readonly style="background-color: #fff; font-weight:bold;">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12">
-                    <label class="small text-muted">Orientação</label>
-                    <div class="well well-sm" style="margin-bottom: 0;">
-                        <span id="text_exame_orientacao_${instanceId}" class="text-info">Consulte as orientações no e-mail recebido.</span>
-                        <textarea id="cand_exame_orientacao_${instanceId}" style="display:none;">
-                        </textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="alert alert-success text-center" style="margin-top: 30px; padding: 20px;">
-        <i class="flaticon flaticon-check-circle icon-xl">
-        </i>
-        <br>
-        <h4 style="margin-top: 10px;">Tudo Pronto!</h4>
-        <p>
-            Confira os dados acima. Se estiver tudo correto, clique em
-            <strong>"Finalizar e Enviar"</strong>
-            abaixo.
-        </p>
-    </div>
-</div>
-</form>
-<hr>
-<div class="row widget-nav-footer"
-    style="display: flex; align-items: center; padding-bottom: 20px;">
-    <div class="col-xs-4 widget-nav-back">
-        <button type="button"
-            class="btn btn-default"
-            data-nav-back
-            disabled>
-            <i class="flaticon flaticon-arrow-left"></i>
-            Voltar
-        </button>
-    </div>
-    <div class="col-xs-4 text-center widget-nav-brand">
-        <img src="/Pagina_Candidato_IRHO/resources/images/LOGO-COMPLETA.png"
-            alt="Logo Interhativa"
-            style="max-height: 45px; max-width: 100%;">
-    </div>
-    <div class="col-xs-4 text-right widget-nav-next">
-        <button type="button"
-            class="btn btn-primary"
-            data-nav-next>
-            Próximo
-            <i class="flaticon flaticon-arrow-right"></i>
-        </button>
-        <button type="button"
-            class="btn btn-accept"
-            data-finish
-            style="display: none;">
-            Finalizar e Enviar
-            <i class="flaticon flaticon-send"></i>
-        </button>
-    </div>
-</div>
 </div>
 </div>
 <style>
@@ -1961,10 +1924,10 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <input type="text" class="form-control dep-sus" placeholder="Nº Cartão SUS">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                             </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                             -->
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div class="form-group col-md-12">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <label>Observação</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <input type="text" class="form-control dep-obs" placeholder="Alguma observação sobre este dependente?">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div class="form-group col-md-12 div-nome-mae-observacao-dependente">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <label>Nome da Mãe</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <input type="text" class="form-control dep-obs" placeholder="Nome completo da mãe">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                             </div>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                             <div class="linha-incidencias-dependente">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <div class="form-group div-inc-irrf"
@@ -1999,7 +1962,7 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </i>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <h5 class="font-bold mt-10">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             CPF
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <span class="label label-warning" style="font-size:0.6em">OCR</span>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <span class="label label-warning dep-doc-ocr-label" style="font-size:0.6em">OCR</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </h5>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <p class="text-muted small dep-file-status" style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">Anexar CPF</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <button type="button" class="btn btn-default btn-xs dep-file-btn">Anexar</button>
@@ -2014,7 +1977,7 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </i>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <h5 class="font-bold mt-10">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     RG Frente
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span class="label label-warning" style="font-size:0.6em">OCR</span>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span class="label label-warning dep-doc-ocr-label" style="font-size:0.6em">OCR</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </h5>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <p class="text-muted small dep-file-status" style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">Anexar RG Frente</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <button type="button" class="btn btn-default btn-xs dep-file-btn">Anexar</button>
@@ -2029,7 +1992,7 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </i>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <h5 class="font-bold mt-10">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             RG Verso
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <span class="label label-warning" style="font-size:0.6em">OCR</span>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <span class="label label-warning dep-doc-ocr-label" style="font-size:0.6em">OCR</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </h5>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <p class="text-muted small dep-file-status" style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">Anexar RG Verso</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <button type="button" class="btn btn-default btn-xs dep-file-btn">Anexar</button>
@@ -2044,7 +2007,7 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </i>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <h5 class="font-bold mt-10">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     Cert. Nascimento
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span class="label label-warning" style="font-size:0.6em">OCR</span>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <span class="label label-warning dep-doc-ocr-label" style="font-size:0.6em">OCR</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </h5>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <p class="text-muted small dep-file-status" style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">Anexar Certidão</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 <button type="button" class="btn btn-default btn-xs dep-file-btn">Anexar</button>
@@ -2059,7 +2022,7 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </i>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <h5 class="font-bold mt-10">
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Cartão Vacina
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <span class="label label-warning" style="font-size:0.6em">OCR</span>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <span class="label label-warning dep-doc-ocr-label" style="font-size:0.6em">OCR</span>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         </h5>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <p class="text-muted small dep-file-status" style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">Opcional (até 5 anos)</p>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <button type="button" class="btn btn-default btn-xs dep-file-btn">Anexar</button>

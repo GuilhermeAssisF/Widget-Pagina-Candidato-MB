@@ -50,7 +50,6 @@ function preencherTudo(id) {
     setVal("cand_estado_civil_" + id, "Solteiro");
     setVal("cand_sexo_" + id, "Masculino");
     setVal("cand_raca_" + id, "2"); // Branca
-    setVal("cand_tipo_sanguineo_" + id, "O+");
 
     // RG E TÍTULO DE ELEITOR
     setVal("cand_rg_" + id, "12.345.678-9");
@@ -105,7 +104,7 @@ function preencherTudo(id) {
     setVal("cand_emergencia_telefone_" + id, "(11) 98765-4321");
 
     // =========================================================================
-    // DOCS EXTRAS (PIS, CTPS, SUS, Reservista, CNH, Reg. Profissional, Passaporte)
+    // DOCS EXTRAS (PIS, CTPS, SUS, Reservista, CNH, Reg. Profissional)
     // =========================================================================
     // setVal("cand_primeiro_emprego_" + id, "Nao"); 
     // setVal("cand_pis_" + id, "123.45678.90-1");
@@ -141,10 +140,6 @@ function preencherTudo(id) {
     setVal("cand_reg_prof_uf_" + id, "SP");
     setVal("cand_reg_prof_num_" + id, "123456");
     setVal("cand_reg_prof_emissao_" + id, "2019-02-20");
-
-    setVal("cand_passaporte_num_" + id, "FT123456");
-    setVal("cand_passaporte_emissao_" + id, "2020-03-10");
-    setVal("cand_passaporte_validade_" + id, "2030-03-10");
 
     // =========================================================================
     // FORMAÇÃO
